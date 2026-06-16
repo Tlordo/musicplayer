@@ -1,0 +1,24 @@
+# Зависимости Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Локальная база данных и конфигурация
+database.db
+config.json
+
+# Папки с загруженными медиафайлами и метаданными
+Data/
+public/
+
+# Конфиденциальные данные и сессии (ВАЖНО!)
+cookies.txt
+
+# Бинарники ffmpeg (их лучше не хранить в git, так как они много весят)
+ffmpeg/
+
+# Логи и временные файлы системы
+*.log
+.DS_Store
+Thumbs.db
