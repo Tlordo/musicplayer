@@ -27,7 +27,7 @@ node server.js
 ```
 или
 ```
-mpm start
+npm start
 ```
 После этого приложение будет доступно по адресу http://localhost:3000.
 
