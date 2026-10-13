@@ -6,11 +6,12 @@ yarn-error.log*
 
 # Локальная база данных и конфигурация
 database.db
+database.db-shm
+database.db-wal
 config.json
 
 # Папки с загруженными медиафайлами и метаданными
 Data/
-public/
 
 # Конфиденциальные данные и сессии (ВАЖНО!)
 cookies.txt
@@ -22,3 +23,9 @@ ffmpeg/
 *.log
 .DS_Store
 Thumbs.db
+# Сборка Rust
+target/
+
+# Рабочие файлы Impeccable (скриншоты, страницы выбора)
+.impeccable/review/
+.impeccable/questions/
