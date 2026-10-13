@@ -2,10 +2,12 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0a">
   <title>Music Player</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
 </head>
 <body>
   <div class="app">
@@ -15,66 +17,51 @@
         <div class="logo">
           <i class="fas fa-music"></i>
           <h1>Моя музыка</h1>
+          <button id="shortcuts-btn" class="icon-btn" title="Горячие клавиши (?)">
+            <i class="fas fa-keyboard"></i>
+          </button>
         </div>
         <div class="search-box">
           <i class="fas fa-search"></i>
-          <input type="text" id="search-input" placeholder="Поиск в библиотеке...">
-          <button id="clear-search" class="clear-search hidden">
+          <input type="text" id="search-input" placeholder="Поиск: название, исполнитель, альбом  ( / )" autocomplete="off">
+          <button id="clear-search" class="clear-search hidden" title="Очистить">
             <i class="fas fa-times"></i>
           </button>
         </div>
+        <div class="collections" id="collections"></div>
         <div class="stats">
           <span id="track-count">0 треков</span>
-          <span id="total-duration">0:00</span>
+          <span id="total-duration">0 мин</span>
         </div>
       </div>
-      
+
       <div class="playlist-container">
         <div class="playlist-header">
-          <h2>Плейлист</h2>
+          <h2 id="collection-title">Все треки</h2>
           <div class="view-options">
-            <button class="view-btn active" data-view="list" title="Список">
-              <i class="fas fa-list"></i>
-            </button>
-            <button class="view-btn" data-view="grid" title="Плитка">
-              <i class="fas fa-th"></i>
-            </button>
-            <button class="view-btn" data-view="compact" title="Компактный">
-              <i class="fas fa-grip-lines"></i>
-            </button>
-            <button class="view-btn" data-view="table" title="Таблица">
-              <i class="fas fa-table"></i>
-            </button>
+            <button class="view-btn active" data-view="list" title="Список"><i class="fas fa-list"></i></button>
+            <button class="view-btn" data-view="grid" title="Плитка"><i class="fas fa-th"></i></button>
+            <button class="view-btn" data-view="compact" title="Компактный"><i class="fas fa-grip-lines"></i></button>
+            <button class="view-btn" data-view="table" title="Таблица"><i class="fas fa-table"></i></button>
           </div>
           <div class="sort-options">
-            <button class="sort-btn active" data-sort="default" title="По дате добавления">
-              <i class="fas fa-clock"></i>
-            </button>
-            <button class="sort-btn" data-sort="title" title="По названию">
-              <i class="fas fa-sort-alpha-down"></i>
-            </button>
-            <button class="sort-btn" data-sort="artist" title="По исполнителю">
-              <i class="fas fa-user"></i>
-            </button>
-            <button class="sort-btn" data-sort="album" title="По альбому">
-              <i class="fas fa-compact-disc"></i>
-            </button>
+            <select id="sort-select" title="Сортировка">
+              <option value="default">По умолчанию</option>
+              <option value="title">Название</option>
+              <option value="artist">Исполнитель</option>
+              <option value="album">Альбом</option>
+              <option value="duration">Длительность</option>
+              <option value="plays">Прослушивания</option>
+              <option value="recent">Недавно играли</option>
+            </select>
+            <button id="sort-dir" class="sort-btn" title="Направление сортировки"><i class="fas fa-arrow-down-short-wide"></i></button>
+            <button id="play-all" class="sort-btn" title="Воспроизвести всё"><i class="fas fa-play"></i></button>
           </div>
         </div>
-        
-        <!-- Представление: Список -->
-        <ul id="playlist-list" class="playlist-list">
-        </ul>
-        
-        <!-- Представление: Плитка -->
-        <div id="playlist-grid" class="playlist-grid hidden">
-        </div>
-        
-        <!-- Представление: Компактный -->
-        <ul id="playlist-compact" class="playlist-compact hidden">
-        </ul>
-        
-        <!-- Представление: Таблица -->
+
+        <ul id="playlist-list" class="playlist-list"></ul>
+        <div id="playlist-grid" class="playlist-grid hidden"></div>
+        <ul id="playlist-compact" class="playlist-compact hidden"></ul>
         <div id="playlist-table" class="playlist-table hidden">
           <table>
             <thead>
@@ -84,91 +71,80 @@
                 <th>Название</th>
                 <th>Исполнитель</th>
                 <th>Альбом</th>
-                <th>Длительность</th>
+                <th>Время</th>
               </tr>
             </thead>
-            <tbody id="table-body">
-            </tbody>
+            <tbody id="table-body"></tbody>
           </table>
         </div>
+        <div id="empty-state" class="empty-state hidden">
+          <i class="fas fa-compact-disc"></i>
+          <p id="empty-text">Библиотека пуста</p>
+        </div>
       </div>
-      
+
       <div class="sidebar-footer">
         <button id="add-btn" class="add-track-btn">
           <i class="fas fa-plus"></i>
-          <span>Добавить трек</span>
+          <span>Добавить</span>
         </button>
-        <button id="toggle-sidebar" class="toggle-sidebar-btn" title="Скрыть панель">
+        <button id="jobs-btn" class="toggle-sidebar-btn" title="Загрузки">
+          <i class="fas fa-cloud-arrow-down"></i>
+          <span id="jobs-badge" class="badge hidden">0</span>
+        </button>
+        <button id="toggle-sidebar" class="toggle-sidebar-btn" title="Скрыть панель (B)">
           <i class="fas fa-chevron-left"></i>
         </button>
       </div>
     </aside>
 
-    <!-- Кнопка показа скрытого сайдбара -->
-    <button id="show-sidebar" class="show-sidebar-btn hidden" title="Показать панель">
+    <button id="show-sidebar" class="show-sidebar-btn hidden" title="Показать панель (B)">
       <i class="fas fa-chevron-right"></i>
     </button>
 
     <!-- Основная панель плеера -->
     <main class="player-panel">
       <div class="background-blur" id="background-blur"></div>
-      
-      <!-- Визуализатор -->
       <canvas id="visualizer" class="visualizer"></canvas>
-      
+
       <div class="player-content">
-        <!-- Информация о текущем треке -->
         <div class="track-display">
           <div class="cover-container">
-            <img id="cover" src="" alt="Обложка" class="cover">
+            <img id="cover" alt="" class="cover">
             <div class="cover-overlay">
-              <button id="expand-cover" title="Увеличить обложку">
-                <i class="fas fa-expand"></i>
-              </button>
+              <button id="expand-cover" title="Увеличить обложку"><i class="fas fa-expand"></i></button>
             </div>
-            <!-- Индикатор воспроизведения на обложке -->
             <div class="playing-animation" id="playing-animation">
-              <span class="bar"></span>
-              <span class="bar"></span>
-              <span class="bar"></span>
-              <span class="bar"></span>
+              <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
             </div>
           </div>
-          
+
           <div class="track-details">
             <div class="track-meta">
-              <span id="track-album" class="album-name">Альбом</span>
+              <span id="track-album" class="album-name">—</span>
               <span class="dot">•</span>
-              <span id="track-year" class="year">2024</span>
+              <span id="track-year" class="year"></span>
               <span class="dot">•</span>
               <span id="track-quality" class="quality">HQ</span>
             </div>
             <h2 id="track-title" class="track-title-main">Выберите трек</h2>
             <p id="track-artist" class="track-artist-main">Исполнитель</p>
             <div class="track-stats">
-              <span id="track-views" title="Просмотры">
-                <i class="fas fa-eye"></i> 0
-              </span>
-              <span id="track-likes" title="Лайки">
-                <i class="fas fa-heart"></i> 0
-              </span>
-              <span id="track-bitrate" title="Битрейт">
-                <i class="fas fa-wave-square"></i> 0 kbps
-              </span>
+              <span id="track-views" title="Просмотры"><i class="fas fa-eye"></i> 0</span>
+              <span id="track-likes" title="Лайки"><i class="fas fa-thumbs-up"></i> 0</span>
+              <span id="track-plays" title="Прослушивания"><i class="fas fa-headphones"></i> 0</span>
+              <span id="track-bitrate" title="Битрейт"><i class="fas fa-wave-square"></i> —</span>
             </div>
           </div>
         </div>
 
-        <!-- Прогресс с волновой формой -->
         <div class="progress-section">
-          <div class="waveform-container" id="waveform">
-            <!-- Генерируется динамически -->
-          </div>
+          <div class="waveform-container" id="waveform" title="Перемотка"></div>
           <div class="progress-bar-container">
             <div class="progress-bar" id="progress-bar">
               <div class="progress-fill" id="progress-fill"></div>
-              <div class="progress-thumb" id="progress-thumb"></div>
               <div class="progress-hover" id="progress-hover"></div>
+              <div class="progress-tooltip" id="progress-tooltip">0:00</div>
             </div>
           </div>
           <div class="time-display">
@@ -177,41 +153,25 @@
           </div>
         </div>
 
-        <!-- Управление -->
         <div class="controls-section">
           <div class="main-controls">
-            <button id="shuffle-btn" class="control-btn" title="Перемешать">
-              <i class="fas fa-random"></i>
-            </button>
-            <button id="prev-btn" class="control-btn" title="Предыдущий">
-              <i class="fas fa-step-backward"></i>
-            </button>
-            <button id="play-btn" class="play-btn" title="Воспроизвести">
-              <i class="fas fa-play"></i>
-            </button>
-            <button id="next-btn" class="control-btn" title="Следующий">
-              <i class="fas fa-step-forward"></i>
-            </button>
-            <button id="repeat-btn" class="control-btn" title="Повторять">
-              <i class="fas fa-redo"></i>
-            </button>
+            <button id="shuffle-btn" class="control-btn" title="Перемешать (S)"><i class="fas fa-random"></i></button>
+            <button id="prev-btn" class="control-btn" title="Предыдущий (P)"><i class="fas fa-step-backward"></i></button>
+            <button id="play-btn" class="play-btn" title="Воспроизвести (Пробел)"><i class="fas fa-play"></i></button>
+            <button id="next-btn" class="control-btn" title="Следующий (N)"><i class="fas fa-step-forward"></i></button>
+            <button id="repeat-btn" class="control-btn" title="Повтор (R)"><i class="fas fa-redo"></i><span class="repeat-badge hidden">1</span></button>
           </div>
-          
+
           <div class="additional-controls">
+            <button id="fav-btn" class="control-btn-small" title="В избранное (L)"><i class="far fa-heart"></i></button>
             <div class="volume-control">
-              <button id="volume-btn" class="control-btn-small">
-                <i class="fas fa-volume-up"></i>
-              </button>
+              <button id="volume-btn" class="control-btn-small" title="Без звука (M)"><i class="fas fa-volume-up"></i></button>
               <div class="volume-slider-container">
-                <input type="range" id="volume-slider" class="volume-slider" 
-                       min="0" max="100" value="75">
+                <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="75">
               </div>
             </div>
-            
             <div class="speed-control">
-              <button id="speed-btn" class="control-btn-small">
-                <span>1x</span>
-              </button>
+              <button id="speed-btn" class="control-btn-small" title="Скорость"><span>1x</span></button>
               <div class="speed-options" id="speed-options">
                 <button data-speed="0.5">0.5x</button>
                 <button data-speed="0.75">0.75x</button>
@@ -221,63 +181,119 @@
                 <button data-speed="2">2x</button>
               </div>
             </div>
-
-            <!-- Кнопка визуализатора -->
-            <button id="visualizer-btn" class="control-btn-small active" title="Визуализатор">
-              <i class="fas fa-chart-bar"></i>
-            </button>
-            
-            <button id="download-btn" class="control-btn-small" title="Скачать">
-              <i class="fas fa-download"></i>
-            </button>
-            
-            <button id="delete-btn" class="control-btn-small" title="Удалить">
-              <i class="fas fa-trash"></i>
-            </button>
+            <button id="queue-btn" class="control-btn-small" title="Очередь (Q)"><i class="fas fa-list-ol"></i></button>
+            <button id="visualizer-btn" class="control-btn-small active" title="Визуализатор (V)"><i class="fas fa-chart-bar"></i></button>
+            <button id="sleep-btn" class="control-btn-small" title="Таймер сна"><i class="fas fa-moon"></i></button>
+            <button id="more-btn" class="control-btn-small" title="Ещё"><i class="fas fa-ellipsis"></i></button>
           </div>
         </div>
-
       </div>
     </main>
   </div>
 
-  <!-- Модальное окно добавления трека -->
+  <!-- Добавление треков -->
   <div id="add-modal" class="modal hidden">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Добавить трек</h2>
-        <button class="close-btn">&times;</button>
+        <h2>Добавить музыку</h2>
+        <button class="close-btn" title="Закрыть">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="input-group">
+        <div class="input-group textarea">
           <i class="fas fa-link"></i>
-          <input type="text" id="url-input" placeholder="Вставьте ссылку YouTube Music">
+          <textarea id="url-input" rows="3" placeholder="Ссылки на треки или плейлисты — по одной в строке"></textarea>
         </div>
         <div class="url-examples">
-          <p>Примеры ссылок:</p>
+          <p>Поддерживаются треки, плейлисты и альбомы YouTube / YouTube Music и всё, что умеет yt-dlp:</p>
           <code>https://music.youtube.com/watch?v=VIDEO_ID</code>
+          <code>https://youtube.com/playlist?list=PLAYLIST_ID</code>
           <code>https://youtu.be/VIDEO_ID</code>
         </div>
         <div id="add-status" class="status-message"></div>
-        <!-- Прогресс загрузки -->
-        <div id="download-progress" class="download-progress hidden">
-          <div class="progress-bar-mini">
-            <div class="progress-fill-mini" id="progress-fill-mini"></div>
-          </div>
-          <span id="progress-text">0%</span>
-        </div>
       </div>
       <div class="modal-footer">
-        <button id="cancel-add" class="secondary-btn">Отмена</button>
-        <button id="submit-add" class="primary-btn">
-          <i class="fas fa-download"></i>
-          Загрузить
-        </button>
+        <button class="secondary-btn close-btn">Отмена</button>
+        <button id="submit-add" class="primary-btn"><i class="fas fa-download"></i> Загрузить</button>
       </div>
     </div>
   </div>
 
-  <!-- Модальное окно полноэкранной обложки -->
+  <!-- Загрузки -->
+  <div id="jobs-modal" class="modal hidden">
+    <div class="modal-content wide">
+      <div class="modal-header">
+        <h2>Загрузки</h2>
+        <div class="header-actions">
+          <button id="clear-jobs" class="secondary-btn small">Очистить завершённые</button>
+          <button class="close-btn" title="Закрыть">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <ul id="jobs-list" class="jobs-list"></ul>
+        <p id="jobs-empty" class="muted center">Загрузок пока нет</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Очередь -->
+  <div id="queue-modal" class="modal hidden">
+    <div class="modal-content wide">
+      <div class="modal-header">
+        <h2>Очередь</h2>
+        <div class="header-actions">
+          <button id="clear-queue" class="secondary-btn small">Очистить</button>
+          <button class="close-btn" title="Закрыть">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <h3 class="section-title">Сейчас играет</h3>
+        <ul id="queue-now" class="queue-list"></ul>
+        <h3 class="section-title">Далее в очереди</h3>
+        <ul id="queue-user" class="queue-list"></ul>
+        <h3 class="section-title">Далее из «<span id="queue-context-name"></span>»</h3>
+        <ul id="queue-context" class="queue-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Редактирование -->
+  <div id="edit-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Редактировать</h2>
+        <button class="close-btn" title="Закрыть">&times;</button>
+      </div>
+      <form id="edit-form" class="modal-body form">
+        <label>Название <input name="title" required maxlength="300"></label>
+        <label>Исполнитель <input name="artist" required maxlength="300"></label>
+        <label>Альбом <input name="album" required maxlength="300"></label>
+        <div class="modal-footer">
+          <button type="button" class="secondary-btn close-btn">Отмена</button>
+          <button type="submit" class="primary-btn"><i class="fas fa-check"></i> Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Выбор плейлиста -->
+  <div id="playlist-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Добавить в плейлист</h2>
+        <button class="close-btn" title="Закрыть">&times;</button>
+      </div>
+      <div class="modal-body">
+        <ul id="playlist-choices" class="choice-list"></ul>
+        <form id="new-playlist-form" class="input-group inline">
+          <i class="fas fa-plus"></i>
+          <input name="name" placeholder="Новый плейлист" maxlength="100" required>
+          <button type="submit" class="primary-btn small">Создать</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Обложка -->
   <div id="cover-modal" class="modal hidden">
     <div class="cover-fullscreen">
       <button class="close-btn">&times;</button>
@@ -285,15 +301,41 @@
     </div>
   </div>
 
-  <!-- Модальное окно информации о треке -->
+  <!-- Информация -->
   <div id="info-modal" class="modal hidden">
     <div class="modal-content">
       <div class="modal-header">
         <h2>Информация о треке</h2>
         <button class="close-btn">&times;</button>
       </div>
-      <div class="modal-body" id="track-info-content">
-        <!-- Заполняется динамически -->
+      <div class="modal-body" id="track-info-content"></div>
+    </div>
+  </div>
+
+  <!-- Горячие клавиши -->
+  <div id="shortcuts-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Горячие клавиши</h2>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <dl class="shortcuts">
+          <dt><kbd>Пробел</kbd></dt><dd>Пауза / воспроизведение</dd>
+          <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Перемотка на 5 с (с Shift — 30 с)</dd>
+          <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Громкость</dd>
+          <dt><kbd>N</kbd> / <kbd>P</kbd></dt><dd>Следующий / предыдущий</dd>
+          <dt><kbd>0</kbd>…<kbd>9</kbd></dt><dd>Перейти к 0%…90% трека</dd>
+          <dt><kbd>S</kbd> / <kbd>R</kbd></dt><dd>Перемешивание / повтор</dd>
+          <dt><kbd>L</kbd></dt><dd>В избранное</dd>
+          <dt><kbd>M</kbd></dt><dd>Без звука</dd>
+          <dt><kbd>Q</kbd></dt><dd>Очередь</dd>
+          <dt><kbd>V</kbd></dt><dd>Визуализатор</dd>
+          <dt><kbd>B</kbd></dt><dd>Скрыть / показать библиотеку</dd>
+          <dt><kbd>/</kbd></dt><dd>Поиск</dd>
+          <dt><kbd>A</kbd></dt><dd>Добавить трек (или просто вставьте ссылку Ctrl+V)</dd>
+          <dt><kbd>Esc</kbd></dt><dd>Закрыть окно</dd>
+        </dl>
       </div>
     </div>
   </div>
@@ -306,15 +348,12 @@
     </button>
     <button class="bottom-nav-btn active" data-tab="library" title="Библиотека">
       <i class="fas fa-list"></i>
-      <span>МОЁ</span>
+      <span>Библиотека</span>
     </button>
   </nav>
 
-  <!-- Уведомления -->
   <div id="notifications" class="notifications"></div>
-
   <audio id="audio" preload="auto" crossorigin="anonymous"></audio>
-
   <script src="script.js"></script>
 </body>
 </html>
