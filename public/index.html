@@ -2,319 +2,231 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Music Player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#16171b">
+  <title>МК-60 · Моя музыка</title>
+  <link rel="preload" href="fonts/neucha-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-  <div class="app">
-    <!-- Сайдбар с библиотекой -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">
-          <i class="fas fa-music"></i>
-          <h1>Моя музыка</h1>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-prev" viewBox="0 0 24 24"><path d="M11 6 3 12l8 6zM21 6l-8 6 8 6z" fill="currentColor"/></symbol>
+      <symbol id="i-next" viewBox="0 0 24 24"><path d="m13 6 8 6-8 6zM3 6l8 6-8 6z" fill="currentColor"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15L19.5 12z" fill="currentColor"/></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><path d="M6.5 5h4v14h-4zM13.5 5h4v14h-4z" fill="currentColor"/></symbol>
+      <symbol id="i-card" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM8 9h8M8 12.5h8M8 16h5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+      <symbol id="i-tape" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="11" r="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="15.5" cy="11" r="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6.5 19l1.5-3h8l1.5 3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+      <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3 7h3.5c4.5 0 6.5 10 11 10H21M3 17h3.5c1.6 0 2.8-1.2 3.8-2.8M13.7 9.8C14.7 8.2 15.9 7 17.5 7H21M18 4l3 3-3 3M18 14l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M4 11V9a3 3 0 0 1 3-3h13M17 3l3 3-3 3M20 13v2a3 3 0 0 1-3 3H4M7 21l-3-3 3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="m16 9 5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-erase" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6.5 7l1 13h9l1-13M10 11v5M14 11v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-meter" viewBox="0 0 24 24"><path d="M3 17a9 9 0 0 1 18 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m12 17 4-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-fold" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-tick" viewBox="0 0 24 24"><path d="M3.5 13.5c2 1.2 3.4 2.8 4.6 5 2.6-6 6.4-10.5 12.4-14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="app" id="app" data-tab="card">
+    <!-- ============ Вкладыш: библиотека ============ -->
+    <section class="jcard" id="jcard" aria-label="Вкладыш — библиотека">
+      <header class="jcard-head">
+        <div class="brand">
+          <span class="brand-mk">МК-60</span>
+          <span class="brand-sub">магнитофонная кассета · тип I</span>
         </div>
-        <div class="search-box">
-          <i class="fas fa-search"></i>
-          <input type="text" id="search-input" placeholder="Поиск в библиотеке...">
-          <button id="clear-search" class="clear-search hidden">
-            <i class="fas fa-times"></i>
+        <div class="stripes" aria-hidden="true"><i></i><i></i><i></i></div>
+      </header>
+
+      <div class="jcard-owner">
+        <span class="form-label">запись</span>
+        <span class="hand owner-name">моя музыка</span>
+        <span class="side-mark">сторона <b>А</b></span>
+        <span class="jcard-stats"><span id="track-count">0 треков</span> · <span id="total-duration">0:00</span></span>
+      </div>
+
+      <div class="jcard-tools">
+        <label class="search-line">
+          <span class="form-label">найти</span>
+          <input type="search" id="search-input" class="hand" placeholder="название, исполнитель…" autocomplete="off" enterkeyhint="search">
+          <button type="button" id="clear-search" class="icon-btn small" aria-label="Очистить поиск" hidden><svg><use href="#i-x"/></svg></button>
+        </label>
+        <fieldset class="sort-boxes">
+          <legend class="form-label">порядок</legend>
+          <label><input type="radio" name="sort" value="added" checked><span class="box"><svg><use href="#i-tick"/></svg></span>новые</label>
+          <label><input type="radio" name="sort" value="artist"><span class="box"><svg><use href="#i-tick"/></svg></span>артист</label>
+          <label><input type="radio" name="sort" value="title"><span class="box"><svg><use href="#i-tick"/></svg></span>название</label>
+          <label><input type="radio" name="sort" value="album"><span class="box"><svg><use href="#i-tick"/></svg></span>альбом</label>
+        </fieldset>
+      </div>
+
+      <div class="form-head" aria-hidden="true">
+        <span>№</span><span>наименование</span><span>время</span>
+      </div>
+
+      <div class="tracklist-wrap">
+        <ol class="tracklist" id="tracklist" aria-label="Треки"></ol>
+        <div class="empty" id="empty-state" hidden>
+          <p class="hand empty-title" id="empty-title">Кассета чистая</p>
+          <p class="empty-text" id="empty-text">Запишите первый трек — вставьте ссылку с YouTube или YouTube Music.</p>
+        </div>
+      </div>
+
+      <footer class="jcard-foot">
+        <button type="button" id="add-btn" class="stamp">
+          <span class="rec-dot" aria-hidden="true"></span>записать трек
+        </button>
+        <button type="button" id="fold-btn" class="icon-btn fold-btn" aria-label="Свернуть вкладыш" title="Свернуть вкладыш (B)"><svg><use href="#i-fold"/></svg></button>
+      </footer>
+    </section>
+
+    <!-- ============ Кассета: плеер ============ -->
+    <main class="player" id="player" aria-label="Плеер">
+      <div class="deck-top">
+        <span class="side-badge" id="side-badge">А</span>
+        <div class="counter" id="counter" aria-label="Прошло времени">
+          <span class="counter-label">счётчик</span>
+          <span class="wheels" id="counter-wheels"></span>
+        </div>
+        <button type="button" id="unfold-btn" class="icon-btn unfold-btn" aria-label="Показать вкладыш" title="Показать вкладыш (B)"><svg><use href="#i-card"/></svg></button>
+      </div>
+
+      <div class="cassette-slot">
+        <div class="cassette" id="cassette">
+          <svg class="innards" viewBox="0 0 316 200" aria-hidden="true">
+            <defs>
+              <radialGradient id="pack" cx="50%" cy="50%" r="50%">
+                <stop offset="30%" stop-color="#7a5236"/><stop offset="94%" stop-color="#4a2f1f"/><stop offset="100%" stop-color="#2a1a10"/>
+              </radialGradient>
+              <linearGradient id="smoke" x1="0" y1="0" x2="0.35" y2="1">
+                <stop offset="0" stop-color="#3a3d46" stop-opacity="0.78"/>
+                <stop offset="0.45" stop-color="#22242a" stop-opacity="0.8"/>
+                <stop offset="1" stop-color="#16171b" stop-opacity="0.86"/>
+              </linearGradient>
+            </defs>
+            <!-- то, что видно сквозь дымчатый корпус -->
+            <path id="tape-path" class="tape-run" d=""/>
+            <circle id="pack-l" cx="118" cy="97" r="40" fill="url(#pack)"/>
+            <circle id="pack-r" cx="198" cy="97" r="16" fill="url(#pack)"/>
+            <g class="roller"><circle cx="34" cy="176" r="7"/><circle cx="34" cy="176" r="2.5"/></g>
+            <g class="roller"><circle cx="282" cy="176" r="7"/><circle cx="282" cy="176" r="2.5"/></g>
+            <rect class="pad" x="146" y="181" width="24" height="7" rx="1.5"/>
+            <!-- корпус: дымчатый пластик с окном -->
+            <path class="shell" fill="url(#smoke)" fill-rule="evenodd"
+              d="M14 0H302A14 14 0 0 1 316 14V186A14 14 0 0 1 302 200H14A14 14 0 0 1 0 186V14A14 14 0 0 1 14 0Z M98 74H218A6 6 0 0 1 224 80V114A6 6 0 0 1 218 120H98A6 6 0 0 1 92 114V80A6 6 0 0 1 98 74Z"/>
+            <rect class="glass" x="92" y="74" width="132" height="46" rx="6"/>
+            <path class="ribs" d="M10 150H70M246 150H306M10 156H64M252 156H306"/>
+            <path class="foot" d="M74 200L84 160H232L242 200Z"/>
+            <g class="foot-holes"><circle cx="122" cy="182" r="3.6"/><circle cx="146" cy="174" r="3"/><circle cx="170" cy="174" r="3"/><circle cx="194" cy="182" r="3.6"/></g>
+            <g class="screws"><circle cx="10" cy="9" r="4"/><circle cx="306" cy="9" r="4"/><circle cx="10" cy="191" r="4"/><circle cx="306" cy="191" r="4"/><circle cx="158" cy="190" r="3.4"/></g>
+            <!-- ступицы видны в окне -->
+            <g id="hub-l" class="hub"><circle cx="118" cy="97" r="10"/><path d="M118 87.5v5M118 101.5v5M109.8 92.2l4.3 2.5M121.9 99.3l4.3 2.5M109.8 101.8l4.3-2.5M121.9 94.7l4.3-2.5"/></g>
+            <g id="hub-r" class="hub"><circle cx="198" cy="97" r="10"/><path d="M198 87.5v5M198 101.5v5M189.8 92.2l4.3 2.5M201.9 99.3l4.3 2.5M189.8 101.8l4.3-2.5M201.9 94.7l4.3-2.5"/></g>
+          </svg>
+          <button type="button" class="label" id="cover-btn" aria-label="Открыть обложку">
+            <span class="label-art" id="label-art"></span>
+            <span class="label-strip">
+              <span class="label-side" id="label-side">А</span>
+              <span class="label-title hand" id="label-title">вставьте кассету</span>
+            </span>
+            <span class="label-stripes" aria-hidden="true"><i></i><i></i><i></i></span>
           </button>
-        </div>
-        <div class="stats">
-          <span id="track-count">0 треков</span>
-          <span id="total-duration">0:00</span>
+          <div class="window-scrub" id="scrub" role="slider" tabindex="0" aria-label="Перемотка: ведите пальцем по окошку кассеты" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span class="scrub-head" id="scrub-head"></span>
+          </div>
         </div>
       </div>
-      
-      <div class="playlist-container">
-        <div class="playlist-header">
-          <h2>Плейлист</h2>
-          <div class="view-options">
-            <button class="view-btn active" data-view="list" title="Список">
-              <i class="fas fa-list"></i>
-            </button>
-            <button class="view-btn" data-view="grid" title="Плитка">
-              <i class="fas fa-th"></i>
-            </button>
-            <button class="view-btn" data-view="compact" title="Компактный">
-              <i class="fas fa-grip-lines"></i>
-            </button>
-            <button class="view-btn" data-view="table" title="Таблица">
-              <i class="fas fa-table"></i>
-            </button>
-          </div>
-          <div class="sort-options">
-            <button class="sort-btn active" data-sort="default" title="По дате добавления">
-              <i class="fas fa-clock"></i>
-            </button>
-            <button class="sort-btn" data-sort="title" title="По названию">
-              <i class="fas fa-sort-alpha-down"></i>
-            </button>
-            <button class="sort-btn" data-sort="artist" title="По исполнителю">
-              <i class="fas fa-user"></i>
-            </button>
-            <button class="sort-btn" data-sort="album" title="По альбому">
-              <i class="fas fa-compact-disc"></i>
-            </button>
-          </div>
-        </div>
-        
-        <!-- Представление: Список -->
-        <ul id="playlist-list" class="playlist-list">
-        </ul>
-        
-        <!-- Представление: Плитка -->
-        <div id="playlist-grid" class="playlist-grid hidden">
-        </div>
-        
-        <!-- Представление: Компактный -->
-        <ul id="playlist-compact" class="playlist-compact hidden">
-        </ul>
-        
-        <!-- Представление: Таблица -->
-        <div id="playlist-table" class="playlist-table hidden">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th></th>
-                <th>Название</th>
-                <th>Исполнитель</th>
-                <th>Альбом</th>
-                <th>Длительность</th>
-              </tr>
-            </thead>
-            <tbody id="table-body">
-            </tbody>
-          </table>
-        </div>
+
+      <div class="now">
+        <h1 class="now-title hand" id="track-title">Выберите трек на вкладыше</h1>
+        <p class="now-artist" id="track-artist">—</p>
+        <p class="now-meta" id="track-meta"></p>
+        <p class="times"><span id="current-time">0:00</span><span class="times-sep">/</span><span id="total-time">0:00</span></p>
       </div>
-      
-      <div class="sidebar-footer">
-        <button id="add-btn" class="add-track-btn">
-          <i class="fas fa-plus"></i>
-          <span>Добавить трек</span>
-        </button>
-        <button id="toggle-sidebar" class="toggle-sidebar-btn" title="Скрыть панель">
-          <i class="fas fa-chevron-left"></i>
-        </button>
-      </div>
-    </aside>
 
-    <!-- Кнопка показа скрытого сайдбара -->
-    <button id="show-sidebar" class="show-sidebar-btn hidden" title="Показать панель">
-      <i class="fas fa-chevron-right"></i>
-    </button>
-
-    <!-- Основная панель плеера -->
-    <main class="player-panel">
-      <div class="background-blur" id="background-blur"></div>
-      
-      <!-- Визуализатор -->
-      <canvas id="visualizer" class="visualizer"></canvas>
-      
-      <div class="player-content">
-        <!-- Информация о текущем треке -->
-        <div class="track-display">
-          <div class="cover-container">
-            <img id="cover" src="" alt="Обложка" class="cover">
-            <div class="cover-overlay">
-              <button id="expand-cover" title="Увеличить обложку">
-                <i class="fas fa-expand"></i>
-              </button>
-            </div>
-            <!-- Индикатор воспроизведения на обложке -->
-            <div class="playing-animation" id="playing-animation">
-              <span class="bar"></span>
-              <span class="bar"></span>
-              <span class="bar"></span>
-              <span class="bar"></span>
-            </div>
-          </div>
-          
-          <div class="track-details">
-            <div class="track-meta">
-              <span id="track-album" class="album-name">Альбом</span>
-              <span class="dot">•</span>
-              <span id="track-year" class="year">2024</span>
-              <span class="dot">•</span>
-              <span id="track-quality" class="quality">HQ</span>
-            </div>
-            <h2 id="track-title" class="track-title-main">Выберите трек</h2>
-            <p id="track-artist" class="track-artist-main">Исполнитель</p>
-            <div class="track-stats">
-              <span id="track-views" title="Просмотры">
-                <i class="fas fa-eye"></i> 0
-              </span>
-              <span id="track-likes" title="Лайки">
-                <i class="fas fa-heart"></i> 0
-              </span>
-              <span id="track-bitrate" title="Битрейт">
-                <i class="fas fa-wave-square"></i> 0 kbps
-              </span>
-            </div>
-          </div>
+      <div class="panel">
+        <div class="vu" id="vu" aria-hidden="true">
+          <canvas id="vu-canvas" width="320" height="76"></canvas>
         </div>
-
-        <!-- Прогресс с волновой формой -->
-        <div class="progress-section">
-          <div class="waveform-container" id="waveform">
-            <!-- Генерируется динамически -->
+        <div class="panel-row">
+          <button type="button" id="shuffle-btn" class="led-btn" aria-pressed="false" title="Вперемешку (S)"><span class="led"></span><svg><use href="#i-shuffle"/></svg><span class="sr">Вперемешку</span></button>
+          <button type="button" id="repeat-btn" class="led-btn" aria-pressed="false" title="Повтор (R)"><span class="led"></span><svg><use href="#i-repeat"/></svg><span class="repeat-one" id="repeat-one">1</span><span class="sr">Повтор</span></button>
+          <div class="volume">
+            <button type="button" id="volume-btn" class="icon-btn" aria-label="Без звука (M)"><svg><use href="#i-vol" id="volume-icon"/></svg></button>
+            <input type="range" id="volume-slider" min="0" max="100" value="80" aria-label="Громкость">
           </div>
-          <div class="progress-bar-container">
-            <div class="progress-bar" id="progress-bar">
-              <div class="progress-fill" id="progress-fill"></div>
-              <div class="progress-thumb" id="progress-thumb"></div>
-              <div class="progress-hover" id="progress-hover"></div>
-            </div>
-          </div>
-          <div class="time-display">
-            <span id="current-time">0:00</span>
-            <span id="total-time">0:00</span>
-          </div>
+          <button type="button" id="vu-btn" class="led-btn on" aria-pressed="true" title="Индикатор уровня (V)"><span class="led"></span><svg><use href="#i-meter"/></svg><span class="sr">Индикатор уровня</span></button>
         </div>
-
-        <!-- Управление -->
-        <div class="controls-section">
-          <div class="main-controls">
-            <button id="shuffle-btn" class="control-btn" title="Перемешать">
-              <i class="fas fa-random"></i>
-            </button>
-            <button id="prev-btn" class="control-btn" title="Предыдущий">
-              <i class="fas fa-step-backward"></i>
-            </button>
-            <button id="play-btn" class="play-btn" title="Воспроизвести">
-              <i class="fas fa-play"></i>
-            </button>
-            <button id="next-btn" class="control-btn" title="Следующий">
-              <i class="fas fa-step-forward"></i>
-            </button>
-            <button id="repeat-btn" class="control-btn" title="Повторять">
-              <i class="fas fa-redo"></i>
-            </button>
-          </div>
-          
-          <div class="additional-controls">
-            <div class="volume-control">
-              <button id="volume-btn" class="control-btn-small">
-                <i class="fas fa-volume-up"></i>
-              </button>
-              <div class="volume-slider-container">
-                <input type="range" id="volume-slider" class="volume-slider" 
-                       min="0" max="100" value="75">
-              </div>
-            </div>
-            
-            <div class="speed-control">
-              <button id="speed-btn" class="control-btn-small">
-                <span>1x</span>
-              </button>
-              <div class="speed-options" id="speed-options">
-                <button data-speed="0.5">0.5x</button>
-                <button data-speed="0.75">0.75x</button>
-                <button data-speed="1" class="active">1x</button>
-                <button data-speed="1.25">1.25x</button>
-                <button data-speed="1.5">1.5x</button>
-                <button data-speed="2">2x</button>
-              </div>
-            </div>
-
-            <!-- Кнопка визуализатора -->
-            <button id="visualizer-btn" class="control-btn-small active" title="Визуализатор">
-              <i class="fas fa-chart-bar"></i>
-            </button>
-            
-            <button id="download-btn" class="control-btn-small" title="Скачать">
-              <i class="fas fa-download"></i>
-            </button>
-            
-            <button id="delete-btn" class="control-btn-small" title="Удалить">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
+        <div class="panel-row actions">
+          <button type="button" id="info-btn" class="text-btn" disabled><svg><use href="#i-info"/></svg>о треке</button>
+          <button type="button" id="download-btn" class="text-btn" disabled><svg><use href="#i-down"/></svg>скачать</button>
+          <button type="button" id="delete-btn" class="text-btn danger" disabled><svg><use href="#i-erase"/></svg>стереть</button>
         </div>
-
       </div>
     </main>
+
+    <!-- ============ Клавиши деки ============ -->
+    <nav class="transport" aria-label="Управление">
+      <button type="button" class="key" id="prev-btn" aria-label="Предыдущий (P)"><svg><use href="#i-prev"/></svg></button>
+      <button type="button" class="key key-play" id="play-btn" aria-label="Играть (пробел)"><svg><use href="#i-play" id="play-icon"/></svg></button>
+      <button type="button" class="key" id="next-btn" aria-label="Следующий (N)"><svg><use href="#i-next"/></svg></button>
+      <button type="button" class="key key-tab" id="tab-btn" aria-label="Кассета"><svg><use href="#i-tape" id="tab-icon"/></svg></button>
+    </nav>
   </div>
 
-  <!-- Модальное окно добавления трека -->
-  <div id="add-modal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Добавить трек</h2>
-        <button class="close-btn">&times;</button>
+  <!-- ============ Окна ============ -->
+  <dialog class="sheet" id="add-dialog" aria-labelledby="add-title">
+    <form method="dialog" class="sheet-body" id="add-form">
+      <header class="sheet-head">
+        <h2 id="add-title">Записать трек</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Закрыть"><svg><use href="#i-x"/></svg></button>
+      </header>
+      <label class="url-line">
+        <span class="form-label">ссылка</span>
+        <input type="url" id="url-input" class="hand" placeholder="https://music.youtube.com/watch?v=…" required autocomplete="off" inputmode="url" enterkeyhint="go">
+      </label>
+      <p class="hint">Подойдут ссылки youtube.com, youtu.be и music.youtube.com. Запись занимает от нескольких секунд до пары минут.</p>
+      <p class="status" id="add-status" role="status"></p>
+      <div class="sheet-actions">
+        <button type="button" class="text-btn" data-close>отмена</button>
+        <button type="submit" class="stamp" id="submit-add"><span class="rec-dot" aria-hidden="true"></span><span id="submit-label">запись</span></button>
       </div>
-      <div class="modal-body">
-        <div class="input-group">
-          <i class="fas fa-link"></i>
-          <input type="text" id="url-input" placeholder="Вставьте ссылку YouTube Music">
-        </div>
-        <div class="url-examples">
-          <p>Примеры ссылок:</p>
-          <code>https://music.youtube.com/watch?v=VIDEO_ID</code>
-          <code>https://youtu.be/VIDEO_ID</code>
-        </div>
-        <div id="add-status" class="status-message"></div>
-        <!-- Прогресс загрузки -->
-        <div id="download-progress" class="download-progress hidden">
-          <div class="progress-bar-mini">
-            <div class="progress-fill-mini" id="progress-fill-mini"></div>
-          </div>
-          <span id="progress-text">0%</span>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button id="cancel-add" class="secondary-btn">Отмена</button>
-        <button id="submit-add" class="primary-btn">
-          <i class="fas fa-download"></i>
-          Загрузить
-        </button>
-      </div>
+    </form>
+  </dialog>
+
+  <dialog class="sheet" id="info-dialog" aria-labelledby="info-title">
+    <div class="sheet-body">
+      <header class="sheet-head">
+        <h2 id="info-title">О треке</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Закрыть"><svg><use href="#i-x"/></svg></button>
+      </header>
+      <dl class="info-list" id="info-list"></dl>
     </div>
-  </div>
+  </dialog>
 
-  <!-- Модальное окно полноэкранной обложки -->
-  <div id="cover-modal" class="modal hidden">
-    <div class="cover-fullscreen">
-      <button class="close-btn">&times;</button>
-      <img id="cover-full" src="" alt="Обложка">
-    </div>
-  </div>
-
-  <!-- Модальное окно информации о треке -->
-  <div id="info-modal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Информация о треке</h2>
-        <button class="close-btn">&times;</button>
+  <dialog class="sheet small" id="confirm-dialog" aria-labelledby="confirm-title">
+    <form method="dialog" class="sheet-body">
+      <h2 id="confirm-title">Стереть запись?</h2>
+      <p class="confirm-text" id="confirm-text"></p>
+      <div class="sheet-actions">
+        <button value="no" class="text-btn">оставить</button>
+        <button value="yes" class="stamp danger"><svg><use href="#i-erase"/></svg>стереть</button>
       </div>
-      <div class="modal-body" id="track-info-content">
-        <!-- Заполняется динамически -->
-      </div>
-    </div>
-  </div>
+    </form>
+  </dialog>
 
-  <!-- Нижняя навигация (мобильная) -->
-  <nav class="bottom-nav" id="bottom-nav">
-    <button class="bottom-nav-btn" data-tab="player" title="Плеер">
-      <i class="fas fa-music"></i>
-      <span>Плеер</span>
-    </button>
-    <button class="bottom-nav-btn active" data-tab="library" title="Библиотека">
-      <i class="fas fa-list"></i>
-      <span>МОЁ</span>
-    </button>
-  </nav>
+  <dialog class="cover-view" id="cover-dialog" aria-label="Обложка">
+    <button type="button" class="icon-btn" data-close aria-label="Закрыть"><svg><use href="#i-x"/></svg></button>
+  </dialog>
 
-  <!-- Уведомления -->
-  <div id="notifications" class="notifications"></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
 
-  <audio id="audio" preload="auto" crossorigin="anonymous"></audio>
-
+  <audio id="audio" preload="metadata" crossorigin="anonymous"></audio>
   <script src="script.js"></script>
 </body>
 </html>
