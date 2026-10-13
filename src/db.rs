@@ -96,6 +96,16 @@ const TRACK_SELECT: &str = "
     SELECT u.*, t.abr, t.filesize_mb, t.extension, t.original_url, t.rowid AS added
     FROM userData u JOIN techData t ON u.video_id = t.video_id";
 
+/// Своя подборка: имя и упорядоченный список треков.
+#[derive(Debug, Clone, Serialize)]
+pub struct Album {
+    pub id: i64,
+    pub name: String,
+    pub created: i64,
+    pub source_url: Option<String>,
+    pub tracks: Vec<String>,
+}
+
 pub struct Db(Mutex<Connection>);
 
 impl Db {
@@ -127,6 +137,18 @@ impl Db {
                  like_count INTEGER,
                  thumbnail_url TEXT,
                  FOREIGN KEY (video_id) REFERENCES techData(video_id)
+             );
+             CREATE TABLE IF NOT EXISTS albums (
+                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 name TEXT NOT NULL,
+                 created INTEGER NOT NULL,
+                 source_url TEXT
+             );
+             CREATE TABLE IF NOT EXISTS album_tracks (
+                 album_id INTEGER NOT NULL,
+                 video_id TEXT NOT NULL,
+                 position INTEGER NOT NULL,
+                 PRIMARY KEY (album_id, video_id)
              );",
         )?;
 
@@ -209,6 +231,132 @@ impl Db {
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
+    pub fn has_track(&self, video_id: &str) -> Result<bool> {
+        let conn = self.conn();
+        let mut stmt = conn.prepare_cached("SELECT 1 FROM techData WHERE video_id = ?1")?;
+        let found = stmt.exists([video_id])?;
+        Ok(found)
+    }
+
+    // ============ Альбомы (свои подборки) ============
+
+    pub fn albums(&self) -> Result<Vec<Album>> {
+        let conn = self.conn();
+        let mut stmt = conn.prepare_cached("SELECT id, name, created, source_url FROM albums ORDER BY created DESC, id DESC")?;
+        let mut list: Vec<Album> = stmt
+            .query_map([], |r| {
+                Ok(Album { id: r.get(0)?, name: r.get(1)?, created: r.get(2)?, source_url: r.get(3)?, tracks: Vec::new() })
+            })?
+            .collect::<rusqlite::Result<_>>()?;
+        let mut tracks = conn.prepare_cached(
+            "SELECT a.album_id, a.video_id FROM album_tracks a JOIN techData t ON t.video_id = a.video_id
+             ORDER BY a.album_id, a.position",
+        )?;
+        let rows = tracks.query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+        for row in rows {
+            let (aid, vid) = row?;
+            if let Some(a) = list.iter_mut().find(|a| a.id == aid) {
+                a.tracks.push(vid);
+            }
+        }
+        Ok(list)
+    }
+
+    pub fn album(&self, id: i64) -> Result<Option<Album>> {
+        Ok(self.albums()?.into_iter().find(|a| a.id == id))
+    }
+
+    pub fn create_album(&self, name: &str, source_url: Option<&str>) -> Result<i64> {
+        let conn = self.conn();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+        conn.execute(
+            "INSERT INTO albums (name, created, source_url) VALUES (?1, ?2, ?3)",
+            params![name, now, source_url],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
+    pub fn rename_album(&self, id: i64, name: &str) -> Result<bool> {
+        Ok(self.conn().execute("UPDATE albums SET name = ?2 WHERE id = ?1", params![id, name])? > 0)
+    }
+
+    pub fn delete_album(&self, id: i64) -> Result<bool> {
+        let mut conn = self.conn();
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM album_tracks WHERE album_id = ?1", [id])?;
+        let n = tx.execute("DELETE FROM albums WHERE id = ?1", [id])?;
+        tx.commit()?;
+        Ok(n > 0)
+    }
+
+    /// Добавить трек в конец альбома (повторное добавление ничего не меняет).
+    pub fn add_to_album(&self, id: i64, video_id: &str) -> Result<()> {
+        self.conn().execute(
+            "INSERT OR IGNORE INTO album_tracks (album_id, video_id, position)
+             VALUES (?1, ?2, (SELECT COALESCE(MAX(position), 0) + 1 FROM album_tracks WHERE album_id = ?1))",
+            params![id, video_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn remove_from_album(&self, id: i64, video_id: &str) -> Result<()> {
+        self.conn().execute("DELETE FROM album_tracks WHERE album_id = ?1 AND video_id = ?2", params![id, video_id])?;
+        Ok(())
+    }
+
+    /// Заменить состав и порядок треков альбома.
+    pub fn set_album_tracks(&self, id: i64, ids: &[String]) -> Result<()> {
+        let mut conn = self.conn();
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM album_tracks WHERE album_id = ?1", [id])?;
+        for (i, vid) in ids.iter().enumerate() {
+            tx.execute(
+                "INSERT OR IGNORE INTO album_tracks (album_id, video_id, position) VALUES (?1, ?2, ?3)",
+                params![id, vid, i as i64 + 1],
+            )?;
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Все данные треков для экспорта (обе таблицы), в порядке `ids`.
+    pub fn export_rows(&self, ids: &[String]) -> Result<Vec<serde_json::Map<String, serde_json::Value>>> {
+        use rusqlite::types::ValueRef;
+        let conn = self.conn();
+        let mut stmt = conn.prepare_cached(
+            "SELECT t.format_id, t.extension, t.audio_codec, t.abr, t.filesize_mb, t.original_url,
+                    u.title, u.artist, u.album, u.track, u.release_date, u.duration, u.view_count, u.like_count, u.thumbnail_url
+             FROM techData t JOIN userData u ON u.video_id = t.video_id WHERE t.video_id = ?1",
+        )?;
+        let mut out = Vec::new();
+        for id in ids {
+            let row = stmt
+                .query_row([id], |r| {
+                    let mut m = serde_json::Map::new();
+                    m.insert("video_id".into(), id.clone().into());
+                    for (i, name) in r.as_ref().column_names().iter().enumerate() {
+                        let v = match r.get_ref(i)? {
+                            ValueRef::Null => serde_json::Value::Null,
+                            ValueRef::Integer(n) => n.into(),
+                            ValueRef::Real(f) => serde_json::Number::from_f64(f).map(Into::into).unwrap_or(serde_json::Value::Null),
+                            ValueRef::Text(t) => String::from_utf8_lossy(t).into_owned().into(),
+                            ValueRef::Blob(_) => serde_json::Value::Null,
+                        };
+                        m.insert((*name).to_owned(), v);
+                    }
+                    Ok(m)
+                })
+                .optional()?;
+            if let Some(m) = row {
+                out.push(m);
+            }
+        }
+        Ok(out)
+    }
+
     /// video_id последних добавленных треков (новые первыми).
     pub fn recent_ids(&self, n: usize) -> Result<Vec<String>> {
         let conn = self.conn();
@@ -264,6 +412,7 @@ impl Db {
             )
             .optional()?;
         tx.execute("DELETE FROM userData WHERE video_id = ?1", [video_id])?;
+        tx.execute("DELETE FROM album_tracks WHERE video_id = ?1", [video_id])?;
         let removed = tx.execute("DELETE FROM techData WHERE video_id = ?1", [video_id])?;
         tx.commit()?;
         Ok(if removed > 0 || json_file.is_some() {

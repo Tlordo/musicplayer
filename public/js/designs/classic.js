@@ -111,8 +111,9 @@ export default {
     </div>
   </header>
   <div class="lib-tabs" role="tablist" aria-label="Раздел">
-    <button type="button" role="tab" class="lib-tab tab-lib" data-act="libview-library">Библиотека</button>
-    <button type="button" role="tab" class="lib-tab tab-recs" data-act="libview-recs">Рекомендации</button>
+    <button type="button" role="tab" class="lib-tab tab-lib" data-act="libview-library">Треки</button>
+    <button type="button" role="tab" class="lib-tab tab-albums" data-act="libview-albums">Альбомы</button>
+    <button type="button" role="tab" class="lib-tab tab-recs" data-act="libview-recs">Похожее</button>
   </div>
   <div class="library-view lib-stack">
   <label class="search">
@@ -137,6 +138,31 @@ export default {
       <p class="empty-text" data-empty-text></p>
     </div>
   </div>
+  </div>
+  <div class="albums-view lib-stack">
+    <div class="albums-scroll">
+      <div class="albums-head">
+        <h2>Мои альбомы</h2>
+        <span class="albums-actions">
+          <button type="button" class="chip-btn" data-act="album-new"><svg aria-hidden="true"><use href="#i-plus"/></svg>Создать</button>
+          <button type="button" class="chip-btn" data-act="album-import" title="Импорт альбома из архива .zip с другого устройства"><svg aria-hidden="true"><use href="#i-up"/></svg>Импорт</button>
+        </span>
+      </div>
+      <p class="albums-empty" data-albums-user-empty>Соберите альбом из треков библиотеки или скачайте целый альбом с YouTube — вставьте ссылку на него в «Добавить трек».</p>
+      <div class="album-grid" data-albums-user></div>
+      <section class="albums-meta" data-albums-meta-section hidden>
+        <div class="albums-head"><h2>Альбомы из YouTube</h2></div>
+        <div class="album-grid" data-albums-meta></div>
+      </section>
+    </div>
+  </div>
+  <div class="album-view lib-stack">
+    <div class="albums-scroll">
+      <button type="button" class="back-link" data-act="album-back"><svg aria-hidden="true"><use href="#i-back"/></svg>Альбомы</button>
+      <div data-album-head></div>
+      <ol class="tracks" data-album-list aria-label="Треки альбома"></ol>
+      <p class="albums-empty" data-album-empty hidden>В альбоме пока нет треков — добавьте их кнопкой «+».</p>
+    </div>
   </div>
   <div class="recs-view lib-stack">
     <div class="recs-head">
@@ -224,6 +250,7 @@ export default {
           <span class="menu-wrap">
             <button type="button" class="icon-btn" data-act="menu" aria-haspopup="true" aria-expanded="false" aria-label="Ещё" title="Ещё"><svg><use href="#i-more"/></svg></button>
             <div class="menu" role="menu" hidden>
+              <button type="button" role="menuitem" data-act="add-to-album" data-needs-track><svg aria-hidden="true"><use href="#i-album"/></svg>В альбом…</button>
               <button type="button" role="menuitem" data-act="info" data-needs-track><svg aria-hidden="true"><use href="#i-info"/></svg>О треке</button>
               <button type="button" role="menuitem" data-act="download" data-needs-track><svg aria-hidden="true"><use href="#i-down"/></svg>Скачать файл</button>
               <button type="button" role="menuitem" class="danger" data-act="delete" data-needs-track><svg aria-hidden="true"><use href="#i-erase"/></svg>Удалить трек</button>
@@ -243,7 +270,8 @@ export default {
 
   renderRow(t, i, f, { esc, formatTime }) {
     const cls = ['row', f.current ? 'current' : '', f.missing ? 'missing' : '', f.played ? 'played' : ''].filter(Boolean).join(' ');
-    return `<li><button type="button" class="${cls}" data-id="${esc(t.video_id)}"${f.current ? ' aria-current="true"' : ''}>
+    const remove = f.removable ? `<button type="button" class="row-remove" data-act="album-remove" data-remove-id="${esc(t.video_id)}" aria-label="Убрать «${esc(t.title)}» из альбома" title="Убрать из альбома"><svg><use href="#i-minus"/></svg></button>` : '';
+    return `<li${f.removable ? ' class="removable"' : ''}><button type="button" class="${cls}" data-id="${esc(t.video_id)}"${f.current ? ' aria-current="true"' : ''}>
       <span class="row-num"><span class="num">${i + 1}</span><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span></span>
       <span class="row-thumb"><img src="${esc(t.thumbnail_api)}" alt="" loading="lazy" decoding="async"></span>
       <span class="row-main">
@@ -251,7 +279,41 @@ export default {
         <span class="row-sub">${f.missing ? '<span class="tag">нет файла</span>' : ''}${esc(t.artist || '')}</span>
       </span>
       <span class="row-time">${f.played ? '<svg class="played-mark" aria-label="прослушан"><use href="#i-check"/></svg>' : ''}${t._sec ? formatTime(t._sec) : ''}</span>
-    </button></li>`;
+    </button>${remove}</li>`;
+  },
+
+  renderAlbumCard(a, info, { esc }) {
+    const art = info.covers.length >= 4
+      ? info.covers.map((c) => `<img src="${esc(c)}" alt="" loading="lazy">`).join('')
+      : info.covers.length ? `<img src="${esc(info.covers[0])}" alt="" loading="lazy">` : '<svg aria-hidden="true"><use href="#i-album"/></svg>';
+    const sub = a.kind === 'meta' ? `${esc(a.artist || '')} · ${info.countText}` : info.countText;
+    return `<button type="button" class="album-card" data-act="album-open" data-key="${esc(a.key)}">
+      <span class="album-art${info.covers.length >= 4 ? ' mosaic' : ''}">${art}</span>
+      <span class="album-name">${esc(a.name)}</span>
+      <span class="album-sub">${sub}</span>
+    </button>`;
+  },
+
+  renderAlbumHead(a, info, { esc }) {
+    const art = info.covers.length >= 4
+      ? info.covers.map((c) => `<img src="${esc(c)}" alt="">`).join('')
+      : info.covers.length ? `<img src="${esc(info.covers[0])}" alt="">` : '<svg aria-hidden="true"><use href="#i-album"/></svg>';
+    const own = a.kind === 'user';
+    return `<div class="album-hero">
+      <span class="album-art${info.covers.length >= 4 ? ' mosaic' : ''}">${art}</span>
+      <div class="album-hero-text">
+        <h2 class="album-title">${esc(a.name)}</h2>
+        <p class="album-sub">${[own ? 'мой альбом' : esc(a.artist || ''), info.countText, info.count ? info.timeText : ''].filter(Boolean).join(' · ')}</p>
+      </div>
+    </div>
+    <div class="album-actions">
+      <button type="button" class="add-btn album-play" data-act="album-play" ${info.count ? '' : 'disabled'}><svg aria-hidden="true"><use href="#i-play"/></svg>Слушать</button>
+      <button type="button" class="icon-btn" data-act="album-download" ${info.count ? '' : 'disabled'} title="Скачать альбом архивом .zip — его же можно импортировать на другом устройстве" aria-label="Скачать альбом"><svg><use href="#i-down"/></svg></button>
+      ${own ? `<button type="button" class="icon-btn" data-act="album-add-tracks" title="Добавить треки" aria-label="Добавить треки"><svg><use href="#i-plus"/></svg></button>
+      <button type="button" class="icon-btn" data-act="album-rename" title="Переименовать" aria-label="Переименовать"><svg><use href="#i-edit"/></svg></button>
+      <button type="button" class="icon-btn danger" data-act="album-delete" title="Удалить альбом" aria-label="Удалить альбом"><svg><use href="#i-erase"/></svg></button>`
+        : `<button type="button" class="icon-btn" data-act="album-save" title="Сделать своим альбомом — можно менять состав и имя" aria-label="Сделать своим альбомом"><svg><use href="#i-album"/></svg></button>`}
+    </div>`;
   },
 
   renderRec(r, i, f, { esc, formatTime }) {

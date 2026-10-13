@@ -17,6 +17,11 @@ export function registerActions(map) { Object.assign(actions, map); }
 
 export function isDesktop() { return matchMedia('(min-width: 960px)').matches; }
 
+// Обложка не загрузилась (нет файла, нет сети) — прячем значок «битой» картинки, остаётся фон.
+document.addEventListener('error', (e) => {
+  if (e.target instanceof HTMLImageElement) e.target.classList.add('broken');
+}, true);
+
 // ============ Уведомления ============
 export function toast(text, type = 'info', ms = 3200) {
   const el = document.createElement('div');
@@ -160,7 +165,7 @@ export function renderList() {
 
 function markRows() {
   const cur = state.current && state.current.video_id;
-  $$('[data-list] [data-id]').forEach((row) => {
+  $$('[data-list] [data-id], [data-album-list] [data-id]').forEach((row) => {
     const on = row.dataset.id === cur;
     row.classList.toggle('current', on);
     if (on) row.setAttribute('aria-current', 'true'); else row.removeAttribute('aria-current');
@@ -273,12 +278,14 @@ function runAction(name, el, e) {
 }
 
 document.addEventListener('click', (e) => {
-  const row = e.target.closest('[data-list] [data-id]');
+  const row = e.target.closest('[data-list] [data-id], [data-album-list] [data-id]');
   if (row && !e.target.closest('[data-act]')) {
     const t = core.find(row.dataset.id);
     if (!t) return;
+    const album = row.closest('[data-album-list]') ? core.findAlbum(core.albums.open) : null;
     if (state.current && state.current.video_id === t.video_id) core.toggle();
-    else core.load(t, true);
+    else if (album) core.playAlbum(album, t.video_id);
+    else core.playFrom(t, null);
     if (!isDesktop() && currentDesign().rowOpensPlayer) setTab('player');
     return;
   }
@@ -377,11 +384,47 @@ function openAdd() {
   $('#url-input').focus();
 }
 
+// Ссылка на альбом/плейлист: предлагаем скачать его целиком.
+function playlistKind(url) {
+  if (/\/(playlist|browse)\b/.test(url)) return 'playlist';   // сам плейлист или альбом
+  if (/[?&]list=/.test(url)) return 'track';                     // трек внутри плейлиста — по умолчанию только он
+  return null;
+}
+$('#url-input').addEventListener('input', (e) => {
+  const kind = playlistKind(e.target.value.trim());
+  const box = $('#add-mode');
+  const was = !box.hidden;
+  box.hidden = !kind;
+  if (kind && !was) $(`input[name="add-mode"][value="${kind}"]`).checked = true;
+});
+
 $('#add-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const input = $('#url-input');
   const url = input.value.trim();
   if (!url || adding) return;
+  if (!$('#add-mode').hidden && $('input[name="add-mode"]:checked').value === 'playlist') {
+    adding = true;
+    $('#submit-add').disabled = true;
+    $('#submit-label').textContent = 'Читаю плейлист…';
+    addStatus.className = 'status';
+    addStatus.textContent = 'Узнаю, какие треки в плейлисте…';
+    try {
+      const job = await core.addPlaylist(url);
+      input.value = '';
+      $('#add-mode').hidden = true;
+      toast(`Скачиваю «${job.name}»: ${job.total} ${plural(job.total, 'трек', 'трека', 'треков')} — прогресс внизу`, 'ok', 5000);
+      addDialog.close();
+    } catch (err) {
+      addStatus.className = 'status error';
+      addStatus.textContent = `Не получилось: ${err.message}`;
+    } finally {
+      adding = false;
+      $('#submit-add').disabled = false;
+      $('#submit-label').textContent = 'Загрузить';
+    }
+    return;
+  }
   adding = true;
   const btn = $('#submit-add');
   btn.disabled = true;

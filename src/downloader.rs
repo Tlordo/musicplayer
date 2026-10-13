@@ -97,7 +97,7 @@ impl Downloader {
     /// Один вызов yt-dlp: и метаданные (JSON в stdout), и скачивание с конвертацией в opus.
     async fn run_ytdlp(&self, url: &str) -> Result<Value> {
         let mut cmd = Command::new(&self.cfg.ytdlp);
-        cmd.args(["--dump-json", "--no-simulate", "--no-playlist", "--no-warnings", "--no-progress"])
+        cmd.args(["--dump-json", "--no-simulate", "--no-playlist", "--no-warnings", "--no-progress", "--encoding", "utf-8"])
             .args(["-f", "bestaudio/best", "-x", "--audio-format", "opus", "--audio-quality", "0"])
             .args(["--embed-metadata", "--embed-thumbnail"])
             .arg("-P")

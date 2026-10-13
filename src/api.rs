@@ -15,6 +15,7 @@ use crate::config::Config;
 use crate::db::Db;
 use crate::downloader::{is_valid_video_id, Downloader};
 use crate::recs::{merge, Recommender};
+use crate::{archive, jobs};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -22,6 +23,7 @@ pub struct AppState {
     pub db: Arc<Db>,
     pub dl: Arc<Downloader>,
     pub recs: Arc<Recommender>,
+    pub jobs: Arc<jobs::Jobs>,
 }
 
 pub fn router(state: AppState) -> Router {
@@ -32,6 +34,15 @@ pub fn router(state: AppState) -> Router {
         .route("/api/thumbnail/:video_id", get(thumbnail))
         .route("/api/peaks/:video_id", get(peaks))
         .route("/api/recommendations", get(recommendations))
+        .route("/api/albums", get(list_albums).post(create_album))
+        .route("/api/albums/:id", axum::routing::patch(update_album).delete(delete_album))
+        .route("/api/albums/:id/tracks", post(add_album_track))
+        .route("/api/albums/:id/tracks/:video_id", delete(remove_album_track))
+        .route("/api/albums/:id/export", get(export_album))
+        .route("/api/export", get(export_tracks))
+        .route("/api/import", post(import_album).layer(axum::extract::DefaultBodyLimit::disable()))
+        .route("/api/add-playlist", post(add_playlist))
+        .route("/api/jobs", get(list_jobs))
         .route("/api/track/:video_id", delete(delete_track))
         .with_state(state)
 }
@@ -208,6 +219,193 @@ async fn recommendations(State(s): State<AppState>, Query(q): Query<RecsQuery>) 
     let mut exclude = s.db.all_ids()?;
     exclude.extend(seeds.iter().cloned());
     Ok(Json(json!({ "seeds": seeds, "items": merge(mixes, &exclude, 40) })))
+}
+
+// ============ Альбомы ============
+
+fn bad(msg: impl Into<String>) -> ApiError {
+    ApiError::new(StatusCode::BAD_REQUEST, msg)
+}
+
+fn clean_album_name(name: Option<String>) -> ApiResult<String> {
+    let name = name.unwrap_or_default().trim().chars().take(80).collect::<String>();
+    if name.is_empty() {
+        return Err(bad("Нужно название альбома"));
+    }
+    Ok(name)
+}
+
+fn check_ids(ids: &[String]) -> ApiResult<()> {
+    if ids.len() > 5000 {
+        return Err(bad("Слишком много треков"));
+    }
+    ids.iter().try_for_each(|id| check_id(id))
+}
+
+async fn list_albums(State(s): State<AppState>) -> ApiResult<impl IntoResponse> {
+    Ok(Json(s.db.albums()?))
+}
+
+#[derive(Deserialize)]
+struct AlbumBody {
+    name: Option<String>,
+    tracks: Option<Vec<String>>,
+}
+
+async fn create_album(State(s): State<AppState>, Json(b): Json<AlbumBody>) -> ApiResult<impl IntoResponse> {
+    let name = clean_album_name(b.name)?;
+    let id = s.db.create_album(&name, None)?;
+    if let Some(t) = b.tracks {
+        check_ids(&t)?;
+        s.db.set_album_tracks(id, &t)?;
+    }
+    Ok(Json(s.db.album(id)?))
+}
+
+async fn update_album(State(s): State<AppState>, Path(id): Path<i64>, Json(b): Json<AlbumBody>) -> ApiResult<impl IntoResponse> {
+    if s.db.album(id)?.is_none() {
+        return Err(ApiError::new(StatusCode::NOT_FOUND, "Альбом не найден"));
+    }
+    if b.name.is_some() {
+        s.db.rename_album(id, &clean_album_name(b.name)?)?;
+    }
+    if let Some(t) = b.tracks {
+        check_ids(&t)?;
+        s.db.set_album_tracks(id, &t)?;
+    }
+    Ok(Json(s.db.album(id)?))
+}
+
+async fn delete_album(State(s): State<AppState>, Path(id): Path<i64>) -> ApiResult<impl IntoResponse> {
+    if !s.db.delete_album(id)? {
+        return Err(ApiError::new(StatusCode::NOT_FOUND, "Альбом не найден"));
+    }
+    Ok(Json(json!({ "success": true })))
+}
+
+#[derive(Deserialize)]
+struct TrackRef {
+    video_id: String,
+}
+
+async fn add_album_track(State(s): State<AppState>, Path(id): Path<i64>, Json(b): Json<TrackRef>) -> ApiResult<impl IntoResponse> {
+    check_id(&b.video_id)?;
+    if s.db.album(id)?.is_none() {
+        return Err(ApiError::new(StatusCode::NOT_FOUND, "Альбом не найден"));
+    }
+    if !s.db.has_track(&b.video_id)? {
+        return Err(ApiError::new(StatusCode::NOT_FOUND, "Трека нет в библиотеке"));
+    }
+    s.db.add_to_album(id, &b.video_id)?;
+    Ok(Json(s.db.album(id)?))
+}
+
+async fn remove_album_track(State(s): State<AppState>, Path((id, vid)): Path<(i64, String)>) -> ApiResult<impl IntoResponse> {
+    check_id(&vid)?;
+    s.db.remove_from_album(id, &vid)?;
+    Ok(Json(s.db.album(id)?))
+}
+
+/// `attachment; filename="..."; filename*=UTF-8''...` — имя файла с кириллицей во всех браузерах.
+fn content_disposition(name: &str) -> String {
+    let ascii: String = name.chars().map(|c| if c.is_ascii_alphanumeric() || " -_.()".contains(c) { c } else { '_' }).collect();
+    let encoded: String = name
+        .bytes()
+        .map(|b| if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) { (b as char).to_string() } else { format!("%{b:02X}") })
+        .collect();
+    format!("attachment; filename=\"{ascii}\"; filename*=UTF-8''{encoded}")
+}
+
+async fn export_zip(s: &AppState, name: String, ids: Vec<String>, req: Request) -> ApiResult<Response> {
+    let (cfg, db, n) = (s.cfg.clone(), s.db.clone(), name.clone());
+    let path = tokio::task::spawn_blocking(move || archive::export(&cfg, &db, &n, &ids))
+        .await
+        .map_err(|e| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .map_err(|e| bad(format!("{e:#}")))?;
+    let mut res = serve_file(path, req).await?;
+    let h = res.headers_mut();
+    h.insert(header::CONTENT_TYPE, header::HeaderValue::from_static("application/zip"));
+    if let Ok(v) = header::HeaderValue::from_str(&content_disposition(&format!("{}.zip", archive::safe_name(&name, 80)))) {
+        h.insert(header::CONTENT_DISPOSITION, v);
+    }
+    Ok(res)
+}
+
+async fn export_album(State(s): State<AppState>, Path(id): Path<i64>, req: Request) -> ApiResult<Response> {
+    let album = s.db.album(id)?.ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "Альбом не найден"))?;
+    export_zip(&s, album.name, album.tracks, req).await
+}
+
+#[derive(Deserialize)]
+struct ExportQuery {
+    name: Option<String>,
+    ids: String,
+}
+
+/// Экспорт произвольного набора треков (например, альбома из метаданных).
+async fn export_tracks(State(s): State<AppState>, Query(q): Query<ExportQuery>, req: Request) -> ApiResult<Response> {
+    let ids: Vec<String> = q.ids.split(',').filter(|x| !x.is_empty()).map(str::to_owned).collect();
+    check_ids(&ids)?;
+    if ids.is_empty() {
+        return Err(bad("Нет треков для экспорта"));
+    }
+    let name = q.name.filter(|n| !n.trim().is_empty()).unwrap_or_else(|| "Моя музыка".into());
+    export_zip(&s, name, ids, req).await
+}
+
+/// Импорт архива альбома: тело запроса — сам .zip, пишется на диск потоком.
+async fn import_album(State(s): State<AppState>, req: Request) -> ApiResult<impl IntoResponse> {
+    use futures_util::StreamExt;
+    use tokio::io::AsyncWriteExt;
+
+    archive::cleanup_tmp(&s.cfg.tmp_dir);
+    let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    let path = s.cfg.tmp_dir.join(format!("upload-{stamp}.zip"));
+    let mut file = tokio::fs::File::create(&path).await?;
+    let mut stream = req.into_body().into_data_stream();
+    let mut size: u64 = 0;
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| bad(format!("Загрузка прервалась: {e}")))?;
+        size += chunk.len() as u64;
+        if size > 8 * 1024 * 1024 * 1024 {
+            let _ = tokio::fs::remove_file(&path).await;
+            return Err(bad("Архив больше 8 ГБ"));
+        }
+        file.write_all(&chunk).await?;
+    }
+    file.flush().await?;
+    drop(file);
+
+    let (cfg, db, p) = (s.cfg.clone(), s.db.clone(), path.clone());
+    let report = tokio::task::spawn_blocking(move || archive::import(&cfg, &db, &p))
+        .await
+        .map_err(|e| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let _ = tokio::fs::remove_file(&path).await;
+    let report = report.map_err(|e| bad(format!("{e:#}")))?;
+    tracing::info!("импорт «{}»: новых {}, уже было {}, ошибок {}", report.name, report.imported, report.skipped, report.failed);
+    Ok(Json(report))
+}
+
+#[derive(Deserialize)]
+struct PlaylistBody {
+    url: Option<String>,
+}
+
+async fn add_playlist(State(s): State<AppState>, Json(b): Json<PlaylistBody>) -> ApiResult<impl IntoResponse> {
+    let url = b.url.as_deref().map(str::trim).unwrap_or_default();
+    if !(url.starts_with("http://") || url.starts_with("https://")) {
+        return Err(bad("Нужна ссылка на альбом или плейлист"));
+    }
+    let list = jobs::read_playlist(&s.cfg, url).await.map_err(|e| bad(format!("{e:#}")))?;
+    if list.entries.is_empty() {
+        return Err(bad("В плейлисте не нашлось треков"));
+    }
+    let job = jobs::start(s.jobs.clone(), s.db.clone(), s.dl.clone(), list, url)?;
+    Ok(Json(json!({ "job": job })))
+}
+
+async fn list_jobs(State(s): State<AppState>) -> ApiResult<impl IntoResponse> {
+    Ok(Json(s.jobs.snapshot()))
 }
 
 async fn delete_track(State(s): State<AppState>, Path(id): Path<String>) -> ApiResult<impl IntoResponse> {

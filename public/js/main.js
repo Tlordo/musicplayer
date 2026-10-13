@@ -6,6 +6,7 @@ import { registerDesigns, applyTheme, currentDesign } from './themes.js';
 import { mountDesign, registerActions, renderState } from './ui.js';
 import { openFull, closeFull, syncInline } from './lyrics.js';
 import { initSettings, openSettings } from './settings.js';
+import { renderAlbums, renderJobs } from './albums.js';
 import classic from './designs/classic.js';
 import cassette from './designs/cassette.js';
 
@@ -24,6 +25,8 @@ function switchDesign(id, force) {
     document.documentElement.dataset.design = id;
     applyTheme();
     mountDesign();
+    renderAlbums();
+    renderJobs();
     syncInline();
   };
   if (link.getAttribute('href') === href) { done(); return; }
@@ -57,6 +60,8 @@ async function boot() {
   }
   renderState();
   syncInline();
+  core.loadAlbums();
+  core.pollJobs();
 }
 
 boot();

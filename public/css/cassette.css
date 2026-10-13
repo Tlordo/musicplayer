@@ -162,8 +162,86 @@ html:not([data-tab="player"]) .player { display: none; }
   transition: background-color 0.15s, color 0.15s;
 }
 .side-btn:hover { background: color-mix(in srgb, var(--print) 8%, transparent); }
-html:not([data-libview="recs"]) .side-a,
-html[data-libview="recs"] .side-b { background: var(--print); color: var(--card); }
+html:not([data-libview]) .side-a,
+html[data-libview="library"] .side-a,
+html[data-libview="recs"] .side-b,
+html[data-libview="albums"] .side-shelf,
+html[data-libview="album"] .side-shelf { background: var(--print); color: var(--card); }
+.side-shelf { padding: 0 8px; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; margin-left: 4px; }
+html[data-libview="albums"] .form-head { display: none; }
+
+/* ============ Полка с кассетами (альбомы) ============ */
+.shelf { background: var(--card) !important; padding: 0 14px 16px 20px; }
+.shelf-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 0 8px; }
+.shelf-actions { display: flex; gap: 8px; }
+.mini-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 2px solid var(--orange-ink);
+  border-radius: 3px;
+  color: var(--orange-ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: background-color 0.15s, color 0.15s;
+}
+.mini-stamp svg { font-size: 15px; }
+.mini-stamp:hover:not(:disabled) { background: var(--orange-ink); color: #fff; }
+.mini-stamp.solid { background: var(--orange-ink); color: #fff; }
+.mini-stamp:disabled { opacity: 0.45; }
+.shelf-empty { padding: 6px 0 12px; font-size: 1.2rem; line-height: 1.3; color: var(--ball); }
+.spines { list-style: none; display: grid; gap: 8px; }
+/* корешок кассетной коробки */
+.spine {
+  display: grid;
+  grid-template-columns: 14px 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 6px 12px 6px 0;
+  text-align: left;
+  background: color-mix(in srgb, var(--card) 94%, var(--print));
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--rule) 70%, var(--print));
+  transition: translate 0.15s var(--ease-out), box-shadow 0.15s;
+}
+.spine:hover { translate: 4px 0; box-shadow: -3px 2px 0 color-mix(in srgb, var(--rule) 70%, var(--print)); }
+.spine-stripes { display: grid; grid-template-rows: 1fr 1fr 2fr; align-self: stretch; margin: -6px 0; }
+.spine-stripes i:nth-child(1) { background: var(--orange); }
+.spine-stripes i:nth-child(2) { background: var(--yellow); }
+.spine-stripes i:nth-child(3) { background: var(--cobalt); }
+.spine-thumb { width: 44px; height: 44px; background: var(--card-2); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); }
+.spine-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.spine-text { display: grid; min-width: 0; }
+.spine-name { font-family: var(--f-hand); font-size: 1.3rem; line-height: 1.15; color: var(--ball); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spine-sub { font-size: 0.82rem; color: var(--print-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.text-back { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin: 6px 0 0 14px; padding: 0 8px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--print-2); }
+.text-back:hover { color: var(--print); }
+.text-back svg { font-size: 16px; }
+.tape-head { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 6px 12px 4px 20px; }
+.tape-tools { display: grid; align-self: start; color: var(--print-2); }
+.tape-tools .danger:hover { color: var(--ui-danger); }
+/* шапка кассеты закрывает разлиновку вкладыша */
+.album-view .text-back,
+.album-view [data-album-head] { position: relative; z-index: 1; background: var(--card); }
+.album-view .text-back { display: flex; width: 100%; margin: 0; padding: 6px 0 0 20px; }
+.row-thumb.big { width: 76px; height: 76px; justify-self: start; }
+.tape-title { display: grid; gap: 2px; min-width: 0; }
+.tape-name { font-family: var(--f-hand); font-size: 1.8rem; line-height: 1.05; color: var(--ball); overflow-wrap: anywhere; }
+.tape-sub { font-size: 0.85rem; color: var(--print-2); }
+.tape-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 20px 12px; border-bottom: 1px solid var(--rule); color: var(--print-2); }
+.tape-actions .danger:hover { color: var(--ui-danger); }
+li.removable { display: grid; grid-template-columns: minmax(0, 1fr) 40px; align-items: center; border-bottom: 1px solid var(--rule); }
+li.removable .row { border-bottom: 0; }
+.row-remove { display: grid; place-items: center; width: 32px; height: 32px; color: var(--print-2); font-size: 16px; border-radius: 50%; }
+.row-remove:hover { color: var(--ui-danger); background: color-mix(in srgb, var(--print) 6%, transparent); }
 
 .recs-head {
   display: flex;

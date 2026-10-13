@@ -27,6 +27,7 @@ export const state = {
   played: local.played(),
   dragging: false,   // пользователь тянет перемотку
   dragP: 0,
+  queue: null,       // { key, ids } — играем альбом; null — библиотеку в текущем порядке
 };
 
 // ============ Библиотека ============
@@ -148,6 +149,12 @@ export function progress() {
   return audio.duration ? Math.min(1, audio.currentTime / audio.duration) : 0;
 }
 
+/** Играть из библиотеки (очередь — весь список) или из альбома (очередь — его треки). */
+export function playFrom(track, queue = null) {
+  state.queue = queue;
+  load(track, true);
+}
+
 export function load(track, autoplay) {
   clearTimeout(restoreTimer);
   state.current = track;
@@ -183,8 +190,16 @@ export async function play() {
 export function pause() { audio.pause(); }
 export function toggle() { if (audio.paused) play(); else pause(); }
 
+function queueList() {
+  if (state.queue) {
+    const list = state.queue.ids.map(find).filter(Boolean);
+    if (list.length) return list;
+  }
+  return state.view.length ? state.view : state.library;
+}
+
 function neighbour(step) {
-  const list = state.view.length ? state.view : state.library;
+  const list = queueList();
   if (!list.length) return null;
   if (settings.shuffle && list.length > 1) {
     let t;
@@ -337,6 +352,130 @@ export function clearPlayed() {
   state.played.clear();
   local.savePlayed(state.played);
   emit('library', state);
+}
+
+// ============ Альбомы ============
+export const albums = { user: [], loaded: false, open: null };
+
+async function api(method, url, body) {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : {},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+export async function loadAlbums() {
+  try {
+    albums.user = await api('GET', '/api/albums');
+    albums.loaded = true;
+  } catch (err) {
+    console.warn('альбомы:', err);
+  }
+  emit('albums');
+}
+
+/** Альбомы из метаданных YouTube: треки с одинаковым полем «альбом», от двух треков. */
+export function metaAlbums() {
+  const groups = new Map();
+  for (const t of state.library) {
+    const name = (t.album || '').trim();
+    if (!name || name === 'Single' || name === 'Unknown') continue;
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(t);
+  }
+  return [...groups]
+    .filter(([, list]) => list.length >= 2)
+    .map(([name, list]) => {
+      const artists = new Map();
+      list.forEach((t) => artists.set(t.artist, (artists.get(t.artist) || 0) + 1));
+      const artist = [...artists].sort((a, b) => b[1] - a[1])[0][0];
+      return { key: 'm:' + name, kind: 'meta', name, artist, tracks: list.sort((a, b) => (a.added || 0) - (b.added || 0)).map((t) => t.video_id) };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+}
+
+export function userAlbums() {
+  return albums.user.map((a) => ({ key: 'u:' + a.id, kind: 'user', id: a.id, name: a.name, tracks: a.tracks.filter((id) => find(id)) }));
+}
+
+export function findAlbum(key) {
+  return [...userAlbums(), ...metaAlbums()].find((a) => a.key === key) || null;
+}
+
+export function playAlbum(album, startId) {
+  const list = album.tracks.map(find).filter(Boolean);
+  if (!list.length) return;
+  const first = (startId && find(startId)) || (settings.shuffle ? list[Math.floor(Math.random() * list.length)] : list[0]);
+  playFrom(first, { key: album.key, ids: album.tracks });
+}
+
+export async function createAlbum(name, tracks = []) {
+  const a = await api('POST', '/api/albums', { name, tracks });
+  await loadAlbums();
+  return a;
+}
+export async function renameAlbum(id, name) { await api('PATCH', `/api/albums/${id}`, { name }); await loadAlbums(); }
+export async function deleteAlbum(id) { await api('DELETE', `/api/albums/${id}`); await loadAlbums(); }
+export async function setAlbumTracks(id, tracks) { await api('PATCH', `/api/albums/${id}`, { tracks }); await loadAlbums(); }
+export async function addToAlbum(id, videoId) { await api('POST', `/api/albums/${id}/tracks`, { video_id: videoId }); await loadAlbums(); }
+export async function removeFromAlbum(id, videoId) {
+  await api('DELETE', `/api/albums/${id}/tracks/${encodeURIComponent(videoId)}`);
+  await loadAlbums();
+}
+
+/** Ссылка на архив альбома: свой альбом — по id, альбом из метаданных — по списку треков. */
+export function exportUrl(album) {
+  if (album.kind === 'user') return `/api/albums/${album.id}/export`;
+  return `/api/export?name=${encodeURIComponent(album.name)}&ids=${album.tracks.join(',')}`;
+}
+
+/** Импорт архива альбома; onProgress(0…1) — отправка файла. */
+export function importAlbum(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/import');
+    xhr.setRequestHeader('Content-Type', 'application/zip');
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress?.(e.loaded / e.total); };
+    xhr.onload = () => {
+      let data = {};
+      try { data = JSON.parse(xhr.responseText); } catch { /* не JSON */ }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+      else reject(new Error(data.error || `HTTP ${xhr.status}`));
+    };
+    xhr.onerror = () => reject(new Error('нет связи с сервером'));
+    xhr.send(file);
+  });
+}
+
+// ============ Фоновые задачи (загрузка альбома с YouTube) ============
+export const jobs = { list: [], local: [] };
+let jobsTimer = null;
+let lastDone = -1;
+
+export async function pollJobs() {
+  clearTimeout(jobsTimer);
+  try {
+    jobs.list = await api('GET', '/api/jobs');
+  } catch { /* сервер перезапускается */ }
+  const done = jobs.list.reduce((s, j) => s + j.done, 0);
+  if (done !== lastDone) {
+    // Появились новые треки — подтягиваем их в библиотеку и альбомы.
+    if (lastDone !== -1) { await loadLibrary(); await loadAlbums(); }
+    lastDone = done;
+  }
+  emit('jobs');
+  if (jobs.list.some((j) => j.state === 'running')) jobsTimer = setTimeout(pollJobs, 2000);
+}
+
+export async function addPlaylist(url) {
+  const data = await api('POST', '/api/add-playlist', { url });
+  await loadAlbums();
+  pollJobs();
+  return data.job;
 }
 
 // ============ Рекомендации ============

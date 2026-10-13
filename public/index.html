@@ -40,6 +40,9 @@
       <symbol id="i-lyrics" viewBox="0 0 24 24"><path d="M4 6h11M4 10.5h8M4 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M17 17.5a2.5 2.5 0 1 1-2.5-2.5H17V7l4-1.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="i-lyrics-full" viewBox="0 0 24 24"><path d="M7 9.5h7M7 12.5h5M7 15.5h3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M3 8V3h5M21 8V3h-5M3 16v5h5M21 16v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-album" viewBox="0 0 24 24"><rect x="3" y="3" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 7v12a2 2 0 0 1-2 2H7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9.5" cy="9.5" r="2" fill="currentColor"/></symbol>
+      <symbol id="i-back" viewBox="0 0 24 24"><path d="M20 12H5M11 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
       <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></symbol>
       <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
       <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m15.5 15.5 5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
@@ -81,7 +84,12 @@
         <span class="field-label">Ссылка</span>
         <input type="url" id="url-input" placeholder="https://music.youtube.com/watch?v=…" required autocomplete="off" inputmode="url" enterkeyhint="go">
       </label>
-      <p class="hint">Подойдут ссылки youtube.com, youtu.be и music.youtube.com. Загрузка занимает от нескольких секунд до пары минут — окно можно закрыть, она продолжится.</p>
+      <fieldset class="add-mode" id="add-mode" hidden>
+        <legend class="field-label">Это ссылка на плейлист или альбом</legend>
+        <label><input type="radio" name="add-mode" value="track" checked><span>Только этот трек</span></label>
+        <label><input type="radio" name="add-mode" value="playlist"><span>Весь альбом / плейлист — в новый альбом</span></label>
+      </fieldset>
+      <p class="hint">Подойдут ссылки youtube.com, youtu.be и music.youtube.com, в том числе на альбомы и плейлисты. Загрузка идёт в фоне — окно можно закрыть.</p>
       <p class="status" id="add-status" role="status"></p>
       <div class="sheet-actions">
         <button type="button" class="btn" data-close>Отмена</button>
@@ -112,6 +120,63 @@
     </form>
   </dialog>
 
+  <dialog class="sheet small" id="name-dialog" aria-labelledby="name-title">
+    <form method="dialog" class="sheet-body" id="name-form">
+      <h2 id="name-title">Новый альбом</h2>
+      <label class="field">
+        <span class="field-label">Название</span>
+        <input type="text" id="name-input" maxlength="80" autocomplete="off" required enterkeyhint="done">
+      </label>
+      <div class="sheet-actions">
+        <button type="button" class="btn" data-close>Отмена</button>
+        <button type="submit" class="btn btn-primary" id="name-save">Создать</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="sheet small" id="ask-dialog" aria-labelledby="ask-title">
+    <form method="dialog" class="sheet-body">
+      <h2 id="ask-title">Точно?</h2>
+      <p class="confirm-text" id="ask-text"></p>
+      <div class="sheet-actions">
+        <button value="no" class="btn">Отмена</button>
+        <button value="yes" class="btn btn-danger"><svg><use href="#i-erase"/></svg><span id="ask-yes-label">Удалить</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="sheet small" id="pick-album-dialog" aria-labelledby="pick-album-title">
+    <div class="sheet-body">
+      <header class="sheet-head">
+        <h2 id="pick-album-title">В альбом</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Закрыть"><svg><use href="#i-x"/></svg></button>
+      </header>
+      <p class="hint" id="pick-album-track"></p>
+      <div class="pick-list" data-pick-albums></div>
+      <div class="sheet-actions">
+        <button type="button" class="btn btn-primary" data-pick-new><svg><use href="#i-plus"/></svg>Новый альбом</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="sheet" id="pick-tracks-dialog" aria-labelledby="pick-tracks-title">
+    <div class="sheet-body">
+      <header class="sheet-head">
+        <h2 id="pick-tracks-title">Добавить треки</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Закрыть"><svg><use href="#i-x"/></svg></button>
+      </header>
+      <label class="field">
+        <span class="field-label">Поиск</span>
+        <input type="search" id="pick-search" placeholder="название, исполнитель…" autocomplete="off">
+      </label>
+      <div class="pick-list tall" data-pick-tracks></div>
+      <div class="sheet-actions">
+        <button type="button" class="btn" data-close>Отмена</button>
+        <button type="button" class="btn btn-primary" id="pick-add" disabled><svg><use href="#i-plus"/></svg><span id="pick-add-label">Добавить</span></button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog class="sheet wide" id="settings-dialog" aria-labelledby="settings-title">
     <div class="sheet-body settings" id="settings-body"></div>
   </dialog>
@@ -124,6 +189,7 @@
     <button type="button" class="lyrics-close" data-act="lyrics-close" title="Закрыть текст песни (Esc)"><svg aria-hidden="true"><use href="#i-x"/></svg><span>Закрыть</span></button>
   </div>
 
+  <div class="jobs" id="jobs" aria-live="polite" hidden></div>
   <div class="toasts" id="toasts" aria-live="polite"></div>
 
   <audio id="audio" preload="metadata" crossorigin="anonymous"></audio>

@@ -1,7 +1,9 @@
 mod api;
+mod archive;
 mod config;
 mod db;
 mod downloader;
+mod jobs;
 mod peaks;
 mod recs;
 
@@ -31,7 +33,7 @@ async fn main() -> Result<()> {
         .init();
 
     let cfg = Arc::new(Config::from_env());
-    for dir in [&cfg.music_dir, &cfg.info_dir] {
+    for dir in [&cfg.music_dir, &cfg.info_dir, &cfg.tmp_dir] {
         std::fs::create_dir_all(dir).with_context(|| format!("не удалось создать {}", dir.display()))?;
     }
 
@@ -49,6 +51,7 @@ async fn main() -> Result<()> {
     let state = AppState {
         dl: Arc::new(Downloader::new(cfg.clone(), db.clone())),
         recs: Arc::new(Recommender::new(cfg.clone())),
+        jobs: Arc::new(jobs::Jobs::default()),
         cfg: cfg.clone(),
         db,
     };

@@ -63,7 +63,7 @@ impl Recommender {
         let url = format!("https://www.youtube.com/watch?v={seed}&list=RD{seed}");
 
         let mut cmd = Command::new(&self.cfg.ytdlp);
-        cmd.args(["--flat-playlist", "--dump-single-json", "--yes-playlist", "--no-warnings"])
+        cmd.args(["--flat-playlist", "--dump-single-json", "--yes-playlist", "--no-warnings", "--encoding", "utf-8"])
             .args(["--playlist-end", &MIX_LEN.to_string()]);
         if let Some(cookies) = &self.cfg.cookies {
             cmd.arg("--cookies").arg(cookies);
@@ -79,7 +79,7 @@ impl Recommender {
             let msg = err.lines().filter(|l| l.contains("ERROR")).last().unwrap_or(err.trim());
             bail!("yt-dlp: {msg}");
         }
-        let json: Value = serde_json::from_slice(&out.stdout).context("не удалось разобрать ответ yt-dlp")?;
+        let json: Value = serde_json::from_str(&String::from_utf8_lossy(&out.stdout)).context("не удалось разобрать ответ yt-dlp")?;
         let list = parse_mix(&json, seed);
 
         let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
