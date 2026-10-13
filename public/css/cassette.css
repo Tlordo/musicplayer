@@ -88,7 +88,7 @@ body {
   height: 100dvh;
 }
 .jcard,
-.player { grid-row: 1; grid-column: 1; min-height: 0; }
+.player { grid-row: 1; grid-column: 1; min-height: 0; min-width: 0; }
 .transport { grid-row: 2; grid-column: 1; }
 html[data-tab="player"] .jcard,
 html:not([data-tab="player"]) .player { display: none; }
@@ -140,12 +140,62 @@ html:not([data-tab="player"]) .player { display: none; }
 
 .jcard-owner {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
   padding: 12px 20px 8px;
   border-bottom: 1px solid var(--rule);
 }
 .owner-name { color: var(--ball); font-size: 1.45rem; line-height: 1; white-space: nowrap; }
+/* сторона А — библиотека, сторона Б — рекомендации */
+.side-switch { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.side-word { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--print-2); margin-right: 3px; }
+.side-btn {
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--print);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--print);
+  transition: background-color 0.15s, color 0.15s;
+}
+.side-btn:hover { background: color-mix(in srgb, var(--print) 8%, transparent); }
+html:not([data-libview="recs"]) .side-a,
+html[data-libview="recs"] .side-b { background: var(--print); color: var(--card); }
+
+.recs-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 12px 10px 20px;
+  border-bottom: 1px solid var(--rule);
+}
+.recs-seed { min-width: 0; flex: 1; font-size: 1.25rem; color: var(--ball); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recs-head .icon-btn { align-self: center; color: var(--print-2); font-size: 18px; }
+
+/* ещё не записанное — карандашом */
+.row.rec .row-title { color: color-mix(in srgb, var(--print) 72%, var(--card)); }
+.row.rec .row-time { color: color-mix(in srgb, var(--print) 60%, var(--card)); }
+.row.rec .row-thumb { opacity: 0.88; }
+.row.rec:hover { background: transparent; }
+.row-num .rec-add {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--orange-ink);
+  border-radius: 50%;
+  color: var(--orange-ink);
+  font-size: 16px;
+  transition: background-color 0.15s, color 0.15s;
+}
+.row-num .rec-add:hover:not(:disabled) { background: var(--orange-ink); color: #fff; }
+.row-num .rec-add .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--orange-ink); animation: rec 1s steps(2, jump-none) infinite; }
+.recs-view.tracklist-wrap { display: block; }
+.row.rec .row-num { text-align: center; padding: 0 2px 0 0; }
+
 .side-mark { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--print-2); white-space: nowrap; }
 .side-mark b { display: inline-block; margin-left: 3px; padding: 0 4px; background: var(--print); color: var(--card); font-size: 0.85rem; }
 .jcard-stats { margin-left: auto; font-size: 0.85rem; color: var(--print-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -259,7 +309,7 @@ html:not([data-tab="player"]) .player { display: none; }
   color: var(--print-2);
   font-variant-numeric: tabular-nums;
 }
-.row-num svg { position: absolute; inset: 50% auto auto 1px; width: 22px; height: 22px; translate: 0 -62%; color: var(--ball); opacity: 0.85; }
+.row-num > svg { position: absolute; inset: 50% auto auto 1px; width: 22px; height: 22px; translate: 0 -62%; color: var(--ball); opacity: 0.85; }
 
 /* обложка — маленькая фотокарточка, вклеенная в строку вкладыша */
 .row-thumb {

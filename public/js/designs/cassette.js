@@ -113,11 +113,21 @@ export default {
   <div class="jcard-owner">
     <span class="form-label">запись</span>
     <span class="hand owner-name">моя музыка</span>
-    <span class="side-mark">сторона <b>А</b></span>
+    <span class="side-switch" role="tablist" aria-label="Сторона вкладыша">
+      <span class="side-word">сторона</span>
+      <button type="button" role="tab" class="side-btn side-a" data-act="libview-library" title="Сторона А — моя музыка">А</button>
+      <button type="button" role="tab" class="side-btn side-b" data-act="libview-recs" title="Сторона Б — что ещё записать (рекомендации)">Б</button>
+    </span>
     <span class="jcard-stats"><span data-bind="count"></span> · <span data-bind="total"></span></span>
   </div>
 
-  <div class="jcard-tools">
+  <div class="recs-view recs-head">
+    <span class="form-label">по мотивам</span>
+    <span class="hand recs-seed" data-recs-seed></span>
+    <button type="button" class="icon-btn small" data-act="recs-refresh" aria-label="Подобрать заново" title="Подобрать заново"><svg><use href="#i-refresh"/></svg></button>
+  </div>
+
+  <div class="jcard-tools library-view">
     <label class="search-line">
       <span class="form-label">найти</span>
       <input type="search" class="hand" data-search placeholder="название, исполнитель…" autocomplete="off" enterkeyhint="search" aria-label="Поиск по вкладышу">
@@ -131,7 +141,15 @@ export default {
 
   <div class="form-head" aria-hidden="true"><span>№</span><span>наименование</span><span>время</span></div>
 
-  <div class="tracklist-wrap">
+  <div class="tracklist-wrap recs-view">
+    <ol class="tracklist" data-recs aria-label="Рекомендации"></ol>
+    <div class="empty" data-recs-state hidden>
+      <p class="hand empty-title" data-recs-title></p>
+      <p class="empty-text" data-recs-text></p>
+    </div>
+  </div>
+
+  <div class="tracklist-wrap library-view">
     <ol class="tracklist" data-list aria-label="Треки"></ol>
     <div class="empty" data-empty hidden>
       <p class="hand empty-title" data-empty-title></p>
@@ -260,6 +278,19 @@ export default {
       </span>
       <span class="row-time">${t._sec ? formatTime(t._sec) : '—'}</span>
     </button></li>`;
+  },
+
+  renderRec(r, i, f, { esc, formatTime }) {
+    const sub = esc(r.artist || '');
+    return `<li><div class="row rec">
+      <span class="row-num"><button type="button" class="rec-add" data-act="rec-add" data-rec-id="${esc(r.id)}" aria-busy="${f.adding}" ${f.adding ? 'disabled' : ''} aria-label="Записать «${esc(r.title)}» на кассету" title="Записать на кассету"><svg class="idle" aria-hidden="true"><use href="#i-plus"/></svg><span class="busy rec-dot" aria-hidden="true"></span></button></span>
+      <span class="row-thumb"><img src="${esc(r.thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
+      <span class="row-main">
+        <span class="row-title">${esc(r.title)}</span>
+        <span class="row-sub">${sub}</span>
+      </span>
+      <span class="row-time">${r.duration ? formatTime(r.duration) : '—'}</span>
+    </div></li>`;
   },
 
   onTab(tab) {

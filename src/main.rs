@@ -3,12 +3,15 @@ mod config;
 mod db;
 mod downloader;
 mod peaks;
+mod recs;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
+use axum::http::{header, HeaderValue};
 use tower_http::cors::CorsLayer;
+use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
@@ -17,6 +20,7 @@ use crate::api::AppState;
 use crate::config::Config;
 use crate::db::Db;
 use crate::downloader::Downloader;
+use crate::recs::Recommender;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -44,12 +48,19 @@ async fn main() -> Result<()> {
 
     let state = AppState {
         dl: Arc::new(Downloader::new(cfg.clone(), db.clone())),
+        recs: Arc::new(Recommender::new(cfg.clone())),
         cfg: cfg.clone(),
         db,
     };
 
     let app = api::router(state)
-        .fallback_service(ServeDir::new(&cfg.public_dir))
+        // Интерфейс обновляется часто: браузер должен перепроверять файлы (ETag) при каждом заходе,
+        // иначе после обновления может смешать новый index.html со старыми модулями.
+        .fallback_service(
+            tower::ServiceBuilder::new()
+                .layer(SetResponseHeaderLayer::if_not_present(header::CACHE_CONTROL, HeaderValue::from_static("no-cache")))
+                .service(ServeDir::new(&cfg.public_dir)),
+        )
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http());
 

@@ -339,6 +339,50 @@ export function clearPlayed() {
   emit('library', state);
 }
 
+// ============ Рекомендации ============
+export const recs = { items: [], seeds: [], loading: false, error: null, adding: new Set(), loadedFor: null };
+let recsToken = 0;
+
+/** Микс YouTube по текущему треку (или по последним добавленным, если ничего не играет). */
+export async function loadRecs({ fresh = false } = {}) {
+  const seed = state.current ? state.current.video_id : '';
+  const token = ++recsToken;
+  recs.loading = true;
+  recs.error = null;
+  recs.loadedFor = seed;
+  emit('recs');
+  try {
+    const res = await fetch(`/api/recommendations?seed=${encodeURIComponent(seed)}${fresh ? '&fresh=1' : ''}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    if (token !== recsToken) return;
+    recs.items = data.items || [];
+    recs.seeds = data.seeds || [];
+  } catch (err) {
+    if (token !== recsToken) return;
+    recs.error = err.message;
+  }
+  recs.loading = false;
+  emit('recs');
+}
+
+export async function addRec(id) {
+  const item = recs.items.find((r) => r.id === id);
+  if (!item || recs.adding.has(id)) return;
+  recs.adding.add(id);
+  emit('recs');
+  try {
+    const t = await addTrack(item.url);
+    recs.items = recs.items.filter((r) => r.id !== id);
+    emit('toast', { text: `Добавлен «${(t && t.title) || item.title}»`, type: 'ok' });
+  } catch (err) {
+    emit('toast', { text: `Не удалось добавить: ${err.message}`, type: 'error', ms: 5000 });
+  } finally {
+    recs.adding.delete(id);
+    emit('recs');
+  }
+}
+
 // ============ Кадровый цикл ============
 // Один requestAnimationFrame на всё приложение: дизайны рисуют свои индикаторы в 'frame'.
 let last = 0;

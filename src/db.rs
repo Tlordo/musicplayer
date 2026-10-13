@@ -209,6 +209,21 @@ impl Db {
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
+    /// video_id последних добавленных треков (новые первыми).
+    pub fn recent_ids(&self, n: usize) -> Result<Vec<String>> {
+        let conn = self.conn();
+        let mut stmt = conn.prepare_cached("SELECT video_id FROM techData ORDER BY rowid DESC LIMIT ?1")?;
+        let rows = stmt.query_map([n as i64], |r| r.get(0))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    pub fn all_ids(&self) -> Result<std::collections::HashSet<String>> {
+        let conn = self.conn();
+        let mut stmt = conn.prepare_cached("SELECT video_id FROM techData")?;
+        let rows = stmt.query_map([], |r| r.get(0))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
     /// URL, по которому трек можно скачать заново (None — трека нет в базе).
     pub fn source_url(&self, video_id: &str) -> Result<Option<String>> {
         let conn = self.conn();

@@ -170,6 +170,8 @@ export function closeFull() {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && full) closeFull();
 });
+// Кнопка «Закрыть» работает сама по себе, независимо от общего обработчика действий.
+overlay.querySelector('.lyrics-close').addEventListener('click', () => closeFull());
 
 // Плеер рассказывает musetext обо всём, что меняется, и раз в секунду подтверждает позицию.
 core.on('track', () => { push(); syncInline(); });

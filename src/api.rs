@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::body::Body;
-use axum::extract::{Path, Request, State};
+use axum::extract::{Path, Query, Request, State};
 use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{delete, get, post};
@@ -14,12 +14,14 @@ use tower_http::services::ServeFile;
 use crate::config::Config;
 use crate::db::Db;
 use crate::downloader::{is_valid_video_id, Downloader};
+use crate::recs::{merge, Recommender};
 
 #[derive(Clone)]
 pub struct AppState {
     pub cfg: Arc<Config>,
     pub db: Arc<Db>,
     pub dl: Arc<Downloader>,
+    pub recs: Arc<Recommender>,
 }
 
 pub fn router(state: AppState) -> Router {
@@ -29,6 +31,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/stream/:video_id", get(stream))
         .route("/api/thumbnail/:video_id", get(thumbnail))
         .route("/api/peaks/:video_id", get(peaks))
+        .route("/api/recommendations", get(recommendations))
         .route("/api/track/:video_id", delete(delete_track))
         .with_state(state)
 }
@@ -158,6 +161,53 @@ async fn peaks(State(s): State<AppState>, Path(id): Path<String>) -> ApiResult<R
         tracing::warn!("не удалось сохранить форму волны {id}: {e}");
     }
     Ok(([(header::CONTENT_TYPE, "application/json")], body).into_response())
+}
+
+#[derive(Deserialize)]
+struct RecsQuery {
+    /// Трек, от которого строить микс; без него — несколько последних добавленных.
+    seed: Option<String>,
+    /// `1` — не брать из кэша (кнопка «обновить»).
+    fresh: Option<u8>,
+}
+
+async fn recommendations(State(s): State<AppState>, Query(q): Query<RecsQuery>) -> ApiResult<impl IntoResponse> {
+    let seeds: Vec<String> = match q.seed.filter(|id| !id.is_empty()) {
+        Some(id) => {
+            check_id(&id)?;
+            vec![id]
+        }
+        None => s.db.recent_ids(3)?,
+    };
+    if seeds.is_empty() {
+        return Ok(Json(json!({ "seeds": [], "items": [] })));
+    }
+    let fresh = q.fresh == Some(1);
+
+    let mut jobs = tokio::task::JoinSet::new();
+    for (i, seed) in seeds.iter().cloned().enumerate() {
+        let recs = s.recs.clone();
+        jobs.spawn(async move { (i, seed.clone(), recs.mix(&seed, fresh).await) });
+    }
+    let mut mixes = vec![Vec::new(); seeds.len()];
+    let mut errors = Vec::new();
+    while let Some(done) = jobs.join_next().await {
+        match done {
+            Ok((i, _, Ok(list))) => mixes[i] = list,
+            Ok((_, seed, Err(e))) => {
+                tracing::warn!("рекомендации по {seed}: {e:#}");
+                errors.push(format!("{e:#}"));
+            }
+            Err(e) => errors.push(e.to_string()),
+        }
+    }
+    if errors.len() == seeds.len() {
+        return Err(ApiError::new(StatusCode::BAD_GATEWAY, errors.join("; ")));
+    }
+
+    let mut exclude = s.db.all_ids()?;
+    exclude.extend(seeds.iter().cloned());
+    Ok(Json(json!({ "seeds": seeds, "items": merge(mixes, &exclude, 40) })))
 }
 
 async fn delete_track(State(s): State<AppState>, Path(id): Path<String>) -> ApiResult<impl IntoResponse> {

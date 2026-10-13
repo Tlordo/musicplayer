@@ -110,6 +110,11 @@ export default {
       <button type="button" class="icon-btn" data-act="settings" aria-label="Настройки" title="Настройки"><svg><use href="#i-gear"/></svg></button>
     </div>
   </header>
+  <div class="lib-tabs" role="tablist" aria-label="Раздел">
+    <button type="button" role="tab" class="lib-tab tab-lib" data-act="libview-library">Библиотека</button>
+    <button type="button" role="tab" class="lib-tab tab-recs" data-act="libview-recs">Рекомендации</button>
+  </div>
+  <div class="library-view lib-stack">
   <label class="search">
     <svg aria-hidden="true"><use href="#i-search"/></svg>
     <input type="search" data-search placeholder="Поиск в библиотеке" autocomplete="off" enterkeyhint="search" aria-label="Поиск в библиотеке">
@@ -130,6 +135,21 @@ export default {
       <svg class="empty-icon" aria-hidden="true"><use href="#i-note"/></svg>
       <p class="empty-title" data-empty-title></p>
       <p class="empty-text" data-empty-text></p>
+    </div>
+  </div>
+  </div>
+  <div class="recs-view lib-stack">
+    <div class="recs-head">
+      <p class="recs-seed-line">Похоже на <b data-recs-seed></b></p>
+      <button type="button" class="icon-btn" data-act="recs-refresh" aria-label="Подобрать заново" title="Подобрать заново"><svg><use href="#i-refresh"/></svg></button>
+    </div>
+    <div class="tracks-wrap">
+      <ol class="tracks" data-recs aria-label="Рекомендации"></ol>
+      <div class="empty" data-recs-state hidden>
+        <svg class="empty-icon" aria-hidden="true"><use href="#i-wave"/></svg>
+        <p class="empty-title" data-recs-title></p>
+        <p class="empty-text" data-recs-text></p>
+      </div>
     </div>
   </div>
   <footer class="lib-foot">
@@ -232,6 +252,20 @@ export default {
       </span>
       <span class="row-time">${f.played ? '<svg class="played-mark" aria-label="прослушан"><use href="#i-check"/></svg>' : ''}${t._sec ? formatTime(t._sec) : ''}</span>
     </button></li>`;
+  },
+
+  renderRec(r, i, f, { esc, formatTime }) {
+    const sub = [r.artist, r.duration ? formatTime(r.duration) : ''].filter(Boolean).map(esc).join(' · ');
+    return `<li><div class="row rec">
+      <span class="row-thumb"><img src="${esc(r.thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
+      <span class="row-main">
+        <span class="row-title">${esc(r.title)}</span>
+        <span class="row-sub">${sub}</span>
+      </span>
+      <button type="button" class="rec-add" data-act="rec-add" data-rec-id="${esc(r.id)}" aria-busy="${f.adding}" ${f.adding ? 'disabled' : ''} aria-label="Добавить «${esc(r.title)}» в библиотеку" title="Добавить в библиотеку">
+        <svg class="idle" aria-hidden="true"><use href="#i-plus"/></svg><svg class="busy" aria-hidden="true"><use href="#i-refresh"/></svg>
+      </button>
+    </div></li>`;
   },
 
   onTab() {

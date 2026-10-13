@@ -2,7 +2,7 @@
 // data-seek / data-list и т. д., а здесь они оживают — одинаково для всех дизайнов.
 
 import * as core from './core.js';
-import { state, audio } from './core.js';
+import { state, audio, recs } from './core.js';
 import { settings, save } from './store.js';
 import { formatTime, formatLong, formatNumber, plural, yearOf, esc, albumOf } from './format.js';
 import { currentDesign, setCover } from './themes.js';
@@ -167,6 +167,42 @@ function markRows() {
   });
 }
 
+// ============ Рекомендации ============
+export function renderRecs() {
+  const list = $('[data-recs]');
+  if (!list) return;
+  const design = currentDesign();
+  const box = $('[data-recs-state]');
+  const seed = recs.seeds.length === 1 ? core.find(recs.seeds[0]) : null;
+  $$('[data-recs-seed]').forEach((el) => {
+    el.textContent = seed ? `«${seed.title}»` : recs.seeds.length ? 'ваши последние треки' : '—';
+  });
+  $$('[data-act="recs-refresh"]').forEach((b) => { b.disabled = recs.loading; b.classList.toggle('spinning', recs.loading); });
+
+  let state_ = null;
+  if (recs.loading && !recs.items.length) state_ = ['Подбираю треки на YouTube…', 'Это занимает несколько секунд.', 'loading'];
+  else if (recs.error && !recs.items.length) state_ = ['YouTube не отвечает', `${recs.error}. Проверьте интернет и нажмите «обновить».`, 'error'];
+  else if (!recs.items.length && !state.library.length) state_ = ['Пока не из чего выбирать', 'Добавьте пару треков — рекомендации строятся по вашей музыке.', 'empty'];
+  else if (!recs.items.length && recs.loadedFor !== null) state_ = ['Ничего нового', 'Всё похожее уже в библиотеке. Попробуйте другой трек.', 'empty'];
+
+  if (box) {
+    box.hidden = !state_;
+    if (state_) {
+      box.dataset.kind = state_[2];
+      $('[data-recs-title]', box).textContent = state_[0];
+      $('[data-recs-text]', box).textContent = state_[1];
+    }
+  }
+  list.innerHTML = recs.items.map((r, i) => design.renderRec(r, i, { adding: recs.adding.has(r.id) }, { esc, formatTime })).join('');
+}
+
+function openRecs() {
+  html.dataset.libview = 'recs';
+  const want = state.current ? state.current.video_id : '';
+  if (!recs.loading && (recs.loadedFor !== want || recs.error)) core.loadRecs();
+  else renderRecs();
+}
+
 function flashRow(id) {
   const row = id && $(`[data-list] [data-id="${CSS.escape(id)}"]`);
   if (!row) return;
@@ -223,6 +259,10 @@ const builtin = {
   'tab-player': () => setTab('player'),
   'tab-library': () => setTab('library'),
   'tab-toggle': () => setTab(html.dataset.tab === 'player' ? 'library' : 'player'),
+  'libview-library': () => { html.dataset.libview = 'library'; },
+  'libview-recs': () => openRecs(),
+  'recs-refresh': () => core.loadRecs({ fresh: true }),
+  'rec-add': (el) => core.addRec(el.dataset.recId),
   fold: () => { settings.folded = true; save(); html.classList.add('folded'); },
   unfold: () => { settings.folded = false; save(); html.classList.remove('folded'); },
 };
@@ -488,13 +528,21 @@ export function mountDesign() {
   $$('input[data-search]').forEach((i) => { i.value = state.query; });
   unmountDesign = design.mount?.(app) || null;
   lastP = -1;
+  if (!html.dataset.libview) html.dataset.libview = 'library';
   renderList();
+  renderRecs();
   renderTrack();
   renderState();
   renderProgress(core.progress());
 }
 
 core.on('library', renderList);
+core.on('recs', renderRecs);
+// Сменился трек, а рекомендации открыты и видны — подобрать новые под него.
+core.on('track', (t) => {
+  const panel = $('[data-recs]');
+  if (t && html.dataset.libview === 'recs' && panel && panel.offsetParent && recs.loadedFor !== t.video_id && !recs.loading) core.loadRecs();
+});
 core.on('track', renderTrack);
 core.on('state', renderState);
 core.on('meter', renderState);

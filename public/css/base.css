@@ -55,6 +55,15 @@ img { display: block; }
 .icon-btn:hover:not(:disabled) { background: color-mix(in srgb, currentColor 12%, transparent); }
 .icon-btn:disabled { opacity: 0.35; }
 
+/* ============ Рекомендации: общее ============ */
+html:not([data-libview="recs"]) .recs-view { display: none !important; }
+html[data-libview="recs"] .library-view { display: none !important; }
+.spinning svg { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { rotate: 360deg; } }
+.rec-add .busy { display: none; }
+.rec-add[aria-busy="true"] .busy { display: inline-block; }
+.rec-add[aria-busy="true"] .idle { display: none; }
+
 /* ============ Меню «ещё» ============ */
 .menu-wrap { position: relative; display: inline-flex; }
 .menu {

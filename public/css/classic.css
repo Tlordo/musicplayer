@@ -54,7 +54,7 @@ body {
   height: 100dvh;
 }
 .library,
-.player { grid-row: 1; grid-column: 1; min-height: 0; }
+.player { grid-row: 1; grid-column: 1; min-height: 0; min-width: 0; }
 .tabbar { grid-row: 2; grid-column: 1; }
 html[data-tab="player"] .library,
 html:not([data-tab="player"]) .player { display: none; }
@@ -105,6 +105,59 @@ html:not([data-tab="player"]) .player { display: none; }
 }
 .lib-head-actions { display: flex; color: var(--text-2); }
 .lib-head-actions .icon-btn:hover { color: var(--text); }
+
+/* ============ Разделы библиотеки ============ */
+.lib-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 4px 16px 10px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.lib-tab {
+  min-height: 38px;
+  border-radius: 9px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-2);
+  transition: background-color 0.18s, color 0.18s;
+}
+.lib-tab:hover { color: var(--text); }
+html:not([data-libview="recs"]) .tab-lib,
+html[data-libview="recs"] .tab-recs { background: var(--bg); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
+.lib-stack { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+.recs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 8px 8px 20px;
+}
+.recs-seed-line { min-width: 0; font-size: 0.88rem; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recs-seed-line b { color: var(--text); font-weight: 600; }
+.recs-head .icon-btn { color: var(--text-2); font-size: 20px; }
+.row.rec { grid-template-columns: 48px minmax(0, 1fr) 44px; padding-left: 8px; cursor: default; }
+.row.rec:hover { background: transparent; }
+.rec-add {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 20px;
+  color: var(--text);
+  border: 1.5px solid color-mix(in srgb, var(--text) 35%, transparent);
+  transition: background-color 0.18s, border-color 0.18s, color 0.18s, transform 0.12s;
+}
+.rec-add:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.rec-add:active:not(:disabled) { transform: scale(0.92); }
+.rec-add[aria-busy="true"] { color: var(--accent); border-color: var(--accent); }
+.rec-add .busy { animation: spin 0.9s linear infinite; }
+[data-recs-state][data-kind="loading"] .empty-icon { color: var(--accent); animation: eq-pulse 1s ease-in-out infinite alternate; }
+@keyframes eq-pulse { from { opacity: 0.4; } }
 
 .search {
   display: flex;
