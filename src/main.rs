@@ -55,6 +55,9 @@ async fn main() -> anyhow::Result<()> {
         addr.to_string()
     };
     tracing::info!("плеер запущен: http://{shown}");
+    if cfg.open {
+        open_browser(&format!("http://{shown}"));
+    }
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown())
         .await?;
@@ -83,6 +86,21 @@ async fn check_tools(cfg: &config::Config) {
     match &cfg.cookies {
         Some(c) => tracing::info!("cookies: {}", c.display()),
         None => tracing::info!("cookies.txt не найден — доступны только публичные треки"),
+    }
+}
+
+fn open_browser(url: &str) {
+    let mut cmd = if cfg!(windows) {
+        let mut c = std::process::Command::new("cmd");
+        c.args(["/C", "start", ""]);
+        c
+    } else if cfg!(target_os = "macos") {
+        std::process::Command::new("open")
+    } else {
+        std::process::Command::new("xdg-open")
+    };
+    if let Err(e) = cmd.arg(url).spawn() {
+        tracing::warn!("не удалось открыть браузер: {e}");
     }
 }
 

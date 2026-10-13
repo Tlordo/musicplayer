@@ -41,8 +41,10 @@ pub async fn compute(ffmpeg: &Path, audio: &Path) -> anyhow::Result<Vec<u8>> {
         bail!("ffmpeg не смог декодировать файл");
     }
     let samples: Vec<i16> = raw
-        .chunks_exact(2)
-        .map(|b| i16::from_le_bytes([b[0], b[1]]))
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|b| i16::from_le_bytes(*b))
         .collect();
     Ok(peaks(&samples, BARS))
 }

@@ -35,6 +35,10 @@ pub struct Config {
     #[arg(long, env = "COOKIES_PATH")]
     pub cookies: Option<PathBuf>,
 
+    /// Открыть плеер в браузере после запуска.
+    #[arg(long, env = "MUSIC_OPEN")]
+    pub open: bool,
+
     /// Сколько треков скачивать одновременно.
     #[arg(long, env = "MUSIC_PARALLEL", default_value_t = 2)]
     pub parallel: usize,
@@ -63,6 +67,17 @@ impl Config {
             } else {
                 PathBuf::from("ffmpeg")
             });
+        }
+        // yt-dlp, лежащий рядом с программой, важнее системного.
+        if self.ytdlp.as_os_str() == "yt-dlp" {
+            let local = PathBuf::from(if cfg!(windows) {
+                "yt-dlp.exe"
+            } else {
+                "yt-dlp"
+            });
+            if local.is_file() {
+                self.ytdlp = std::path::Path::new(".").join(local);
+            }
         }
         if self.cookies.is_none() {
             let local = PathBuf::from("cookies.txt");
