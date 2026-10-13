@@ -4,7 +4,7 @@ import * as core from './core.js';
 import { settings, save, local } from './store.js';
 import { registerDesigns, applyTheme, currentDesign } from './themes.js';
 import { mountDesign, registerActions, renderState } from './ui.js';
-import { openFull, syncInline } from './lyrics.js';
+import { openFull, closeFull, syncInline } from './lyrics.js';
 import { initSettings, openSettings } from './settings.js';
 import classic from './designs/classic.js';
 import cassette from './designs/cassette.js';
@@ -39,6 +39,7 @@ function switchDesign(id, force) {
 registerActions({
   settings: () => openSettings(),
   lyrics: () => openFull(),
+  'lyrics-close': () => closeFull(),
 });
 
 initSettings(DESIGNS, switchDesign);

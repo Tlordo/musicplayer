@@ -406,21 +406,22 @@ html[data-meter="lyrics"] .lyrics-slot { display: block; }
 .lyrics-close {
   position: absolute;
   z-index: 2;
-  left: 50%;
-  bottom: calc(14px + var(--safe-b));
-  translate: -50% 0;
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  font-size: 26px;
+  left: calc(14px + env(safe-area-inset-left, 0px));
+  top: calc(12px + var(--safe-t));
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px 0 12px;
+  border-radius: 999px;
+  font: 600 0.95rem/1 var(--ui-font);
   color: #fff;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.72);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28), 0 6px 18px rgba(0, 0, 0, 0.4);
   transition: background-color 0.18s;
 }
-.lyrics-close:hover { background: rgba(255, 255, 255, 0.22); }
+.lyrics-close svg { font-size: 20px; }
+.lyrics-close:hover { background: rgba(0, 0, 0, 0.88); }
 
 /* ============ Уведомления ============ */
 .toasts {
