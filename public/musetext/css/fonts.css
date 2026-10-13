@@ -1,0 +1,92 @@
+/* musetext :: fonts.css
+   Bundled families are SIL Open Font License and ship with the app.
+   BBH Bartle and Druk are not redistributable here — drop the files into
+   core/fonts/user/ yourself and they light up automatically in the font picker. */
+
+
+@font-face {
+  font-family: 'BBH Bartle';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../fonts/user/BBHBartle.woff2') format('woff2'),
+       url('../fonts/user/BBHBartle.woff') format('woff'),
+       url('../fonts/user/BBHBartle.ttf') format('truetype'),
+       url('../fonts/user/BBHBartle.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Druk';
+  font-style: normal;
+  font-weight: 900;
+  font-display: block;
+  src: url('../fonts/user/Druk.woff2') format('woff2'),
+       url('../fonts/user/Druk.woff') format('woff'),
+       url('../fonts/user/Druk.ttf') format('truetype'),
+       url('../fonts/user/Druk.otf') format('opentype');
+}
+
+/* Bundled families, inlined here rather than @imported: an import is only
+   discovered after this file has arrived, which pushes every font one round
+   trip later. */
+@font-face {
+  font-family: 'Tiny5';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../fonts/tiny5-KFOpCnmCvdGT7hw-.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Stalinist One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../fonts/stalinistone-MQpS-WezM9W4Dd7D3B7I-UT7eZ8.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('../fonts/jetbrainsmono-tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8L6tjPQ.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 800;
+  font-display: block;
+  src: url('../fonts/jetbrainsmono-tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8SKtjPQ.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Oswald';
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+  src: url('../fonts/oswald-TK3_WkUHHAIjg75cFRf3bXL8LICs1y9ogUE.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Oswald';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('../fonts/oswald-TK3_WkUHHAIjg75cFRf3bXL8LICs1xZogUE.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Unbounded';
+  font-style: normal;
+  font-weight: 800;
+  font-display: block;
+  src: url('../fonts/unbounded-Yq6F-LOTXCb04q32xlpat-6uR42XTqtG65j2040.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Unbounded';
+  font-style: normal;
+  font-weight: 900;
+  font-display: block;
+  src: url('../fonts/unbounded-Yq6F-LOTXCb04q32xlpat-6uR42XTqtG67H2040.woff2') format('woff2');
+}
+

@@ -1,532 +1,937 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-13T20:43:01+00:00",
-  "title": "Design System: МК-60 · Моя музыка",
+  "generatedAt": "2026-10-13T22:43:36+00:00",
+  "title": "Design System: Моя музыка",
   "extensions": {
     "colorMeta": {
-      "deck": {
+      "classic-bg": {
+        "role": "neutral",
+        "displayName": "Stage Black",
+        "canonical": "oklch(14.5% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "classic-surface": {
+        "role": "neutral",
+        "displayName": "Library Panel",
+        "canonical": "oklch(18.2% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "classic-surface-2": {
+        "role": "neutral",
+        "displayName": "Field Grey",
+        "canonical": "oklch(23.9% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "classic-line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "oklch(26.9% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "classic-text": {
+        "role": "neutral",
+        "displayName": "Text White",
+        "canonical": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "classic-text-2": {
+        "role": "neutral",
+        "displayName": "Secondary Grey",
+        "canonical": "oklch(76.7% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "classic-text-3": {
+        "role": "neutral",
+        "displayName": "Tertiary Grey",
+        "canonical": "oklch(65.0% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "classic-accent": {
+        "role": "primary",
+        "displayName": "Spotify Green",
+        "canonical": "oklch(68.9% 0.187 149)",
+        "tonalRamp": [
+          "oklch(15% 0.187 149)",
+          "oklch(26% 0.187 149)",
+          "oklch(38% 0.187 149)",
+          "oklch(49% 0.187 149)",
+          "oklch(61% 0.187 149)",
+          "oklch(72% 0.187 149)",
+          "oklch(84% 0.187 149)",
+          "oklch(95% 0.187 149)"
+        ]
+      },
+      "classic-on-accent": {
+        "role": "primary",
+        "displayName": "On-Accent",
+        "canonical": "oklch(16.2% 0.025 161)",
+        "tonalRamp": [
+          "oklch(15% 0.025 161)",
+          "oklch(26% 0.025 161)",
+          "oklch(38% 0.025 161)",
+          "oklch(49% 0.025 161)",
+          "oklch(61% 0.025 161)",
+          "oklch(72% 0.025 161)",
+          "oklch(84% 0.025 161)",
+          "oklch(95% 0.025 161)"
+        ]
+      },
+      "classic-play-bg": {
+        "role": "neutral",
+        "displayName": "Play Disc",
+        "canonical": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "classic-play-fg": {
+        "role": "neutral",
+        "displayName": "Play Glyph",
+        "canonical": "oklch(14.5% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "classic-wave-rest": {
+        "role": "neutral",
+        "displayName": "Wave Rest",
+        "canonical": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "classic-wave-hover": {
+        "role": "neutral",
+        "displayName": "Wave Hover",
+        "canonical": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "classic-danger": {
+        "role": "neutral",
+        "displayName": "Error Coral",
+        "canonical": "oklch(71.9% 0.175 29)",
+        "tonalRamp": [
+          "oklch(15% 0.175 29)",
+          "oklch(26% 0.175 29)",
+          "oklch(38% 0.175 29)",
+          "oklch(49% 0.175 29)",
+          "oklch(61% 0.175 29)",
+          "oklch(72% 0.175 29)",
+          "oklch(84% 0.175 29)",
+          "oklch(95% 0.175 29)"
+        ]
+      },
+      "classic-ok": {
+        "role": "neutral",
+        "displayName": "OK Green",
+        "canonical": "oklch(75.7% 0.178 152)",
+        "tonalRamp": [
+          "oklch(15% 0.178 152)",
+          "oklch(26% 0.178 152)",
+          "oklch(38% 0.178 152)",
+          "oklch(49% 0.178 152)",
+          "oklch(61% 0.178 152)",
+          "oklch(72% 0.178 152)",
+          "oklch(84% 0.178 152)",
+          "oklch(95% 0.178 152)"
+        ]
+      },
+      "cassette-deck": {
         "role": "neutral",
         "displayName": "Deck Black",
         "canonical": "oklch(17.3% 0.006 271)",
         "tonalRamp": [
           "oklch(15% 0.006 271)",
-          "oklch(25% 0.006 271)",
-          "oklch(37% 0.006 271)",
+          "oklch(26% 0.006 271)",
+          "oklch(38% 0.006 271)",
           "oklch(49% 0.006 271)",
           "oklch(61% 0.006 271)",
-          "oklch(73% 0.006 271)",
-          "oklch(85% 0.006 271)",
+          "oklch(72% 0.006 271)",
+          "oklch(84% 0.006 271)",
           "oklch(95% 0.006 271)"
         ]
       },
-      "shell": {
+      "cassette-shell": {
         "role": "neutral",
         "displayName": "Smoked Shell",
         "canonical": "oklch(20.5% 0.008 275)",
         "tonalRamp": [
           "oklch(15% 0.008 275)",
-          "oklch(25% 0.008 275)",
-          "oklch(37% 0.008 275)",
+          "oklch(26% 0.008 275)",
+          "oklch(38% 0.008 275)",
           "oklch(49% 0.008 275)",
           "oklch(61% 0.008 275)",
-          "oklch(73% 0.008 275)",
-          "oklch(85% 0.008 275)",
+          "oklch(72% 0.008 275)",
+          "oklch(84% 0.008 275)",
           "oklch(95% 0.008 275)"
         ]
       },
-      "on-shell": {
+      "cassette-on-shell": {
         "role": "neutral",
         "displayName": "Shell Text",
         "canonical": "oklch(93.9% 0.007 97)",
         "tonalRamp": [
           "oklch(15% 0.007 97)",
-          "oklch(25% 0.007 97)",
-          "oklch(37% 0.007 97)",
+          "oklch(26% 0.007 97)",
+          "oklch(38% 0.007 97)",
           "oklch(49% 0.007 97)",
           "oklch(61% 0.007 97)",
-          "oklch(73% 0.007 97)",
-          "oklch(85% 0.007 97)",
+          "oklch(72% 0.007 97)",
+          "oklch(84% 0.007 97)",
           "oklch(95% 0.007 97)"
         ]
       },
-      "on-shell-2": {
+      "cassette-on-shell-2": {
         "role": "neutral",
-        "displayName": "Shell Text Secondary",
+        "displayName": "Shell Text 2",
         "canonical": "oklch(74.2% 0.012 275)",
         "tonalRamp": [
           "oklch(15% 0.012 275)",
-          "oklch(25% 0.012 275)",
-          "oklch(37% 0.012 275)",
+          "oklch(26% 0.012 275)",
+          "oklch(38% 0.012 275)",
           "oklch(49% 0.012 275)",
           "oklch(61% 0.012 275)",
-          "oklch(73% 0.012 275)",
-          "oklch(85% 0.012 275)",
+          "oklch(72% 0.012 275)",
+          "oklch(84% 0.012 275)",
           "oklch(95% 0.012 275)"
         ]
       },
-      "on-shell-3": {
+      "cassette-on-shell-3": {
         "role": "neutral",
-        "displayName": "Shell Text Tertiary",
-        "canonical": "oklch(60.1% 0.016 273)",
+        "displayName": "Shell Text 3",
+        "canonical": "oklch(61.1% 0.015 273)",
         "tonalRamp": [
-          "oklch(15% 0.016 273)",
-          "oklch(25% 0.016 273)",
-          "oklch(37% 0.016 273)",
-          "oklch(49% 0.016 273)",
-          "oklch(61% 0.016 273)",
-          "oklch(73% 0.016 273)",
-          "oklch(85% 0.016 273)",
-          "oklch(95% 0.016 273)"
+          "oklch(15% 0.015 273)",
+          "oklch(26% 0.015 273)",
+          "oklch(38% 0.015 273)",
+          "oklch(49% 0.015 273)",
+          "oklch(61% 0.015 273)",
+          "oklch(72% 0.015 273)",
+          "oklch(84% 0.015 273)",
+          "oklch(95% 0.015 273)"
         ]
       },
-      "card": {
+      "cassette-card": {
         "role": "neutral",
         "displayName": "J-card White",
         "canonical": "oklch(96.6% 0.005 106)",
         "tonalRamp": [
           "oklch(15% 0.005 106)",
-          "oklch(25% 0.005 106)",
-          "oklch(37% 0.005 106)",
+          "oklch(26% 0.005 106)",
+          "oklch(38% 0.005 106)",
           "oklch(49% 0.005 106)",
           "oklch(61% 0.005 106)",
-          "oklch(73% 0.005 106)",
-          "oklch(85% 0.005 106)",
+          "oklch(72% 0.005 106)",
+          "oklch(84% 0.005 106)",
           "oklch(95% 0.005 106)"
         ]
       },
-      "card-2": {
+      "cassette-card-2": {
         "role": "neutral",
         "displayName": "Card Shade",
         "canonical": "oklch(93.2% 0.008 107)",
         "tonalRamp": [
           "oklch(15% 0.008 107)",
-          "oklch(25% 0.008 107)",
-          "oklch(37% 0.008 107)",
+          "oklch(26% 0.008 107)",
+          "oklch(38% 0.008 107)",
           "oklch(49% 0.008 107)",
           "oklch(61% 0.008 107)",
-          "oklch(73% 0.008 107)",
-          "oklch(85% 0.008 107)",
+          "oklch(72% 0.008 107)",
+          "oklch(84% 0.008 107)",
           "oklch(95% 0.008 107)"
         ]
       },
-      "print": {
+      "cassette-print": {
         "role": "neutral",
         "displayName": "Print Black",
         "canonical": "oklch(22.7% 0.008 275)",
         "tonalRamp": [
           "oklch(15% 0.008 275)",
-          "oklch(25% 0.008 275)",
-          "oklch(37% 0.008 275)",
+          "oklch(26% 0.008 275)",
+          "oklch(38% 0.008 275)",
           "oklch(49% 0.008 275)",
           "oklch(61% 0.008 275)",
-          "oklch(73% 0.008 275)",
-          "oklch(85% 0.008 275)",
+          "oklch(72% 0.008 275)",
+          "oklch(84% 0.008 275)",
           "oklch(95% 0.008 275)"
         ]
       },
-      "print-2": {
+      "cassette-print-2": {
         "role": "neutral",
         "displayName": "Print Grey",
         "canonical": "oklch(46.5% 0.022 272)",
         "tonalRamp": [
           "oklch(15% 0.022 272)",
-          "oklch(25% 0.022 272)",
-          "oklch(37% 0.022 272)",
+          "oklch(26% 0.022 272)",
+          "oklch(38% 0.022 272)",
           "oklch(49% 0.022 272)",
           "oklch(61% 0.022 272)",
-          "oklch(73% 0.022 272)",
-          "oklch(85% 0.022 272)",
+          "oklch(72% 0.022 272)",
+          "oklch(84% 0.022 272)",
           "oklch(95% 0.022 272)"
         ]
       },
-      "rule": {
+      "cassette-rule": {
         "role": "neutral",
         "displayName": "Form Rule",
         "canonical": "oklch(86.8% 0.027 272)",
         "tonalRamp": [
           "oklch(15% 0.027 272)",
-          "oklch(25% 0.027 272)",
-          "oklch(37% 0.027 272)",
+          "oklch(26% 0.027 272)",
+          "oklch(38% 0.027 272)",
           "oklch(49% 0.027 272)",
           "oklch(61% 0.027 272)",
-          "oklch(73% 0.027 272)",
-          "oklch(85% 0.027 272)",
+          "oklch(72% 0.027 272)",
+          "oklch(84% 0.027 272)",
           "oklch(95% 0.027 272)"
         ]
       },
-      "ball": {
+      "cassette-ball": {
         "role": "primary",
         "displayName": "Ballpoint Blue",
         "canonical": "oklch(40.7% 0.179 267)",
         "tonalRamp": [
           "oklch(15% 0.179 267)",
-          "oklch(25% 0.179 267)",
-          "oklch(37% 0.179 267)",
+          "oklch(26% 0.179 267)",
+          "oklch(38% 0.179 267)",
           "oklch(49% 0.179 267)",
           "oklch(61% 0.179 267)",
-          "oklch(73% 0.179 267)",
-          "oklch(85% 0.179 267)",
+          "oklch(72% 0.179 267)",
+          "oklch(84% 0.179 267)",
           "oklch(95% 0.179 267)"
         ]
       },
-      "orange": {
+      "cassette-orange": {
         "role": "primary",
         "displayName": "Signal Orange",
         "canonical": "oklch(68.2% 0.211 38)",
         "tonalRamp": [
-          "oklch(15% 0.200 38)",
-          "oklch(25% 0.200 38)",
-          "oklch(37% 0.200 38)",
-          "oklch(49% 0.200 38)",
-          "oklch(61% 0.200 38)",
-          "oklch(73% 0.200 38)",
-          "oklch(85% 0.200 38)",
-          "oklch(95% 0.200 38)"
+          "oklch(15% 0.211 38)",
+          "oklch(26% 0.211 38)",
+          "oklch(38% 0.211 38)",
+          "oklch(49% 0.211 38)",
+          "oklch(61% 0.211 38)",
+          "oklch(72% 0.211 38)",
+          "oklch(84% 0.211 38)",
+          "oklch(95% 0.211 38)"
         ]
       },
-      "orange-ink": {
+      "cassette-orange-ink": {
         "role": "primary",
         "displayName": "Stamp Orange",
         "canonical": "oklch(59.2% 0.195 37)",
         "tonalRamp": [
           "oklch(15% 0.195 37)",
-          "oklch(25% 0.195 37)",
-          "oklch(37% 0.195 37)",
+          "oklch(26% 0.195 37)",
+          "oklch(38% 0.195 37)",
           "oklch(49% 0.195 37)",
           "oklch(61% 0.195 37)",
-          "oklch(73% 0.195 37)",
-          "oklch(85% 0.195 37)",
+          "oklch(72% 0.195 37)",
+          "oklch(84% 0.195 37)",
           "oklch(95% 0.195 37)"
         ]
       },
-      "yellow": {
+      "cassette-yellow": {
         "role": "secondary",
         "displayName": "Factory Yellow",
         "canonical": "oklch(86.0% 0.168 88)",
         "tonalRamp": [
           "oklch(15% 0.168 88)",
-          "oklch(25% 0.168 88)",
-          "oklch(37% 0.168 88)",
+          "oklch(26% 0.168 88)",
+          "oklch(38% 0.168 88)",
           "oklch(49% 0.168 88)",
           "oklch(61% 0.168 88)",
-          "oklch(73% 0.168 88)",
-          "oklch(85% 0.168 88)",
+          "oklch(72% 0.168 88)",
+          "oklch(84% 0.168 88)",
           "oklch(95% 0.168 88)"
         ]
       },
-      "cobalt": {
+      "cassette-cobalt": {
         "role": "secondary",
         "displayName": "Cobalt",
         "canonical": "oklch(47.1% 0.220 268)",
         "tonalRamp": [
-          "oklch(15% 0.200 268)",
-          "oklch(25% 0.200 268)",
-          "oklch(37% 0.200 268)",
-          "oklch(49% 0.200 268)",
-          "oklch(61% 0.200 268)",
-          "oklch(73% 0.200 268)",
-          "oklch(85% 0.200 268)",
-          "oklch(95% 0.200 268)"
+          "oklch(15% 0.220 268)",
+          "oklch(26% 0.220 268)",
+          "oklch(38% 0.220 268)",
+          "oklch(49% 0.220 268)",
+          "oklch(61% 0.220 268)",
+          "oklch(72% 0.220 268)",
+          "oklch(84% 0.220 268)",
+          "oklch(95% 0.220 268)"
         ]
       },
-      "hi": {
+      "cassette-hi": {
         "role": "secondary",
         "displayName": "Highlighter",
-        "canonical": "rgba(255, 201, 40, 0.62)",
+        "canonical": "oklch(86.0% 0.168 88)",
         "tonalRamp": [
           "oklch(15% 0.168 88)",
-          "oklch(25% 0.168 88)",
-          "oklch(37% 0.168 88)",
+          "oklch(26% 0.168 88)",
+          "oklch(38% 0.168 88)",
           "oklch(49% 0.168 88)",
           "oklch(61% 0.168 88)",
-          "oklch(73% 0.168 88)",
-          "oklch(85% 0.168 88)",
+          "oklch(72% 0.168 88)",
+          "oklch(84% 0.168 88)",
           "oklch(95% 0.168 88)"
         ]
       },
-      "key": {
+      "cassette-vfd": {
+        "role": "secondary",
+        "displayName": "VFD Cyan",
+        "canonical": "oklch(89.8% 0.109 186)",
+        "tonalRamp": [
+          "oklch(15% 0.109 186)",
+          "oklch(26% 0.109 186)",
+          "oklch(38% 0.109 186)",
+          "oklch(49% 0.109 186)",
+          "oklch(61% 0.109 186)",
+          "oklch(72% 0.109 186)",
+          "oklch(84% 0.109 186)",
+          "oklch(95% 0.109 186)"
+        ]
+      },
+      "cassette-key": {
         "role": "neutral",
         "displayName": "Key Ivory",
         "canonical": "oklch(92.6% 0.008 107)",
         "tonalRamp": [
           "oklch(15% 0.008 107)",
-          "oklch(25% 0.008 107)",
-          "oklch(37% 0.008 107)",
+          "oklch(26% 0.008 107)",
+          "oklch(38% 0.008 107)",
           "oklch(49% 0.008 107)",
           "oklch(61% 0.008 107)",
-          "oklch(73% 0.008 107)",
-          "oklch(85% 0.008 107)",
+          "oklch(72% 0.008 107)",
+          "oklch(84% 0.008 107)",
           "oklch(95% 0.008 107)"
         ]
       },
-      "key-2": {
+      "cassette-danger": {
         "role": "neutral",
-        "displayName": "Key Ivory Shade",
-        "canonical": "oklch(83.4% 0.010 107)",
-        "tonalRamp": [
-          "oklch(15% 0.010 107)",
-          "oklch(25% 0.010 107)",
-          "oklch(37% 0.010 107)",
-          "oklch(49% 0.010 107)",
-          "oklch(61% 0.010 107)",
-          "oklch(73% 0.010 107)",
-          "oklch(85% 0.010 107)",
-          "oklch(95% 0.010 107)"
-        ]
-      },
-      "danger": {
-        "role": "tertiary",
         "displayName": "Erase Red",
         "canonical": "oklch(52.8% 0.188 30)",
         "tonalRamp": [
           "oklch(15% 0.188 30)",
-          "oklch(25% 0.188 30)",
-          "oklch(37% 0.188 30)",
+          "oklch(26% 0.188 30)",
+          "oklch(38% 0.188 30)",
           "oklch(49% 0.188 30)",
           "oklch(61% 0.188 30)",
-          "oklch(73% 0.188 30)",
-          "oklch(85% 0.188 30)",
+          "oklch(72% 0.188 30)",
+          "oklch(84% 0.188 30)",
           "oklch(95% 0.188 30)"
+        ]
+      },
+      "cassette-ok": {
+        "role": "neutral",
+        "displayName": "Ink Green",
+        "canonical": "oklch(51.2% 0.128 150)",
+        "tonalRamp": [
+          "oklch(15% 0.128 150)",
+          "oklch(26% 0.128 150)",
+          "oklch(38% 0.128 150)",
+          "oklch(49% 0.128 150)",
+          "oklch(61% 0.128 150)",
+          "oklch(72% 0.128 150)",
+          "oklch(84% 0.128 150)",
+          "oklch(95% 0.128 150)"
         ]
       }
     },
     "typographyMeta": {
-      "display": {
-        "displayName": "Handwritten Display",
-        "purpose": "Now-playing title on the deck; 2-line clamp, balanced."
+      "classic-display": {
+        "displayName": "Классика Display",
+        "purpose": "Now-playing title, balanced, 2-line clamp."
       },
-      "brand": {
-        "displayName": "Brand Mark",
+      "classic-headline": {
+        "displayName": "Классика Headline",
+        "purpose": "Sheet titles via --ui-font-head."
+      },
+      "classic-brand": {
+        "displayName": "Классика Brand",
+        "purpose": "\"Моя музыка\" mark in accent green."
+      },
+      "classic-title": {
+        "displayName": "Классика Title",
+        "purpose": "Library row titles."
+      },
+      "classic-artist": {
+        "displayName": "Классика Artist",
+        "purpose": "Now-playing artist in text-2."
+      },
+      "classic-body": {
+        "displayName": "Классика Body",
+        "purpose": "Search, menu items, buttons, toasts."
+      },
+      "classic-label": {
+        "displayName": "Классика Label",
+        "purpose": "Tabular sub-lines, durations, times, stats."
+      },
+      "cassette-display": {
+        "displayName": "Кассета Display",
+        "purpose": "Handwritten now-playing title on the deck."
+      },
+      "cassette-brand": {
+        "displayName": "Кассета Brand",
         "purpose": "The МК-60 mark only."
       },
-      "headline": {
-        "displayName": "Printed Headline",
-        "purpose": "Sheet titles, uppercase."
+      "cassette-headline": {
+        "displayName": "Кассета Headline",
+        "purpose": "Uppercase printed sheet titles."
       },
-      "title": {
-        "displayName": "Handwritten Entry",
-        "purpose": "Tracklist titles and other owner-written content, in ballpoint blue."
+      "cassette-title": {
+        "displayName": "Кассета Title",
+        "purpose": "Handwritten tracklist entries."
       },
-      "body": {
-        "displayName": "Printed Body",
-        "purpose": "Row sub-lines, hints, status, meta."
+      "cassette-body": {
+        "displayName": "Кассета Body",
+        "purpose": "Printed sub-lines, hints, status, meta."
       },
-      "label": {
-        "displayName": "Printed Field Label",
-        "purpose": "Uppercase inline names of the J-card form fields."
+      "cassette-label": {
+        "displayName": "Кассета Label",
+        "purpose": "Uppercase printed form-field names, inline with their field."
       },
-      "mono": {
-        "displayName": "Counter Mono",
-        "purpose": "Elapsed/total time and tape counter wheels."
+      "cassette-mono": {
+        "displayName": "Кассета Mono",
+        "purpose": "Times, tape counter, meter scale."
       }
     },
     "shadows": [
+      {
+        "name": "sheet-bottom",
+        "value": "0 -8px 40px rgba(0,0,0,0.4)",
+        "purpose": "Shared bottom sheet under 720px."
+      },
+      {
+        "name": "sheet-centered",
+        "value": "0 24px 64px rgba(0,0,0,0.5)",
+        "purpose": "Shared centered sheet at 720px and up."
+      },
+      {
+        "name": "menu",
+        "value": "0 12px 32px rgba(0,0,0,0.45), 0 0 0 1px var(--ui-line)",
+        "purpose": "The ⋯ menu."
+      },
+      {
+        "name": "toast",
+        "value": "0 10px 28px rgba(0,0,0,0.45)",
+        "purpose": "Shared toasts (Кассета error/ok: 0 8px 20px)."
+      },
+      {
+        "name": "cover-view",
+        "value": "0 24px 60px rgba(0,0,0,0.6)",
+        "purpose": "Full-size cover dialog."
+      },
+      {
+        "name": "classic-cover",
+        "value": "0 28px 50px -18px var(--shadow-cover), 0 4px 12px rgba(0,0,0,0.25)",
+        "purpose": "Классика big cover."
+      },
+      {
+        "name": "classic-band",
+        "value": "0 18px 40px -20px var(--shadow-cover)",
+        "purpose": "Классика lyrics band."
+      },
+      {
+        "name": "classic-play",
+        "value": "0 10px 24px -8px rgba(0,0,0,0.6)",
+        "purpose": "Классика play disc."
+      },
       {
         "name": "cassette-cast",
         "value": "drop-shadow(0 16px 22px rgba(0,0,0,0.6)) drop-shadow(0 3px 5px rgba(0,0,0,0.45))",
         "purpose": "filter on the cassette only."
       },
       {
-        "name": "key-skirt",
-        "value": "0 -1px 0 rgba(255,255,255,0.6) inset, 0 5px 0 #8c8c86, 0 8px 12px rgba(0,0,0,0.55)",
-        "purpose": "Transport key at rest (with translateY(-3px)); collapses when pressed or latched."
+        "name": "cassette-jfront",
+        "value": "0 14px 28px -10px rgba(0,0,0,0.7), 0 2px 6px rgba(0,0,0,0.4)",
+        "purpose": "Front cover card lying beside the cassette."
       },
       {
-        "name": "key-skirt-pressed",
-        "value": "0 -1px 0 rgba(255,255,255,0.5) inset, 0 0 0 #8c8c86, 0 2px 4px rgba(0,0,0,0.5)",
-        "purpose": "Pressed/latched transport key (translateY(2px))."
+        "name": "cassette-photo",
+        "value": "0 1px 3px rgba(0,0,0,0.28)",
+        "purpose": "Pasted row thumbnails on the J-card."
       },
       {
-        "name": "led-skirt",
+        "name": "cassette-key-skirt",
+        "value": "0 -1px 0 rgba(255,255,255,0.6) inset, 0 5px 0 color-mix(in srgb, var(--key) 60%, #000), 0 8px 12px rgba(0,0,0,0.55)",
+        "purpose": "Transport key at rest; collapses to 0 when pressed or latched."
+      },
+      {
+        "name": "cassette-led-skirt",
         "value": "0 2px 0 #0c0d0f, 0 3px 6px rgba(0,0,0,0.35)",
-        "purpose": "LED toggle at rest; collapses on press."
+        "purpose": "LED toggle; collapses on press."
       },
       {
-        "name": "float",
-        "value": "0 8px 20px rgba(0,0,0,0.45)",
-        "purpose": "Toasts."
-      },
-      {
-        "name": "float-deep",
-        "value": "0 24px 60px rgba(0,0,0,0.6)",
-        "purpose": "Full cover view."
+        "name": "cassette-meter-glass",
+        "value": "inset 0 2px 8px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(255,255,255,0.04)",
+        "purpose": "Recessed VFD window."
       }
     ],
     "motion": [
       {
         "name": "ease-out",
         "value": "cubic-bezier(0.16, 1, 0.3, 1)",
-        "purpose": "Shared curve for all state and entrance motion."
+        "purpose": "The one shared curve for every transition and entrance."
       },
       {
-        "name": "key-travel",
-        "value": "80ms",
-        "purpose": "Transport key press transform/shadow."
-      },
-      {
-        "name": "cassette-insert",
-        "value": "0.7s",
-        "purpose": "Cassette drops in tilted (translateY -14%, rotateX 18deg) on track change."
+        "name": "menu-in",
+        "value": "0.2s, rise 6px",
+        "purpose": "⋯ menu."
       },
       {
         "name": "sheet-in",
-        "value": "0.4s",
-        "purpose": "Sheets rise 40px and fade in."
+        "value": "0.42s, rise 48px",
+        "purpose": "Sheets."
       },
       {
         "name": "toast-in",
-        "value": "0.35s",
-        "purpose": "Toast rises 12px."
+        "value": "0.35s, rise 12px",
+        "purpose": "Toasts."
+      },
+      {
+        "name": "lyrics-in",
+        "value": "0.45s, scale from 1.03",
+        "purpose": "Full-screen lyrics."
       },
       {
         "name": "row-flash",
         "value": "1.8s",
-        "purpose": "Highlighter flash on a newly recorded row."
+        "purpose": "New row highlight (accent 30% / highlighter)."
       },
       {
         "name": "rec-blink",
-        "value": "1s steps(2, jump-none) infinite",
-        "purpose": "Record dot blink while recording."
+        "value": "1s steps(2)",
+        "purpose": "Record dot while a download runs."
+      },
+      {
+        "name": "classic-eq",
+        "value": "0.55–0.8s alternate",
+        "purpose": "Current-row three-bar equaliser."
+      },
+      {
+        "name": "classic-play-press",
+        "value": "0.15s, scale 1.05 / 0.95",
+        "purpose": "Play disc hover/press."
+      },
+      {
+        "name": "cassette-key",
+        "value": "0.08s, travel 5px",
+        "purpose": "Deck key press."
+      },
+      {
+        "name": "cassette-insert",
+        "value": "0.7s tilt-in",
+        "purpose": "Cassette on track change."
+      },
+      {
+        "name": "cassette-wheel",
+        "value": "0.35s",
+        "purpose": "Counter digit roll."
+      },
+      {
+        "name": "cassette-tick",
+        "value": "0.25s from scale 0.6, −8°",
+        "purpose": "Sort-box ballpoint tick."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "durations 0.01ms; reels and hubs frozen",
+        "purpose": "prefers-reduced-motion."
       }
     ],
     "breakpoints": [
       {
-        "name": "narrow",
-        "value": "max-width: 420px"
+        "name": "two-column",
+        "value": "960px"
       },
       {
-        "name": "sheet-center",
-        "value": "min-width: 700px"
+        "name": "sheet-centered",
+        "value": "720px"
       },
       {
-        "name": "compact-phone",
-        "value": "max-height: 720px and max-width: 959px"
+        "name": "cassette-compact-height",
+        "value": "max-height 720px (under 960px wide)"
       },
       {
-        "name": "desktop",
-        "value": "min-width: 960px"
+        "name": "cassette-narrow",
+        "value": "480px"
+      },
+      {
+        "name": "cassette-sort-legend",
+        "value": "420px"
+      },
+      {
+        "name": "cassette-led-tight",
+        "value": "400px"
+      },
+      {
+        "name": "classic-volume-hidden",
+        "value": "340px"
       }
     ]
   },
   "components": [
     {
-      "name": "Stamp",
+      "name": "Sheet Buttons (shared, Классика mapping)",
       "kind": "button",
-      "refersTo": "stamp",
-      "description": "Rubber-stamp primary action on card surfaces (записать трек).",
-      "html": "<button class=\"ds-stamp\"><span class=\"ds-rec-dot\"></span>записать трек</button>",
-      "css": ".ds-stamp{display:inline-flex;align-items:center;gap:10px;min-height:46px;padding:0 18px;border:2.5px solid var(--orange-ink,#d8420d);border-radius:4px;background:#f4f4f0;color:var(--orange-ink,#d8420d);font-family:'PT Sans Narrow','Arial Narrow',sans-serif;font-size:1.05rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;transform:rotate(-1.2deg);cursor:pointer;transition:transform .2s cubic-bezier(.16,1,.3,1),background-color .2s,color .2s}.ds-stamp:hover{background:#c23a0a;border-color:#c23a0a;color:#fff}.ds-stamp:active{transform:rotate(-1.2deg) scale(.97)}.ds-stamp:focus-visible{outline:2px solid var(--cobalt,#2a44d4);outline-offset:2px}.ds-rec-dot{width:11px;height:11px;border-radius:50%;background:currentColor}"
+      "refersTo": "btn-primary",
+      "description": "Shared sheet buttons read --ui-*; shown here with Классика values. Кассета turns primary into the stamp.",
+      "html": "<div class=\"ds-actions\"><button class=\"ds-btn\">Отмена</button><button class=\"ds-btn ds-btn-primary\">Загрузить</button></div>",
+      "css": ".ds-actions{display:flex;gap:10px;padding:16px;background:#121212}.ds-btn{font-family:'Onest','Segoe UI',system-ui,sans-serif;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border:0;border-radius:999px;background:#1f1f1f;color:#fff;font-weight:600;font-size:.95rem;cursor:pointer;transition:background-color .18s,transform .12s}.ds-btn:hover{background:color-mix(in srgb,#1f1f1f 86%,#fff)}.ds-btn:active{transform:scale(.97)}.ds-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}.ds-btn-primary{background:#1db954;color:#04110a}.ds-btn-primary:hover{background:color-mix(in srgb,#1db954 88%,#fff)}"
     },
     {
-      "name": "Stamp Danger",
-      "kind": "button",
-      "refersTo": "stamp-danger",
-      "description": "Destructive stamp (стереть) in the confirm sheet.",
-      "html": "<button class=\"ds-stamp-danger\">стереть</button>",
-      "css": ".ds-stamp-danger{display:inline-flex;align-items:center;min-height:46px;padding:0 18px;border:2.5px solid #c02a1a;border-radius:4px;background:#f4f4f0;color:#c02a1a;font-family:'PT Sans Narrow','Arial Narrow',sans-serif;font-size:1.05rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;transform:rotate(-1.2deg);cursor:pointer;transition:background-color .2s,color .2s}.ds-stamp-danger:hover{background:#c02a1a;color:#fff}.ds-stamp-danger:focus-visible{outline:2px solid #2a44d4;outline-offset:2px}"
+      "name": "⋯ Menu (shared)",
+      "kind": "nav",
+      "refersTo": "menu",
+      "description": "Floating track menu: info, download, delete. Классика mapping shown.",
+      "html": "<div class=\"ds-menu\" role=\"menu\"><button role=\"menuitem\"><svg viewBox=\"0 0 24 24\" width=\"19\" height=\"19\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M12 11v6M12 7.5v.5\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/></svg>О треке</button><button role=\"menuitem\"><svg viewBox=\"0 0 24 24\" width=\"19\" height=\"19\" aria-hidden=\"true\"><path d=\"M12 3v12M7 10l5 5 5-5M4 20h16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>Скачать файл</button><button role=\"menuitem\" class=\"ds-danger\"><svg viewBox=\"0 0 24 24\" width=\"19\" height=\"19\" aria-hidden=\"true\"><path d=\"M4 7h16M9 7V4h6v3M6.5 7l1 13h9l1-13M10 11v5M14 11v5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>Удалить трек</button></div>",
+      "css": ".ds-menu{font-family:'Onest','Segoe UI',system-ui,sans-serif;display:grid;min-width:200px;padding:6px;border-radius:12px;background:#121212;color:#fff;box-shadow:0 12px 32px rgba(0,0,0,.45),0 0 0 1px #262626}.ds-menu button{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 12px;border:0;border-radius:8px;background:none;color:inherit;font:inherit;font-size:.95rem;text-align:left;cursor:pointer}.ds-menu button svg{color:#b3b3b3}.ds-menu button:hover{background:#1f1f1f}.ds-menu button:focus-visible{outline:2px solid #fff;outline-offset:2px}.ds-menu .ds-danger,.ds-menu .ds-danger svg{color:#ff7262}"
     },
     {
-      "name": "Deck Key",
-      "kind": "button",
-      "refersTo": "deck-key",
-      "description": "Mechanical transport key; the play key carries the orange band and latches while playing.",
-      "html": "<div class=\"ds-keys\"><button class=\"ds-key\" aria-label=\"prev\"><svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\"><path d=\"M11 6 3 12l8 6zM21 6l-8 6 8 6z\" fill=\"currentColor\"/></svg></button><button class=\"ds-key ds-key-play\" aria-label=\"play\"><svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\"><path d=\"M7 4.5v15L19.5 12z\" fill=\"currentColor\"/></svg></button></div>",
-      "css": ".ds-keys{display:grid;grid-template-columns:1fr 1.35fr;gap:6px;padding:10px;background:#08090a}.ds-key{position:relative;display:grid;place-items:center;height:58px;border:0;border-radius:7px 7px 10px 10px;color:#1b1c20;background:linear-gradient(#f3f3ef,#e7e7e1 40%,#c9c9c2);box-shadow:0 -1px 0 rgba(255,255,255,.6) inset,0 5px 0 #8c8c86,0 8px 12px rgba(0,0,0,.55);transform:translateY(-3px);cursor:pointer;transition:transform .08s,box-shadow .08s}.ds-key:active{transform:translateY(2px);box-shadow:0 -1px 0 rgba(255,255,255,.5) inset,0 0 0 #8c8c86,0 2px 4px rgba(0,0,0,.5)}.ds-key:focus-visible{outline:2px solid #ffc928;outline-offset:2px}.ds-key-play::before{content:'';position:absolute;inset:0 0 auto;height:6px;border-radius:7px 7px 0 0;background:#ff5a1f}"
-    },
-    {
-      "name": "LED Toggle",
-      "kind": "button",
-      "refersTo": "led-button",
-      "description": "Shuffle / repeat / VU toggle with an LED that glows orange when on.",
-      "html": "<div style=\"background:#16171b;padding:12px;display:flex;gap:8px\"><button class=\"ds-led-btn ds-on\"><span class=\"ds-led\"></span><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\"><path d=\"M4 11V9a3 3 0 0 1 3-3h13M17 3l3 3-3 3M20 13v2a3 3 0 0 1-3 3H4M7 21l-3-3 3-3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button><button class=\"ds-led-btn\"><span class=\"ds-led\"></span><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\"><path d=\"M3 17a9 9 0 0 1 18 0\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/><path d=\"m12 17 4-6\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/></svg></button></div>",
-      "css": ".ds-led-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;height:44px;padding:0 8px;border:0;border-radius:8px;color:#a9abb3;background:#23252b;box-shadow:0 2px 0 #0c0d0f,0 3px 6px rgba(0,0,0,.35);cursor:pointer;transition:color .2s,transform .1s,box-shadow .1s}.ds-led-btn:active{transform:translateY(2px);box-shadow:0 0 0 #0c0d0f,0 1px 2px rgba(0,0,0,.35)}.ds-led-btn:focus-visible{outline:2px solid #ffc928;outline-offset:2px}.ds-led{width:7px;height:7px;border-radius:50%;background:#3b3d45}.ds-on{color:#ecebe6}.ds-on .ds-led{background:radial-gradient(circle at 40% 35%,#ffd2bd 0 18%,#ff5a1f 45%,#c63a0a 100%)}"
-    },
-    {
-      "name": "Text Button",
-      "kind": "button",
-      "refersTo": "text-button",
-      "description": "Printed-caps secondary action with SVG icon (о треке, скачать, стереть).",
-      "html": "<div style=\"background:#16171b;padding:12px\"><button class=\"ds-text-btn\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\"><path d=\"M12 3v12M7 10l5 5 5-5M4 20h16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>скачать</button></div>",
-      "css": ".ds-text-btn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 8px;border:0;border-radius:8px;background:none;color:#a9abb3;font-family:'PT Sans Narrow','Arial Narrow',sans-serif;font-size:.86rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:color .2s,background-color .2s}.ds-text-btn:hover{color:#ecebe6;background:rgba(255,255,255,.06)}.ds-text-btn:focus-visible{outline:2px solid #ffc928;outline-offset:2px}"
-    },
-    {
-      "name": "Written Line Input",
-      "kind": "input",
-      "refersTo": "written-line-input",
-      "description": "Search / URL field as a handwritten line on the printed form.",
-      "html": "<label class=\"ds-line\"><span class=\"ds-label\">найти</span><input class=\"ds-line-input\" placeholder=\"название, исполнитель…\"></label>",
-      "css": ".ds-line{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 4px;background:#f4f4f0;border-bottom:1px solid #1b1c20}.ds-line:focus-within{border-bottom-color:#2a44d4;box-shadow:0 1px 0 #2a44d4}.ds-label{font-family:'PT Sans Narrow','Arial Narrow',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#555966}.ds-line-input{flex:1;min-width:0;border:0;background:transparent;color:#1f3aa8;caret-color:#ff5a1f;font-family:'Neucha','Segoe Print',cursive;font-size:1.35rem;padding:6px 0 4px;outline:none}.ds-line-input::placeholder{color:#626880}"
-    },
-    {
-      "name": "Track Row",
-      "kind": "card",
-      "refersTo": "track-row",
-      "description": "Ruled J-card line: printed number with heard-tick, handwritten title with highlighter when playing, handwritten duration.",
-      "html": "<div class=\"ds-row\"><span class=\"ds-num\">03<svg viewBox=\"0 0 24 24\"><path d=\"M3.5 13.5c2 1.2 3.4 2.8 4.6 5 2.6-6 6.4-10.5 12.4-14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span><span class=\"ds-main\"><span class=\"ds-title\"><mark>Кукушка</mark></span><span class=\"ds-sub\">Кино · Чёрный альбом</span></span><span class=\"ds-time\">6:38</span></div>",
-      "css": ".ds-row{display:grid;grid-template-columns:3rem 1fr 4.2rem;align-items:center;min-height:64px;background:linear-gradient(90deg,transparent calc(3rem - 1.5px),#ff5a1f calc(3rem - 1.5px) 3rem,transparent 3rem),#f4f4f0;border-bottom:1px solid #cdd3e6;color:#1b1c20;transition:background-color .15s}.ds-row:hover{background-color:rgba(42,68,212,.05)}.ds-num{position:relative;text-align:right;padding-right:9px;font-family:'PT Sans Narrow',sans-serif;font-size:.95rem;color:#555966}.ds-num svg{position:absolute;left:1px;top:50%;width:22px;height:22px;translate:0 -62%;color:#1f3aa8;opacity:.85}.ds-main{min-width:0;padding:8px 10px 8px 12px}.ds-title{display:block;font-family:'Neucha',cursive;font-size:1.32rem;line-height:1.15;color:#1f3aa8}.ds-title mark{color:inherit;background:linear-gradient(100deg,transparent .2em,rgba(255,201,40,.62) .35em calc(100% - .3em),transparent calc(100% - .1em)) 0 62%/100% 58% no-repeat;padding:0 .15em;margin:0 -.15em}.ds-sub{display:block;margin-top:2px;font-family:'PT Sans Narrow',sans-serif;font-size:.86rem;color:#555966}.ds-time{text-align:center;font-family:'Neucha',cursive;font-size:1.15rem;color:#1f3aa8}"
-    },
-    {
-      "name": "Sheet",
-      "kind": "card",
-      "refersTo": "sheet",
-      "description": "J-card dialog with the tricolor printed along its top edge.",
-      "html": "<div class=\"ds-sheet\"><h2 class=\"ds-sheet-h\">О треке</h2><dl class=\"ds-info\"><dt>артист</dt><dd>Кино</dd><dt>альбом</dt><dd>Чёрный альбом</dd></dl></div>",
-      "css": ".ds-sheet{max-width:560px;padding:24px 20px 20px;border-radius:14px 14px 0 0;color:#1b1c20;background:linear-gradient(90deg,#ff5a1f 0 25%,#ffc928 25% 50%,#2a44d4 50%) top/100% 6px no-repeat,#f4f4f0}.ds-sheet-h{margin:0 0 14px;font-family:'PT Sans Narrow',sans-serif;font-size:1.3rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.ds-info{display:grid;grid-template-columns:auto 1fr;margin:0}.ds-info dt,.ds-info dd{margin:0;padding:9px 0;border-bottom:1px solid #cdd3e6}.ds-info dt{padding-right:18px;font-family:'PT Sans Narrow',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#555966;align-self:center}.ds-info dd{font-family:'Neucha',cursive;font-size:1.25rem;color:#1f3aa8}"
-    },
-    {
-      "name": "Sort Tick Boxes",
+      "name": "Theme Chip (shared)",
       "kind": "chip",
-      "description": "Printed checkboxes ticked by ballpoint for sort order.",
-      "html": "<label class=\"ds-sort\"><input type=\"radio\" name=\"ds-s\" checked><span class=\"ds-box\"><svg viewBox=\"0 0 24 24\"><path d=\"M3.5 13.5c2 1.2 3.4 2.8 4.6 5 2.6-6 6.4-10.5 12.4-14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span>новые</label><label class=\"ds-sort\"><input type=\"radio\" name=\"ds-s\"><span class=\"ds-box\"><svg viewBox=\"0 0 24 24\"><path d=\"M3.5 13.5c2 1.2 3.4 2.8 4.6 5 2.6-6 6.4-10.5 12.4-14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span>артист</label>",
-      "css": ".ds-sort{display:inline-flex;align-items:center;gap:5px;min-height:36px;margin-right:9px;padding:0 4px;background:#f4f4f0;color:#1b1c20;font-family:'PT Sans Narrow',sans-serif;font-size:.9rem;cursor:pointer}.ds-sort input{position:absolute;opacity:0}.ds-box{position:relative;width:15px;height:15px;border:1.5px solid #1b1c20}.ds-box svg{position:absolute;left:-3px;top:-9px;width:24px;height:24px;color:#1f3aa8;opacity:0;transform:scale(.6) rotate(-8deg);transition:opacity .15s,transform .25s cubic-bezier(.16,1,.3,1)}.ds-sort input:checked+.ds-box svg{opacity:1;transform:none}.ds-sort input:focus-visible+.ds-box{outline:2px solid #2a44d4;outline-offset:2px}"
+      "refersTo": "theme-chip",
+      "description": "Theme preset picker with overlapping swatch; selected gets an accent ring (Кассета: ballpoint).",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-checked=\"true\"><span class=\"ds-sw\"><i style=\"background:#0a0a0a\"></i><i style=\"background:#1db954\"></i><i style=\"background:#fff\"></i></span>Изумруд</button><button class=\"ds-chip\" aria-checked=\"false\"><span class=\"ds-sw\"><i style=\"background:#070a12\"></i><i style=\"background:#4c8dff\"></i><i style=\"background:#fff\"></i></span>Сапфир</button></div>",
+      "css": ".ds-chips{display:flex;gap:8px;padding:12px;background:#121212}.ds-chip{font-family:'Onest','Segoe UI',system-ui,sans-serif;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 14px 0 8px;border-radius:999px;background:#1f1f1f;border:2px solid transparent;color:#fff;font-size:.92rem;font-weight:600;cursor:pointer;transition:border-color .18s,background-color .18s}.ds-chip:hover{background:color-mix(in srgb,#1f1f1f 86%,#fff)}.ds-chip[aria-checked=true]{border-color:#1db954}.ds-chip:focus-visible{outline:2px solid #fff;outline-offset:2px}.ds-sw{display:inline-flex}.ds-sw i{width:18px;height:18px;border-radius:50%;box-shadow:0 0 0 2px #1f1f1f}.ds-sw i+i{margin-left:-6px}"
+    },
+    {
+      "name": "Классика Play Controls",
+      "kind": "button",
+      "refersTo": "classic-play",
+      "description": "White play disc flanked by bare grey transport glyphs; active toggles turn green with a dot.",
+      "html": "<div class=\"ds-ctls\"><button class=\"ds-ctl ds-on\" aria-label=\"Перемешать\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M3 7h3.5c4.5 0 6.5 10 11 10H21M3 17h3.5c1.6 0 2.8-1.2 3.8-2.8M13.7 9.8C14.7 8.2 15.9 7 17.5 7H21M18 4l3 3-3 3M18 14l3 3-3 3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button><button class=\"ds-play\" aria-label=\"Играть\"><svg viewBox=\"0 0 24 24\" width=\"30\" height=\"30\" aria-hidden=\"true\"><path d=\"M7.5 4.8v14.4c0 .8.9 1.3 1.6.8l11-7.2a1 1 0 0 0 0-1.6l-11-7.2c-.7-.5-1.6 0-1.6.8z\" fill=\"currentColor\"/></svg></button></div>",
+      "css": ".ds-ctls{display:flex;align-items:center;gap:22px;padding:16px;background:#0a0a0a}.ds-ctl{position:relative;display:grid;place-items:center;width:48px;height:48px;border:0;border-radius:50%;background:none;color:#b3b3b3;cursor:pointer;transition:color .18s,transform .12s}.ds-ctl:hover{color:#fff}.ds-ctl:active{transform:scale(.92)}.ds-ctl.ds-on{color:#1db954}.ds-ctl.ds-on::after{content:'';position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:currentColor}.ds-play{display:grid;place-items:center;width:68px;height:68px;border:0;border-radius:50%;background:#fff;color:#0a0a0a;box-shadow:0 10px 24px -8px rgba(0,0,0,.6);cursor:pointer;transition:transform .15s cubic-bezier(.16,1,.3,1)}.ds-play:hover{transform:scale(1.05)}.ds-play:active{transform:scale(.95)}.ds-play:focus-visible,.ds-ctl:focus-visible{outline:2px solid #fff;outline-offset:4px}"
+    },
+    {
+      "name": "Классика Track Row",
+      "kind": "card",
+      "refersTo": "classic-row",
+      "description": "64px library row with cover thumbnail; current row tinted green with an equaliser.",
+      "html": "<div class=\"ds-list\"><button class=\"ds-row\"><span class=\"ds-num\">1</span><span class=\"ds-thumb\" style=\"background:linear-gradient(135deg,#444,#111)\"></span><span class=\"ds-main\"><span class=\"ds-title\">Кукушка</span><span class=\"ds-sub\">Кино</span></span><span class=\"ds-time\">6:38</span></button><button class=\"ds-row ds-current\"><span class=\"ds-num\"><span class=\"ds-eq\"><i></i><i></i><i></i></span></span><span class=\"ds-thumb\" style=\"background:linear-gradient(135deg,#1db954,#0b3d22)\"></span><span class=\"ds-main\"><span class=\"ds-title\">Мне нравится</span><span class=\"ds-sub\">Сплин</span></span><span class=\"ds-time\">3:44</span></button></div>",
+      "css": ".ds-list{display:grid;gap:2px;padding:8px;background:#121212;font-family:'Onest','Segoe UI',system-ui,sans-serif;}.ds-row{display:grid;grid-template-columns:30px 48px minmax(0,1fr) auto;align-items:center;gap:12px;min-height:64px;padding:8px 12px 8px 4px;border:0;border-radius:10px;background:none;color:#fff;font:inherit;text-align:left;cursor:pointer;transition:background-color .15s}.ds-row:hover{background:#1f1f1f}.ds-row:focus-visible{outline:2px solid #fff;outline-offset:2px}.ds-current{background:color-mix(in srgb,#1db954 12%,#121212)}.ds-num{display:grid;place-items:center;font-size:.85rem;color:#8f8f8f;font-variant-numeric:tabular-nums}.ds-eq{display:flex;align-items:flex-end;gap:2px;height:18px}.ds-eq i{width:4px;height:45%;border-radius:1px;background:#1db954}.ds-eq i:nth-child(2){height:80%}.ds-eq i:nth-child(3){height:55%}.ds-thumb{width:48px;height:48px;border-radius:6px}.ds-main{display:grid;gap:2px;min-width:0}.ds-title{font-size:.98rem;font-weight:600}.ds-current .ds-title{color:#1db954}.ds-sub{font-size:.85rem;color:#b3b3b3}.ds-time{font-size:.82rem;color:#8f8f8f;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Классика Search",
+      "kind": "input",
+      "refersTo": "classic-search",
+      "description": "Filled 44px search field with leading icon.",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"m15.5 15.5 5 5\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/></svg><input type=\"search\" placeholder=\"Поиск в библиотеке\"></label>",
+      "css": ".ds-search{font-family:'Onest','Segoe UI',system-ui,sans-serif;display:flex;align-items:center;gap:10px;min-height:44px;padding:0 6px 0 14px;border-radius:10px;background:#1f1f1f;color:#8f8f8f;border:1px solid transparent;transition:border-color .18s}.ds-search:focus-within{border-color:color-mix(in srgb,#fff 30%,transparent);color:#b3b3b3}.ds-search input{flex:1;min-width:0;height:42px;border:0;background:transparent;color:#fff;font:inherit;font-size:.95rem;outline:none}.ds-search input::placeholder{color:#8f8f8f}"
+    },
+    {
+      "name": "Кассета Stamp",
+      "kind": "button",
+      "refersTo": "cassette-stamp",
+      "description": "Rubber-stamp primary action on J-card paper; fills on hover.",
+      "html": "<div class=\"ds-paper\"><button class=\"ds-stamp\"><span class=\"ds-rec\"></span>записать трек</button></div>",
+      "css": ".ds-paper{padding:20px;background:#f4f4f0}.ds-stamp{font-family:'PT Sans Narrow','Arial Narrow','Roboto Condensed',sans-serif;display:inline-flex;align-items:center;gap:10px;min-height:46px;padding:0 18px;border:2.5px solid #d8420d;border-radius:4px;background:transparent;color:#d8420d;font-size:1.05rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;transform:rotate(-1.2deg);cursor:pointer;transition:transform .2s cubic-bezier(.16,1,.3,1),background-color .2s,color .2s}.ds-stamp:hover{background:#d8420d;color:#fff}.ds-stamp:active{transform:rotate(-1.2deg) scale(.97)}.ds-stamp:focus-visible{outline:2px solid #2a44d4;outline-offset:2px}.ds-rec{width:11px;height:11px;border-radius:50%;background:currentColor}"
+    },
+    {
+      "name": "Кассета Deck Keys",
+      "kind": "custom",
+      "refersTo": "cassette-deck-key",
+      "description": "Ivory piano keys with a collapsing skirt; play key carries the orange band and latches.",
+      "html": "<div class=\"ds-transport\"><button class=\"ds-key\" aria-label=\"Назад\"><svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" aria-hidden=\"true\"><path d=\"M11 6 3 12l8 6zM21 6l-8 6 8 6z\" fill=\"currentColor\"/></svg></button><button class=\"ds-key ds-key-play ds-latched\" aria-label=\"Играть\"><svg viewBox=\"0 0 24 24\" width=\"30\" height=\"30\" aria-hidden=\"true\"><path d=\"M7.5 4.8v14.4c0 .8.9 1.3 1.6.8l11-7.2a1 1 0 0 0 0-1.6l-11-7.2c-.7-.5-1.6 0-1.6.8z\" fill=\"currentColor\"/></svg></button></div>",
+      "css": ".ds-transport{display:grid;grid-template-columns:1fr 1.35fr;gap:6px;padding:12px 10px;background:color-mix(in srgb,#0f1013 60%,#000)}.ds-key{position:relative;display:grid;place-items:center;height:58px;border:0;border-radius:7px 7px 10px 10px;color:#1b1c20;background:linear-gradient(color-mix(in srgb,#e7e7e1 70%,#fff),#e7e7e1 40%,color-mix(in srgb,#e7e7e1 86%,#000));box-shadow:0 -1px 0 rgba(255,255,255,.6) inset,0 5px 0 color-mix(in srgb,#e7e7e1 60%,#000),0 8px 12px rgba(0,0,0,.55);transform:translateY(-3px);cursor:pointer;transition:transform .08s,box-shadow .08s}.ds-key:active,.ds-latched{transform:translateY(2px);box-shadow:0 -1px 0 rgba(255,255,255,.5) inset,0 0 0 transparent,0 2px 4px rgba(0,0,0,.5)}.ds-key:focus-visible{outline:2px solid #ffc928;outline-offset:2px}.ds-key-play::before{content:'';position:absolute;inset:0 0 auto;height:6px;border-radius:7px 7px 0 0;background:#ff5a1f}"
+    },
+    {
+      "name": "Кассета LED Toggle",
+      "kind": "button",
+      "refersTo": "cassette-led-button",
+      "description": "Dark plastic toggle with a 7px LED that glows orange when on.",
+      "html": "<div class=\"ds-panel\"><button class=\"ds-led-btn\" aria-pressed=\"false\"><span class=\"ds-led\"></span><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M3 7h3.5c4.5 0 6.5 10 11 10H21M3 17h3.5c1.6 0 2.8-1.2 3.8-2.8M13.7 9.8C14.7 8.2 15.9 7 17.5 7H21M18 4l3 3-3 3M18 14l3 3-3 3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button><button class=\"ds-led-btn ds-on\" aria-pressed=\"true\"><span class=\"ds-led\"></span><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M3 7h3.5c4.5 0 6.5 10 11 10H21M3 17h3.5c1.6 0 2.8-1.2 3.8-2.8M13.7 9.8C14.7 8.2 15.9 7 17.5 7H21M18 4l3 3-3 3M18 14l3 3-3 3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button></div>",
+      "css": ".ds-panel{display:flex;gap:8px;padding:12px;border-radius:12px;background:linear-gradient(color-mix(in srgb,#0f1013 80%,#3a3d46),color-mix(in srgb,#0f1013 90%,#3a3d46))}.ds-led-btn{display:inline-flex;align-items:center;gap:7px;min-width:44px;height:44px;padding:0 8px;border:0;border-radius:8px;color:#a9abb3;background:color-mix(in srgb,#0f1013 70%,#50535c);box-shadow:0 2px 0 #0c0d0f,0 3px 6px rgba(0,0,0,.35);cursor:pointer;transition:color .2s,transform .1s,box-shadow .1s}.ds-led-btn:active{transform:translateY(2px);box-shadow:0 0 0 #0c0d0f,0 1px 2px rgba(0,0,0,.35)}.ds-led-btn:hover{color:#ecebe6}.ds-led-btn:focus-visible{outline:2px solid #ffc928;outline-offset:2px}.ds-led{width:7px;height:7px;border-radius:50%;background:#3b3d45}.ds-on{color:#ecebe6}.ds-on .ds-led{background:radial-gradient(circle at 40% 35%,#ffd2bd 0 18%,#ff5a1f 45%,#c63a0a 100%)}"
+    },
+    {
+      "name": "Кассета J-card Row and Written Line",
+      "kind": "input",
+      "refersTo": "cassette-track-row",
+      "description": "Handwritten search line and a ruled 64px row with pasted photo, highlighter and pen tick.",
+      "html": "<div class=\"ds-card\"><label class=\"ds-line\"><span class=\"ds-label\">найти</span><input placeholder=\"название, исполнитель…\"></label><button class=\"ds-jrow\"><span class=\"ds-n\">05<svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" aria-hidden=\"true\"><path d=\"M3.5 13.5c2 1.2 3.4 2.8 4.6 5 2.6-6 6.4-10.5 12.4-14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span><span class=\"ds-photo\"><i></i></span><span class=\"ds-m\"><span class=\"ds-t\"><mark>Мне нравится</mark></span><span class=\"ds-s\">Сплин · Гранатовый альбом</span></span><span class=\"ds-d\">3:44</span></button></div>",
+      "css": ".ds-card{font-family:'PT Sans Narrow','Arial Narrow','Roboto Condensed',sans-serif;background:#f4f4f0;color:#1b1c20}.ds-line{display:flex;align-items:center;gap:10px;min-height:44px;margin:0 20px 10px;border-bottom:1px solid #1b1c20}.ds-line:focus-within{border-bottom-color:#2a44d4;box-shadow:0 1px 0 #2a44d4}.ds-label{font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#555966}.ds-line input{flex:1;min-width:0;border:0;background:transparent;font-family:'Neucha','Segoe Print','Comic Sans MS',cursive;font-size:1.35rem;color:#1f3aa8;caret-color:#ff5a1f;outline:none}.ds-line input::placeholder{color:color-mix(in srgb,#555966 85%,#f4f4f0)}.ds-jrow{display:grid;grid-template-columns:3rem 52px minmax(0,1fr) 4.2rem;align-items:center;width:100%;min-height:64px;border:0;border-top:1px solid #cdd3e6;border-bottom:1px solid #cdd3e6;background:linear-gradient(90deg,transparent calc(3rem - 1.5px),#ff5a1f calc(3rem - 1.5px) 3rem,transparent 3rem);font:inherit;color:#1b1c20;text-align:left;cursor:pointer;transition:background-color .15s}.ds-jrow:hover{background-color:color-mix(in srgb,#2a44d4 5%,transparent)}.ds-jrow:focus-visible{outline:2px solid #2a44d4;outline-offset:-2px}.ds-n{position:relative;text-align:right;padding-right:9px;font-size:.95rem;color:#555966;font-variant-numeric:tabular-nums}.ds-n svg{position:absolute;left:1px;top:50%;translate:0 -62%;color:#1f3aa8;opacity:.85}.ds-photo{justify-self:end;width:44px;height:44px;padding:2px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.28);rotate:-2deg}.ds-photo i{display:block;width:100%;height:100%;background:linear-gradient(135deg,#1db954,#0b3d22)}.ds-m{min-width:0;padding:8px 10px 8px 12px}.ds-t{display:block;font-family:'Neucha','Segoe Print','Comic Sans MS',cursive;font-size:1.32rem;line-height:1.15;color:#1f3aa8}.ds-t mark{color:inherit;background:linear-gradient(100deg,transparent .2em,rgba(255,201,40,.62) .35em calc(100% - .3em),transparent calc(100% - .1em)) 0 62%/100% 58% no-repeat;padding:0 .15em;margin:0 -.15em}.ds-s{display:block;margin-top:2px;font-size:.86rem;color:#555966}.ds-d{text-align:center;font-family:'Neucha','Segoe Print','Comic Sans MS',cursive;font-size:1.15rem;color:#1f3aa8}"
     }
   ],
   "narrative": {
-    "northStar": "The Home-Recorded МК-60",
-    "overview": "The library is a cassette the owner recorded at home. Two materials carry the whole interface. Smoked shell plastic and a near-black deck hold the player. A cool-white printed J-card holds the tracklist, search, sort and dialogs. The printing on the card is factory work: narrow PT Sans caps for the form fields, a heavy rule under the header, and three slanted stripes in signal orange, yellow and cobalt. What the owner fills in is blue ballpoint set in Neucha: track titles, durations, the owner name and search text. Yellow highlighter marks the playing line. A pen tick beside the number marks a line already heard.\n\nThe player is the cassette in the deck. The label carries the track cover in place of artwork. The two reels shift tape from left to right as the track plays, and the cassette window doubles as the seek scrubber. Below it sit a mechanical tape counter, analog VU needles, LED toggles and a bottom row of chunky piano keys that physically depress. The density is phone-first. On desktop the card sits as a left column and the cassette takes the right. The look rejects the streaming-app pattern of a blurred cover with pill buttons.\n\nMotion stays physical and short. Keys travel 5px in 80ms, the cassette tilts in when it is inserted, sheets slide up, and the record dot blinks in steps the way an LED does. Every animation shares the long ease-out curve, and reduced motion turns all of them off.",
+    "northStar": "One Library, Two Players",
+    "overview": "The app is one owner's music library with two complete players over it. The owner picks one in settings. Both are phone-first, full-screen and Russian-language, and both lead with the track's cover. Neither is a skin of the other: each has its own palette, type, layout and signature components. What they share sits below them: one HTML markup contract, one set of dialogs (add, info, confirm, settings, cover view), the ⋯ menu, toasts, the lyrics overlay, and one theme engine. That shared layer reads only the `--ui-*` bridge tokens, and each world maps its own palette onto them. So a sheet opened in Классика is a dark rounded panel, and the same sheet in Кассета is a printed J-card page.\n\n**World A, Классика**, is the original dark player rebuilt properly. The background is near-black and green is the one accent. The list has cover thumbnails. A large rounded cover sits over a blurred backdrop made from the same cover, with a round white play disc. The upgrades define the world now: a real waveform as the seek bar, a bottom spectrum on desktop, a small equaliser under the cover on phones, a lyrics band that takes the indicator's place, and the ⋯ menu. The cover and its colour lead, and the chrome recedes into grey.\n\n**World B, Кассета**, is a home-recorded МК-60. The library is the cassette's J-card, filled in by hand in blue ballpoint over printed form fields. The player is a deck: a J-card front cover card shows the track art, the smoked-plastic cassette overlaps it with turning reels and a window that works as the seek scrubber, then come a rolling tape counter, a vacuum-fluorescent segment level meter, LED toggles, and chunky ivory piano keys that depress. It refuses the streaming-app look of Классика on purpose: no blurred backdrop, no pill controls on the deck or the card.",
     "keyCharacteristics": [
-      "Two materials only: dark deck/shell and light printed card. Every surface is one or the other.",
-      "Two hands on the card: printed form (PT Sans Narrow caps, `print-2`) versus handwritten entries (Neucha, `ball` blue).",
-      "Factory tricolor stripes (orange / yellow / cobalt) as the brand signature, always in that order, cobalt the widest.",
-      "Physical controls: depressing keys, LED toggles, an analog counter and a scrubbable tape window.",
-      "Russian UI, lowercase handwritten copy, uppercase printed labels."
+      "Two complete worlds over one markup contract; switching designs swaps `css/<design>.css` and the design module's template, never the behaviour.",
+      "A shared layer (sheets, settings, theme editor, ⋯ menu, toasts, lyrics overlay) styled only through `--ui-*` bridge tokens.",
+      "Themes are CSS-variable overrides on top of a world's defaults: presets per design, user custom themes, JSON export/import, optional cover colours (off by default).",
+      "Классика: tonal dark layering, a single green accent, the cover big and blurred behind, a waveform seek and a spectrum.",
+      "Кассета: two materials (deck plastic and J-card paper), two hands (printed caps and blue ballpoint), the factory tricolor, and physical controls.",
+      "Touch targets of 44px or more everywhere, one shared ease-out curve, and every animation off under reduced motion."
     ],
     "rules": [
       {
+        "name": "The Bridge Rule",
+        "body": "`base.css` never names a world colour, font or radius; it reads `--ui-*` only. A new shared surface gets its look by adding a bridge token that both worlds map, never by branching on `data-design`.",
+        "section": "colors"
+      },
+      {
+        "name": "The Cover Leads Rule",
+        "body": "The only large field of colour in Классика is the cover itself, shown sharp and again blurred behind the player (80px blur, 55% strength, faded to `classic-bg` by a top-to-bottom gradient). Green marks state and the single primary action; it never fills panels or backgrounds.",
+        "section": "colors"
+      },
+      {
+        "name": "The One White Disc Rule",
+        "body": "The play button is the only filled circle on the player: a 68px `classic-play-bg` disc. Every other control is a bare grey glyph that turns green when on.",
+        "section": "colors"
+      },
+      {
         "name": "The Ballpoint Rule",
-        "body": "Neucha set in `ball` blue means the owner wrote it. Printed form text (labels, headers, the brand) never uses the handwriting face. Owner content never uses printed caps, with one exception: the artist name on the deck is printed in yellow caps.",
+        "body": "Neucha set in `cassette-ball` means the owner wrote it. Printed form text (labels, headers, the brand, buttons) never uses the handwriting face, and owner content never uses printed caps. The one exception is the artist name on the deck, printed in yellow caps.",
         "section": "colors"
       },
       {
         "name": "The Tricolor Order Rule",
-        "body": "Stripes always run orange, yellow, cobalt, with cobalt the widest (twice the width of each other stripe). They appear on the card header, the cassette label foot and the sheet top edge, and nowhere else.",
+        "body": "Stripes always run orange, yellow, cobalt, and cobalt is twice the width of each of the others. They appear in four places only: the J-card header (skewed −24°), the front cover card's foot, the cassette label's foot, and the 6px top edge of every sheet.",
         "section": "colors"
       },
       {
         "name": "The Field Label Rule",
-        "body": "Uppercase label type is the printed name of the form field it sits on, inline with that field, the way a J-card prints its field names. It never floats above a section as a heading.",
+        "body": "In Кассета, uppercase label type is the printed name of the form field it sits on, inline with that field, the way a J-card prints its field names. On the J-card and the deck it never floats above a section as a heading.",
+        "section": "typography"
+      },
+      {
+        "name": "The Own Faces Rule",
+        "body": "A world never borrows the other world's faces. The shared layer has no font of its own: anything it renders must read `--ui-font` / `--ui-font-head`.",
         "section": "typography"
       },
       {
         "name": "The Mechanical Skirt Rule",
-        "body": "A solid offset edge under a control is the visible side of a physical key. It exists only on deck keys and LED buttons, and it must collapse when the control is pressed. Paper surfaces never carry one.",
+        "body": "A solid offset edge under a control is the visible side of a physical key. In Кассета it exists only on deck keys and LED toggles, and it must collapse when the control is pressed. Classic controls never carry one.",
         "section": "elevation"
+      },
+      {
+        "name": "The Object-On-Paper Rule",
+        "body": "In Кассета the paper itself never casts or carries a shadow; only physical objects resting on it do (the cassette, the front cover card, a pasted photo, a paper-strip toast).",
+        "section": "elevation"
+      },
+      {
+        "name": "The One Contract Rule",
+        "body": "A world may restyle, rearrange or re-label anything, but it binds the same `data-act` / `data-bind` hooks and keeps every capability: search, sort, play, seek, shuffle, repeat, volume, indicator, lyrics, ⋯ menu (info, download, delete), add, cover view, fold. A new feature lands in both templates or in neither.",
+        "section": "components"
+      },
+      {
+        "name": "The Whitelist Theme Rule",
+        "body": "A theme is data, not CSS. It may set only the variables its design names in `themeVars`, through the safe-value filter, and every surface must read those variables (or values derived from them with `color-mix`) so a theme reaches it. A colour hardcoded in a world stylesheet is a colour no theme can change.",
+        "section": "components"
       }
     ],
     "dos": [
-      "**Do** put every new surface on one of the two materials: `deck`/shell plastic or `card` paper.",
-      "**Do** write owner content (titles, names, typed input) in Neucha `ball`, and print form structure in PT Sans Narrow caps `print-2`.",
-      "**Do** use the stamp for the single primary action on a card surface, and deck keys/LED buttons for playback controls.",
-      "**Do** draw icons as inline SVG symbols with `currentColor`.",
-      "**Do** keep touch targets at 44px or larger and respect `prefers-reduced-motion`.",
-      "**Do** run motion on `cubic-bezier(0.16, 1, 0.3, 1)` and keep key travel under 100ms."
+      "**Do** build every shared surface in `base.css` from `--ui-*` tokens only, and map any new bridge token in both `classic.css` and `cassette.css` (The Bridge Rule).",
+      "**Do** bind the same `data-act` / `data-bind` hooks in both templates and ship a feature to both worlds or neither (The One Contract Rule).",
+      "**Do** list a variable in the design's `themeVars` before a theme can change it, and derive dependent shades with `color-mix` from those variables (The Whitelist Theme Rule).",
+      "**Do** keep cover colours off by default and let them touch only `--accent` (Классика) or `--vfd` (Кассета).",
+      "**Do** keep touch targets at 44px or more, draw icons as inline SVG symbols with `currentColor`, and run motion on `cubic-bezier(0.16, 1, 0.3, 1)` with reduced motion turning it off.",
+      "**Do**, in Классика, let the cover and its blurred backdrop carry the colour and keep green for state and the one primary action (The Cover Leads Rule).",
+      "**Do**, in Кассета, put every surface on one of two materials (deck plastic or J-card paper), write owner content in Neucha `cassette-ball`, and print form structure in PT Sans Narrow caps `cassette-print-2`.",
+      "**Do**, in Кассета, use the stamp for the single primary action on paper, and deck keys or LED toggles for playback controls; keep key travel under 100ms."
     ],
     "donts": [
-      "**Don't** use blurred-cover backgrounds or pill buttons. The world explicitly rejects the streaming-app clone.",
-      "**Don't** put uppercase label type above a section as a heading. It labels a field inline (The Field Label Rule).",
-      "**Don't** reorder the tricolor or use its colors as general fills.",
-      "**Don't** put offset skirts or drop shadows on paper. Depth on the card comes from printed rules.",
-      "**Don't** set printed UI chrome in Neucha, or handwritten entries in printed caps."
+      "**Don't** reference a world's colours, fonts or radii in `base.css`, or branch shared styles on `data-design`.",
+      "**Don't** mix worlds: no Onest, green or pills on the deck or the J-card; no Neucha, tricolor or skirts in Классика (The Own Faces Rule).",
+      "**Don't** let a theme override `--ui-*` directly or inject values outside the safe filter.",
+      "**Don't** use the Классика accent as a panel or background fill.",
+      "**Don't**, in Кассета, use a blurred-cover backdrop or pill-shaped controls on the deck or the card; that is Классика's language, and Кассета refuses it.",
+      "**Don't**, in Кассета, put uppercase label type above a section on the J-card or deck as a heading; it labels a field inline (The Field Label Rule).",
+      "**Don't** reorder the tricolor, use its colours as general fills, or add it anywhere beyond its four places (The Tricolor Order Rule).",
+      "**Don't** give paper a shadow or a skirt in Кассета; only objects resting on it cast shadows, and only deck keys and LED toggles have skirts (The Object-On-Paper Rule, The Mechanical Skirt Rule)."
     ]
   }
 }

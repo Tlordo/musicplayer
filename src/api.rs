@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::body::Body;
 use axum::extract::{Path, Request, State};
-use axum::http::StatusCode;
+use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
@@ -28,6 +28,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/library", get(library))
         .route("/api/stream/:video_id", get(stream))
         .route("/api/thumbnail/:video_id", get(thumbnail))
+        .route("/api/peaks/:video_id", get(peaks))
         .route("/api/track/:video_id", delete(delete_track))
         .with_state(state)
 }
@@ -140,6 +141,25 @@ async fn thumbnail(State(s): State<AppState>, Path(id): Path<String>, req: Reque
     serve_file(path, req).await
 }
 
+/// Форма волны трека для полосы перемотки. Считается один раз и кэшируется рядом с обложкой.
+async fn peaks(State(s): State<AppState>, Path(id): Path<String>) -> ApiResult<Response> {
+    check_id(&id)?;
+    let cache = s.cfg.peaks_path(&id);
+    if let Ok(bytes) = tokio::fs::read(&cache).await {
+        return Ok(([(header::CONTENT_TYPE, "application/json")], bytes).into_response());
+    }
+    let audio = s.cfg.audio_path(&id);
+    if !audio.is_file() {
+        return Err(ApiError::new(StatusCode::NOT_FOUND, "Track file not found"));
+    }
+    let data = crate::peaks::compute(&s.cfg.ffmpeg_cmd(), &audio).await?;
+    let body = serde_json::to_vec(&json!({ "peaks": data }))?;
+    if let Err(e) = tokio::fs::write(&cache, &body).await {
+        tracing::warn!("не удалось сохранить форму волны {id}: {e}");
+    }
+    Ok(([(header::CONTENT_TYPE, "application/json")], body).into_response())
+}
+
 async fn delete_track(State(s): State<AppState>, Path(id): Path<String>) -> ApiResult<impl IntoResponse> {
     check_id(&id)?;
     let json_file = s
@@ -147,7 +167,7 @@ async fn delete_track(State(s): State<AppState>, Path(id): Path<String>) -> ApiR
         .delete(&id)?
         .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "Track not found in library"))?;
 
-    let mut files = vec![s.cfg.audio_path(&id), s.cfg.thumb_path(&id)];
+    let mut files = vec![s.cfg.audio_path(&id), s.cfg.thumb_path(&id), s.cfg.peaks_path(&id)];
     if let Some(name) = json_file.filter(|n| !n.contains(['/', '\\']) && n != ".." && !n.is_empty()) {
         files.push(s.cfg.info_dir.join(name));
     }

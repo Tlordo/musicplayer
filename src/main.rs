@@ -2,6 +2,7 @@ mod api;
 mod config;
 mod db;
 mod downloader;
+mod peaks;
 
 use std::net::SocketAddr;
 use std::sync::Arc;

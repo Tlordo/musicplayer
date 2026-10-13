@@ -13,7 +13,7 @@ Constraints: static HTML/CSS/JS, Russian UI, existing API. Removed: extra list v
 
 THESIS: The library is a home-recorded МК-60 cassette: the tracklist is its J-card filled in by hand, the player is the cassette itself turning in the deck. Refuses the blurred-cover-plus-pill-buttons streaming clone.
 
-OWN-WORLD: Smoked translucent shell plastic (#16171b) around a cool-white printed J-card (#f4f4f0); printed form in PT Sans Narrow caps (СТОРОНА А, №, НАИМЕНОВАНИЕ, ВРЕМЯ) with factory stripes in signal orange #ff5a1f, cobalt #2a44d4, and yellow #ffc928; entries in blue ballpoint (#1f3aa8) set in Neucha; yellow highlighter marks what is playing; pen ticks mark what was heard. Deck keys are chunky mechanical piano keys that depress; LEDs for shuffle/repeat; analog VU needles.
+OWN-WORLD: Smoked translucent shell plastic (#16171b) around a cool-white printed J-card (#f4f4f0); printed form in PT Sans Narrow caps (СТОРОНА А, №, НАИМЕНОВАНИЕ, ВРЕМЯ) with factory stripes in signal orange #ff5a1f, cobalt #2a44d4, and yellow #ffc928; entries in blue ballpoint (#1f3aa8) set in Neucha; yellow highlighter marks what is playing; pen ticks mark what was heard. Deck keys are chunky mechanical piano keys that depress; LEDs for shuffle/repeat; a vacuum-fluorescent segment level meter (replaced the analog VU needles at the owner's request: keep the mechanics, change the look). A J-card front cover card shows the track art large beside the cassette.
 
 STORY: Opening the app shows the tape loaded and the J-card under the thumb; you see your own handwriting-style list, tap a line and the reels start turning; adding a track = "записать трек", a new line appears on the card.
 

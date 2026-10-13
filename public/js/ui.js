@@ -1,0 +1,508 @@
+// Общий слой интерфейса. Дизайны рисуют разметку с атрибутами data-act / data-bind /
+// data-seek / data-list и т. д., а здесь они оживают — одинаково для всех дизайнов.
+
+import * as core from './core.js';
+import { state, audio } from './core.js';
+import { settings, save } from './store.js';
+import { formatTime, formatLong, formatNumber, plural, yearOf, esc, albumOf } from './format.js';
+import { currentDesign, setCover } from './themes.js';
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+const app = document.getElementById('app');
+const html = document.documentElement;
+
+let actions = {};
+export function registerActions(map) { Object.assign(actions, map); }
+
+export function isDesktop() { return matchMedia('(min-width: 960px)').matches; }
+
+// ============ Уведомления ============
+export function toast(text, type = 'info', ms = 3200) {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = text;
+  $('#toasts').append(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 320); }, ms);
+}
+core.on('toast', (t) => toast(t.text, t.type, t.ms));
+
+// ============ Привязки к треку ============
+function trackBinds(t) {
+  const design = currentDesign();
+  return {
+    title: t ? t.title : design.emptyTitle,
+    artist: t ? (t.artist || '—') : design.emptyArtist,
+    album: t ? albumOf(t) : '',
+    year: t ? yearOf(t.release_date) : '',
+    bitrate: t && t.abr ? `${Math.round(t.abr)} кбит/с` : '',
+    meta: t ? [albumOf(t), yearOf(t.release_date), t.abr ? `${Math.round(t.abr)} кбит/с` : ''].filter(Boolean).join(' · ') : '',
+    views: t ? formatNumber(t.view_count) : '—',
+    likes: t ? formatNumber(t.like_count) : '—',
+  };
+}
+
+export function renderTrack() {
+  const t = state.current;
+  const binds = trackBinds(t);
+  for (const [k, v] of Object.entries(binds)) {
+    $$(`[data-bind="${k}"]`).forEach((el) => { el.textContent = v; el.hidden = v === '' && el.hasAttribute('data-hide-empty'); });
+  }
+  const cover = t ? t.thumbnail_api : '';
+  $$('img[data-cover]').forEach((img) => {
+    if (!cover) { img.removeAttribute('src'); img.alt = ''; return; }
+    if (img.getAttribute('src') !== cover) {
+      img.classList.remove('loaded');
+      img.onload = () => img.classList.add('loaded');
+      img.src = cover;
+    }
+    img.alt = `Обложка: ${t.title}`;
+  });
+  $$('[data-cover-bg]').forEach((el) => { el.style.backgroundImage = cover ? `url("${cover}")` : ''; });
+  html.classList.toggle('has-track', !!t);
+  $$('[data-needs-track]').forEach((el) => { el.disabled = !t; });
+  document.title = t ? `${t.title} — ${t.artist}` : 'Моя музыка';
+  setCover(cover || null);
+  renderTime();
+  markRows();
+  updateMediaSession();
+}
+
+export function renderTime() {
+  const dur = audio.duration || (state.current ? state.current._sec : 0) || 0;
+  const cur = state.dragging ? state.dragP * dur : audio.currentTime;
+  $$('[data-bind="time-cur"]').forEach((el) => { el.textContent = formatTime(cur); });
+  $$('[data-bind="time-total"]').forEach((el) => { el.textContent = formatTime(dur); });
+  $$('[data-bind="time-left"]').forEach((el) => { el.textContent = '−' + formatTime(Math.max(0, dur - cur)); });
+}
+
+let lastP = -1;
+function renderProgress(p) {
+  if (Math.abs(p - lastP) < 0.0004) return;
+  lastP = p;
+  $$('[data-seek], [data-seek-view]').forEach((el) => {
+    el.style.setProperty('--p', p.toFixed(4));
+    if (el.hasAttribute('data-seek')) {
+      el.setAttribute('aria-valuenow', Math.round(p * 100));
+      el.setAttribute('aria-valuetext', `${formatTime(audio.currentTime)} из ${formatTime(audio.duration)}`);
+    }
+  });
+  renderTime();
+}
+
+// ============ Состояние кнопок ============
+export function renderState() {
+  const playing = !audio.paused;
+  html.classList.toggle('is-playing', playing);
+  html.classList.toggle('is-muted', audio.muted);
+  $$('[data-play-icon]').forEach((u) => u.setAttribute('href', playing ? '#i-pause' : '#i-play'));
+  $$('[data-act="play"]').forEach((b) => {
+    b.setAttribute('aria-label', playing ? 'Пауза (пробел)' : 'Играть (пробел)');
+    b.classList.toggle('latched', playing);
+  });
+  $$('[data-act="shuffle"]').forEach((b) => { b.classList.toggle('on', settings.shuffle); b.setAttribute('aria-pressed', settings.shuffle); });
+  $$('[data-act="repeat"]').forEach((b) => {
+    b.classList.toggle('on', settings.repeat !== 'off');
+    b.classList.toggle('one', settings.repeat === 'one');
+    b.setAttribute('aria-pressed', settings.repeat !== 'off');
+    b.title = { off: 'Повтор выключен (R)', all: 'Повтор всего списка (R)', one: 'Повтор одного трека (R)' }[settings.repeat];
+  });
+  $$('[data-act="meter"]').forEach((b) => { b.classList.toggle('on', settings.meter === 'viz'); b.setAttribute('aria-pressed', settings.meter === 'viz'); });
+  $$('[data-act="lyrics-inline"]').forEach((b) => { b.classList.toggle('on', settings.meter === 'lyrics'); b.setAttribute('aria-pressed', settings.meter === 'lyrics'); });
+  html.dataset.meter = settings.meter;
+  const vol = Math.round(audio.volume * 100);
+  $$('input[data-volume]').forEach((r) => { r.value = audio.muted ? 0 : vol; r.style.setProperty('--fill', `${audio.muted ? 0 : vol}%`); });
+  $$('[data-vol-icon]').forEach((u) => u.setAttribute('href', audio.muted || audio.volume === 0 ? '#i-mute' : '#i-vol'));
+  $$('[data-act="mute"]').forEach((b) => b.setAttribute('aria-label', audio.muted ? 'Включить звук (M)' : 'Выключить звук (M)'));
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+}
+
+// ============ Список ============
+export function renderList() {
+  const list = $('[data-list]');
+  if (!list) return;
+  const design = currentDesign();
+  const empty = $('[data-empty]');
+  const q = state.query.trim();
+
+  $$('[data-bind="count"]').forEach((el) => { const n = state.library.length; el.textContent = `${n} ${plural(n, 'трек', 'трека', 'треков')}`; });
+  $$('[data-bind="total"]').forEach((el) => { el.textContent = formatLong(core.totalSeconds()); });
+  $$('[data-act="clear-search"]').forEach((b) => { b.hidden = !q; });
+  $$('[data-sort]').forEach((b) => {
+    const on = b.dataset.sort === settings.sort;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-checked', on);
+  });
+  $$('input[name="sort"]').forEach((r) => { r.checked = r.value === settings.sort; });
+
+  if (!state.view.length) {
+    list.innerHTML = '';
+    if (empty) {
+      empty.hidden = false;
+      const [title, text] = state.loadError
+        ? ['Нет связи с сервером', 'Сервер не отвечает. Проверьте, что он запущен, и обновите страницу.']
+        : state.library.length
+          ? ['Ничего не нашлось', `В библиотеке нет «${q}». Попробуйте другое слово.`]
+          : design.emptyLibrary;
+      $('[data-empty-title]', empty).textContent = title;
+      $('[data-empty-text]', empty).textContent = text;
+    }
+    return;
+  }
+  if (empty) empty.hidden = true;
+  const cur = state.current && state.current.video_id;
+  list.innerHTML = state.view.map((t, i) => design.renderRow(t, i, {
+    current: t.video_id === cur,
+    played: settings.markPlayed && state.played.has(t.video_id),
+    missing: t.file_exists === false,
+  }, { esc, formatTime, albumOf })).join('');
+}
+
+function markRows() {
+  const cur = state.current && state.current.video_id;
+  $$('[data-list] [data-id]').forEach((row) => {
+    const on = row.dataset.id === cur;
+    row.classList.toggle('current', on);
+    if (on) row.setAttribute('aria-current', 'true'); else row.removeAttribute('aria-current');
+  });
+}
+
+function flashRow(id) {
+  const row = id && $(`[data-list] [data-id="${CSS.escape(id)}"]`);
+  if (!row) return;
+  row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  row.classList.add('flash');
+  setTimeout(() => row.classList.remove('flash'), 1900);
+}
+
+// ============ Действия ============
+function setTab(tab) {
+  html.dataset.tab = tab;
+  currentDesign().onTab?.(tab);
+  core.emit('tab', tab);
+}
+
+// Меню «ещё» (о треке, скачать, удалить): кнопка data-act="menu" + соседний .menu.
+function closeMenus(except) {
+  $$('.menu:not([hidden])').forEach((m) => {
+    if (m === except) return;
+    m.hidden = true;
+    m.previousElementSibling?.setAttribute('aria-expanded', 'false');
+  });
+}
+function toggleMenu(btn) {
+  const menu = btn.nextElementSibling;
+  if (!menu) return;
+  const open = menu.hidden;
+  closeMenus(menu);
+  menu.hidden = !open;
+  btn.setAttribute('aria-expanded', String(open));
+  if (open) menu.querySelector('button:not(:disabled)')?.focus();
+}
+
+const builtin = {
+  menu: (el) => toggleMenu(el),
+  play: () => core.toggle(),
+  prev: () => core.prev(),
+  next: () => core.next(),
+  shuffle: () => core.toggleShuffle(),
+  repeat: () => core.cycleRepeat(),
+  mute: () => core.toggleMute(),
+  meter: () => { settings.meter = settings.meter === 'viz' ? 'off' : 'viz'; save(); core.emit('meter'); },
+  'lyrics-inline': () => { settings.meter = settings.meter === 'lyrics' ? 'viz' : 'lyrics'; save(); core.emit('meter'); },
+  add: () => openAdd(),
+  info: () => openInfo(),
+  download: () => download(),
+  delete: () => confirmDelete(),
+  cover: () => openCover(),
+  'clear-search': () => {
+    $$('input[data-search]').forEach((i) => { i.value = ''; });
+    core.setQuery('');
+    $('input[data-search]')?.focus();
+  },
+  'tab-player': () => setTab('player'),
+  'tab-library': () => setTab('library'),
+  'tab-toggle': () => setTab(html.dataset.tab === 'player' ? 'library' : 'player'),
+  fold: () => { settings.folded = true; save(); html.classList.add('folded'); },
+  unfold: () => { settings.folded = false; save(); html.classList.remove('folded'); },
+};
+
+function runAction(name, el, e) {
+  const fn = actions[name] || builtin[name];
+  if (fn) fn(el, e);
+}
+
+document.addEventListener('click', (e) => {
+  const row = e.target.closest('[data-list] [data-id]');
+  if (row && !e.target.closest('[data-act]')) {
+    const t = core.find(row.dataset.id);
+    if (!t) return;
+    if (state.current && state.current.video_id === t.video_id) core.toggle();
+    else core.load(t, true);
+    if (!isDesktop() && currentDesign().rowOpensPlayer) setTab('player');
+    return;
+  }
+  const el = e.target.closest('[data-act]');
+  if (el && !el.disabled) {
+    e.stopPropagation();
+    if (el.dataset.act !== 'menu') closeMenus();
+    runAction(el.dataset.act, el, e);
+    return;
+  }
+  closeMenus();
+  const sort = e.target.closest('[data-sort]');
+  if (sort) core.setSort(sort.dataset.sort);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $('.menu:not([hidden])')) { closeMenus(); return; }
+  // Клавиатура на «кнопках», сделанных не из <button> (мини-плеер).
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-act][role="button"]')) {
+    e.preventDefault();
+    runAction(e.target.dataset.act, e.target, e);
+  }
+});
+
+document.addEventListener('input', (e) => {
+  if (e.target.matches('input[data-search]')) {
+    $$('input[data-search]').forEach((i) => { if (i !== e.target) i.value = e.target.value; });
+    core.setQuery(e.target.value);
+  } else if (e.target.matches('input[data-volume]')) {
+    audio.muted = false;
+    core.setVolume(e.target.value / 100);
+  }
+});
+
+document.addEventListener('change', (e) => {
+  if (e.target.matches('input[name="sort"]')) core.setSort(e.target.value);
+});
+
+// ============ Перемотка ============
+function pointerP(el, e) {
+  const r = el.getBoundingClientRect();
+  return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+}
+
+let seekEl = null;
+document.addEventListener('pointerdown', (e) => {
+  const el = e.target.closest('[data-seek]');
+  if (!el || !audio.duration || e.button > 0) return;
+  seekEl = el;
+  state.dragging = true;
+  state.dragP = pointerP(el, e);
+  el.classList.add('dragging');
+  el.setPointerCapture(e.pointerId);
+  renderProgress(state.dragP);
+});
+document.addEventListener('pointermove', (e) => {
+  if (!seekEl) return;
+  state.dragP = pointerP(seekEl, e);
+  renderProgress(state.dragP);
+});
+function endSeek(e, commit) {
+  if (!seekEl) return;
+  if (commit) core.seekP(pointerP(seekEl, e));
+  seekEl.classList.remove('dragging');
+  seekEl = null;
+  state.dragging = false;
+}
+document.addEventListener('pointerup', (e) => endSeek(e, true));
+document.addEventListener('pointercancel', (e) => endSeek(e, false));
+
+// ============ Окна ============
+document.querySelectorAll('dialog').forEach((dlg) => {
+  dlg.addEventListener('click', (e) => {
+    if (e.target === dlg || e.target.closest('[data-close]')) dlg.close();
+  });
+});
+
+function openCover() {
+  const t = state.current;
+  if (!t) return;
+  const dlg = $('#cover-dialog');
+  let img = $('img', dlg);
+  if (!img) { img = document.createElement('img'); dlg.append(img); }
+  img.src = t.thumbnail_api;
+  img.alt = `Обложка: ${t.title}`;
+  dlg.showModal();
+}
+
+const addDialog = $('#add-dialog');
+const addStatus = $('#add-status');
+let adding = false;
+
+function openAdd() {
+  if (!adding) { addStatus.textContent = ''; addStatus.className = 'status'; }
+  addDialog.showModal();
+  $('#url-input').focus();
+}
+
+$('#add-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = $('#url-input');
+  const url = input.value.trim();
+  if (!url || adding) return;
+  adding = true;
+  const btn = $('#submit-add');
+  btn.disabled = true;
+  html.classList.add('is-adding');
+  $('#submit-label').textContent = 'Загружаю…';
+  addStatus.className = 'status';
+  addStatus.textContent = 'Скачиваю и конвертирую. Окно можно закрыть — загрузка продолжится.';
+  try {
+    const track = await core.addTrack(url);
+    input.value = '';
+    addStatus.className = 'status ok';
+    addStatus.textContent = `Готово: ${track?.title || 'трек'}`;
+    toast(`Добавлен «${track?.title || 'трек'}»`, 'ok');
+    flashRow(track?.video_id);
+    setTimeout(() => { if (addDialog.open) addDialog.close(); }, 900);
+  } catch (err) {
+    addStatus.className = 'status error';
+    addStatus.textContent = `Не получилось: ${err.message}. Проверьте ссылку и интернет и попробуйте ещё раз.`;
+    if (!addDialog.open) toast('Не удалось добавить трек', 'error', 5000);
+  } finally {
+    adding = false;
+    btn.disabled = false;
+    html.classList.remove('is-adding');
+    $('#submit-label').textContent = 'Загрузить';
+  }
+});
+
+function openInfo() {
+  const t = state.current;
+  if (!t) return;
+  const rows = [
+    ['Название', t.title],
+    ['Исполнитель', t.artist],
+    ['Альбом', t.album],
+    ['Дата', t.release_date],
+    ['Длительность', t._sec ? formatTime(t._sec) : t.duration],
+    ['Просмотры', formatNumber(t.view_count)],
+    ['Лайки', formatNumber(t.like_count)],
+    ['Битрейт', t.abr ? `${Math.round(t.abr)} кбит/с` : '—'],
+    ['Размер', t.filesize_mb ? `${t.filesize_mb} МБ` : '—'],
+    ['Формат', 'opus'],
+  ];
+  if (t.original_url) rows.push(['Источник', t.original_url]);
+  // Каждая строка — один блок с одной линией снизу, поэтому подпись и значение не «плывут».
+  $('#info-list').innerHTML = rows.map(([k, v]) => `<div class="kv"><span class="kv-key">${k}</span><span class="kv-val">${esc(v ?? '—')}</span></div>`).join('');
+  $('#info-dialog').showModal();
+}
+
+function download() {
+  const t = state.current;
+  if (!t) return;
+  const a = document.createElement('a');
+  a.href = `/api/stream/${encodeURIComponent(t.video_id)}`;
+  a.download = `${t.artist} - ${t.title}.opus`.replace(/[\\/:*?"<>|]/g, ' ');
+  document.body.append(a);
+  a.click();
+  a.remove();
+  toast('Скачивание началось');
+}
+
+function confirmDelete() {
+  const t = state.current;
+  if (!t) return;
+  const dlg = $('#confirm-dialog');
+  $('#confirm-text').textContent = `«${t.title}» — ${t.artist}`;
+  dlg.returnValue = '';
+  dlg.showModal();
+  dlg.addEventListener('close', async () => {
+    if (dlg.returnValue !== 'yes') return;
+    try {
+      await core.removeTrack(t);
+      toast(`«${t.title}» удалён`, 'ok');
+    } catch (err) {
+      toast(`Не удалось удалить: ${err.message}`, 'error');
+    }
+  }, { once: true });
+}
+
+// ============ Экран блокировки телефона ============
+function updateMediaSession() {
+  if (!('mediaSession' in navigator)) return;
+  const t = state.current;
+  if (!t) { navigator.mediaSession.metadata = null; return; }
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: t.title || '',
+    artist: t.artist || '',
+    album: albumOf(t),
+    artwork: [{ src: new URL(t.thumbnail_api, location.href).href, sizes: '1280x720', type: 'image/jpeg' }],
+  });
+}
+
+if ('mediaSession' in navigator) {
+  const ms = navigator.mediaSession;
+  const safe = (name, fn) => { try { ms.setActionHandler(name, fn); } catch { /* не поддерживается */ } };
+  safe('play', () => core.play());
+  safe('pause', () => core.pause());
+  safe('previoustrack', () => core.prev());
+  safe('nexttrack', () => core.next());
+  safe('seekto', (d) => { if (d.seekTime != null) core.seek(d.seekTime); });
+  safe('seekbackward', (d) => core.seek(audio.currentTime - (d.seekOffset || 10)));
+  safe('seekforward', (d) => core.seek(audio.currentTime + (d.seekOffset || 10)));
+}
+
+// ============ Горячие клавиши ============
+document.addEventListener('keydown', (e) => {
+  if (e.target.closest('input, textarea, select, dialog, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (document.getElementById('lyrics-full').hidden === false && e.code !== 'Escape') return;
+  // Пробел и Enter на кнопке в фокусе нажимают её саму — не дублируем это паузой.
+  if ((e.code === 'Space' || e.code === 'Enter') && e.target.closest('button, [role="button"]')) return;
+  switch (e.code) {
+    case 'Space': e.preventDefault(); core.toggle(); break;
+    case 'ArrowRight': e.preventDefault(); core.seek(audio.currentTime + 5); break;
+    case 'ArrowLeft': e.preventDefault(); core.seek(audio.currentTime - 5); break;
+    case 'ArrowUp': e.preventDefault(); core.setVolume(audio.volume + 0.05); break;
+    case 'ArrowDown': e.preventDefault(); core.setVolume(audio.volume - 0.05); break;
+    case 'KeyN': core.next(); break;
+    case 'KeyP': core.prev(); break;
+    case 'KeyM': core.toggleMute(); break;
+    case 'KeyS': core.toggleShuffle(); break;
+    case 'KeyR': core.cycleRepeat(); break;
+    case 'KeyV': runAction('meter'); break;
+    case 'KeyL': runAction('lyrics'); break;
+    case 'KeyB':
+      if (isDesktop()) runAction(html.classList.contains('folded') ? 'unfold' : 'fold');
+      else runAction('tab-toggle');
+      break;
+    case 'Slash':
+      e.preventDefault();
+      if (!isDesktop()) setTab('library');
+      $('input[data-search]')?.focus();
+      break;
+    default: return;
+  }
+});
+
+// ============ Рендер дизайна ============
+let unmountDesign = null;
+export function mountDesign() {
+  const design = currentDesign();
+  if (unmountDesign) { unmountDesign(); unmountDesign = null; }
+  app.innerHTML = design.template();
+  html.classList.toggle('folded', !!settings.folded);
+  if (!html.dataset.tab) html.dataset.tab = 'library';
+  $$('input[data-search]').forEach((i) => { i.value = state.query; });
+  unmountDesign = design.mount?.(app) || null;
+  lastP = -1;
+  renderList();
+  renderTrack();
+  renderState();
+  renderProgress(core.progress());
+}
+
+core.on('library', renderList);
+core.on('track', renderTrack);
+core.on('state', renderState);
+core.on('meter', renderState);
+core.on('time', () => renderProgress(core.progress()));
+core.on('played', () => renderList());
+core.on('frame', (f) => {
+  renderProgress(f.p);
+  currentDesign().frame?.(f);
+});
+
+export { setTab, flashRow };

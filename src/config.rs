@@ -67,6 +67,15 @@ impl Config {
     pub fn thumb_path(&self, video_id: &str) -> PathBuf {
         self.info_dir.join(format!("{video_id}.jpg"))
     }
+
+    pub fn peaks_path(&self, video_id: &str) -> PathBuf {
+        self.info_dir.join(format!("{video_id}.peaks.json"))
+    }
+
+    /// ffmpeg для собственных нужд сервера (форма волны): рядом с проектом или из PATH.
+    pub fn ffmpeg_cmd(&self) -> PathBuf {
+        self.ffmpeg.clone().unwrap_or_else(|| PathBuf::from("ffmpeg"))
+    }
 }
 
 /// Корень проекта — первая папка с `public/`: текущая или выше неё,

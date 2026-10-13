@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>musetext</title>
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div id="stage">
+  <div id="bg">
+    <div id="bg-cover"></div>
+    <div id="bg-lights"></div>
+  </div>
+  <div id="stage-inner">
+    <div id="lines"></div>
+  </div>
+  <canvas id="grain"></canvas>
+  <div id="scan"></div>
+  <div id="vignette"></div>
+  <div id="flash"></div>
+</div>
+
+<div id="chip">
+  <div id="chip-box">
+    <div id="chip-title">Ничего не играет</div>
+    <div id="chip-bar"><div id="chip-dot"></div></div>
+  </div>
+  <button id="gear" title="Настройки (S)">✳</button>
+</div>
+
+<div id="tools">
+  <button data-act="hide" title="Спрятать интерфейс">⌄</button>
+  <button data-act="reroll" title="Другая раскадровка">↻</button>
+  <button data-act="minus" title="Текст раньше на 0.1 с">−</button>
+  <button data-act="plus" title="Текст позже на 0.1 с">+</button>
+  <button data-act="play" title="Пауза">⏯</button>
+  <button data-act="full" title="Во весь экран">⛶</button>
+</div>
+
+<div id="status"></div>
+
+<div id="hint">
+  H — спрятать интерфейс · S — настройки · F — фуллскрин<br>
+  R — другая раскадровка · [ ] — сдвиг текста · пробел — пауза<br>
+  перетащи .lrc или аудиофайл в окно
+</div>
+
+<div id="setup">
+  <div id="setup-card">
+    <h1>musetext</h1>
+    <p id="setup-note">Системный плеер не найден. Открой аудиофайл или введи трек вручную —
+       текст подтянется из LRCLIB.</p>
+    <button id="setup-grant" type="button" hidden>Дать доступ к уведомлениям</button>
+    <button id="setup-appinfo" type="button" hidden>Открыть настройки приложения</button>
+    <button id="setup-pick" type="button">Открыть аудиофайл</button>
+    <input type="file" id="setup-file" accept="audio/*,.lrc">
+    <div id="setup-or">ИЛИ</div>
+    <form id="setup-manual">
+      <input type="text" id="setup-artist" placeholder="Исполнитель" autocomplete="off">
+      <input type="text" id="setup-title" placeholder="Название трека" autocomplete="off">
+      <button type="submit">Запустить</button>
+    </form>
+  </div>
+</div>
+
+<div id="panel">
+  <div id="panel-head">
+    <span>MUSETEXT</span>
+    <button id="panel-close" title="Закрыть">×</button>
+  </div>
+  <div id="panel-body"></div>
+  <div id="panel-foot">
+    <button id="btn-refetch">Найти заново</button>
+    <button id="btn-reroll">Раскадровка</button>
+    <button id="btn-reset">Сброс</button>
+  </div>
+</div>
+
+<script src="js/host-bridge.js"></script>
+<script src="js/android-bridge.js"></script>
+<script src="js/util.js"></script>
+<script src="js/powerpin.js"></script>
+<script src="js/lrc.js"></script>
+<script src="js/chunks.js"></script>
+<script src="js/tags.js"></script>
+<script src="js/timing.js"></script>
+<script src="js/themes.js"></script>
+<script src="js/layouts.js"></script>
+<script src="js/stage.js"></script>
+<script src="js/effects.js"></script>
+<script src="js/backdrop.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/providers.js"></script>
+<script src="js/nowplaying.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/undertale.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

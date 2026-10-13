@@ -50,6 +50,8 @@ impl Downloader {
             bail!("yt-dlp завершился, но файл {video_id}.opus не появился");
         }
         tracing::info!("аудио сохранено: {video_id}.opus");
+        // Файл новый — старая форма волны (если была) больше не соответствует ему.
+        let _ = tokio::fs::remove_file(self.cfg.peaks_path(&video_id)).await;
 
         let tech = tech_data(&info);
         let user = user_data(&info);

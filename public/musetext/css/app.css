@@ -1,0 +1,626 @@
+/* musetext :: app.css */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  color: #fff;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ------------------------------------------------------------------ stage */
+
+#stage {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  overflow: hidden;
+  contain: strict;
+  /* A five second press is a gesture here, not a text selection or a scroll. */
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+
+/* ---------------------------------------------------------------- backdrop */
+
+#bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+#bg-cover {
+  position: absolute;
+  inset: -14%;
+  opacity: 0;
+  transform-origin: center;
+  transition: opacity .7s ease;
+  will-change: transform;
+}
+
+/* The cover arrives pre-blurred from backdrop.js; stretching it is free. */
+.bg-bake {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+#bg-lights { position: absolute; inset: 0; }
+
+.light {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  opacity: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+/* Full-screen blend modes are what a phone GPU stalls on. Over a near-black
+   frame plain alpha looks nearly the same. */
+body.lite .light,
+body.lite #grain { mix-blend-mode: normal; }
+
+#stage-inner {
+  position: absolute;
+  inset: 0;
+  will-change: transform, filter;
+}
+
+#lines {
+  position: absolute;
+  inset: 0;
+  perspective: 1200px;
+}
+
+.slot {
+  position: absolute;
+  white-space: nowrap;
+  will-change: transform, opacity;
+  transform-origin: 50% 50%;
+}
+
+.pin {
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.txt {
+  line-height: 0.98;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.txt.outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px #fff;
+}
+
+/* No will-change here: it would promote every word to its own GPU layer, and a
+   few dozen of those is enough to run a phone out of video memory. */
+.w {
+  display: inline-block;
+  position: relative;
+  transform-origin: 50% 60%;
+}
+
+/* Tunnel mode only: the whole chain down to the word has to stay in 3D, or the
+   side faces would be flattened into the slab before they are ever projected. */
+#lines.depth .slot,
+#lines.depth .pin,
+#lines.depth .txt,
+#lines.depth .w {
+  transform-style: preserve-3d;
+}
+
+/* One side face of an extruded word, sitting exactly over the front one. */
+.ext {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: pre;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ layers */
+
+#flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+#grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  image-rendering: pixelated;
+}
+
+#scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.55) 3px,
+    rgba(0, 0, 0, 0.55) 4px
+  );
+}
+
+#vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.85) 100%);
+}
+
+/* -------------------------------------------------------------------- chip */
+
+#chip {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  z-index: 30;
+  transition: opacity .25s;
+}
+
+#chip-box {
+  border: 2px solid #fff;
+  background: #000;
+  padding: 4px 10px 6px;
+  min-width: 190px;
+  max-width: 46vw;
+}
+
+#chip-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+#chip-bar {
+  position: relative;
+  height: 7px;
+  margin-top: 3px;
+}
+#chip-bar::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 3px;
+  height: 1px;
+  background: #fff;
+  opacity: .55;
+}
+#chip-dot {
+  position: absolute;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left .15s linear;
+}
+
+#gear {
+  border: 2px solid #fff;
+  background: #000;
+  color: #fff;
+  width: 34px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+#gear:hover { background: #fff; color: #000; }
+
+/* Tap controls. The keyboard shortcuts do not exist on a phone, so every one
+   of them needs a button that does the same thing. */
+#tools {
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  z-index: 30;
+  transition: opacity .25s;
+}
+
+#tools button {
+  width: 38px;
+  height: 30px;
+  border: 2px solid #fff;
+  background: rgba(0, 0, 0, .8);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+#tools button:active { background: #fff; color: #000; }
+
+@media (hover: hover) {
+  #tools button:hover { background: #fff; color: #000; }
+}
+
+body.bare #chip,
+body.bare #tools,
+body.bare #status { opacity: 0; pointer-events: none; }
+
+/* ------------------------------------------------------------------ status */
+
+#status {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 30;
+  font-size: 11px;
+  letter-spacing: .02em;
+  padding: 5px 9px;
+  border: 1px solid rgba(255,255,255,.35);
+  background: rgba(0,0,0,.75);
+  opacity: 0;
+  transition: opacity .2s;
+  max-width: 60vw;
+}
+#status.on { opacity: 1; }
+
+/* ------------------------------------------------------------------- panel */
+
+#panel {
+  position: fixed;
+  top: 0; right: 0;
+  height: 100%;
+  width: 340px;
+  max-width: 92vw;
+  background: rgba(0,0,0,.94);
+  border-left: 2px solid #fff;
+  transform: translateX(102%);
+  transition: transform .22s cubic-bezier(.2,.7,.3,1);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+}
+#panel.open { transform: none; }
+
+#panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.25);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+#panel-close {
+  background: none;
+  border: 1px solid #fff;
+  color: #fff;
+  cursor: pointer;
+  width: 24px; height: 24px;
+  line-height: 1;
+}
+#panel-close:hover { background: #fff; color: #000; }
+
+#panel-body {
+  overflow-y: auto;
+  padding: 8px 14px 16px;
+  flex: 1;
+}
+
+#panel-foot {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(255,255,255,.25);
+}
+#panel-foot button {
+  flex: 1;
+  background: none;
+  border: 1px solid #fff;
+  color: #fff;
+  font: inherit;
+  font-size: 10px;
+  padding: 7px 4px;
+  cursor: pointer;
+  letter-spacing: .04em;
+}
+#panel-foot button:hover { background: #fff; color: #000; }
+
+.grp { margin: 14px 0 4px; }
+.grp h3 {
+  margin: 0 0 8px;
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  opacity: .55;
+  font-weight: 700;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 118px 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 11px;
+}
+.row .lbl { opacity: .9; }
+.row .val { text-align: right; opacity: .5; font-size: 10px; }
+.row input[type=checkbox] { justify-self: end; grid-column: 2 / 4; accent-color: #fff; }
+.row select {
+  grid-column: 2 / 4;
+  background: #000;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.5);
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 4px;
+}
+.row button.act {
+  grid-column: 2 / 4;
+  background: none;
+  border: 1px solid #fff;
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  padding: 6px 4px;
+  cursor: pointer;
+  letter-spacing: .04em;
+}
+.row button.act:hover { background: #fff; color: #000; }
+.row button.act[disabled] { opacity: .4; cursor: default; }
+.row button.act[disabled]:hover { background: none; color: #fff; }
+
+.row input.wide {
+  grid-column: 2 / 4;
+  background: #000;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.5);
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 5px;
+  width: 100%;
+}
+.row input[type=range] {
+  width: 100%;
+  accent-color: #fff;
+  background: transparent;
+}
+
+/* ------------------------------------------------------------------- setup */
+
+#setup {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  display: none;
+  place-items: center;
+  background: rgba(0,0,0,.86);
+}
+#setup.on { display: grid; }
+
+/* The retry card appears while a track is already on screen, so it must not
+   dim the stage or sit in the middle of it. */
+#setup.compact {
+  background: none;
+  place-items: end start;
+  padding: 0 0 46px 14px;
+  pointer-events: none;
+}
+#setup.compact #setup-card {
+  width: min(330px, 74vw);
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, .92);
+  pointer-events: auto;
+}
+#setup.compact #setup-card h1 { font-size: 15px; }
+#setup.compact #setup-card p { font-size: 10px; margin-bottom: 10px; }
+#setup.compact #setup-or { margin: 8px 0; }
+
+#setup-card {
+  border: 2px solid #fff;
+  padding: 22px 24px;
+  width: min(420px, 88vw);
+}
+#setup-card h1 {
+  margin: 0 0 4px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 22px;
+  letter-spacing: -.02em;
+}
+#setup-card p { margin: 0 0 16px; font-size: 11px; opacity: .6; line-height: 1.5; }
+#setup-card input[type=text] {
+  width: 100%;
+  background: #000;
+  border: 1px solid rgba(255,255,255,.5);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 8px;
+  margin-bottom: 8px;
+}
+#setup-card button {
+  width: 100%;
+  background: none;
+  border: 1px solid #fff;
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  padding: 8px;
+  cursor: pointer;
+  letter-spacing: .04em;
+}
+#setup-card button:hover { background: #fff; color: #000; }
+#setup-or { text-align: center; font-size: 10px; opacity: .4; margin: 12px 0; letter-spacing: .2em; }
+#setup-file { display: none; }
+
+/* --------------------------------------------------------- render mode */
+/* Driven offscreen by the desktop shell, one frame at a time. Everything that
+   is not the words themselves has to get out of the alpha channel. */
+
+/* The black on `html` propagates to the page canvas and would make every frame
+   opaque no matter what the rest of the tree does, so it has to go too. */
+html.render,
+body.render,
+body.render #stage,
+body.render #stage-inner {
+  background: transparent !important;
+}
+
+/* Full-frame overlays cannot survive a transparent render: each one would come
+   out as a solid card filling the alpha channel. Effects that move the text
+   itself still work. */
+body.render #bg,
+body.render #vignette,
+body.render #grain,
+body.render #scan,
+body.render #flash,
+body.render #chip,
+body.render #tools,
+body.render #status,
+body.render #hint,
+body.render #setup,
+body.render #panel {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------ easter egg */
+
+.ut {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  font-family: 'Tiny5', monospace;
+  color: #fff;
+}
+
+.ut-frame {
+  position: absolute;
+  inset: 18px;
+  border: 4px solid #fff;
+}
+
+.ut-soul {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 15px;
+  height: 15px;
+  background: #ff2020;
+  /* a heart cut out of a square */
+  clip-path: polygon(50% 100%, 8% 52%, 0 30%, 12% 8%, 32% 6%, 50% 24%,
+                     68% 6%, 88% 8%, 100% 30%, 92% 52%);
+  filter: drop-shadow(0 0 6px rgba(255, 32, 32, .8));
+  will-change: transform, opacity;
+}
+
+.ut-hud {
+  position: absolute;
+  left: 34px;
+  bottom: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  letter-spacing: .06em;
+  text-shadow: 0 0 8px #000;
+}
+.ut-lv { margin-right: 14px; }
+.ut-hplabel { font-size: 15px; }
+
+.ut-bar {
+  display: inline-block;
+  width: 120px;
+  height: 17px;
+  background: #b30000;
+  outline: 2px solid #000;
+}
+.ut-bar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #ffe100;
+  transition: width .12s linear;
+}
+
+.ut-close {
+  position: absolute;
+  top: 30px;
+  right: 30px;
+  width: 34px;
+  height: 34px;
+  border: 2px solid #fff;
+  background: rgba(0, 0, 0, .8);
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.ut-close:active { background: #fff; color: #000; }
+
+.ut-over {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 54px;
+  letter-spacing: .12em;
+  opacity: 0;
+  transition: opacity .35s;
+  text-shadow: 0 0 22px #000;
+}
+
+#hint {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 20;
+  font-size: 9.5px;
+  opacity: .28;
+  letter-spacing: .06em;
+  text-align: right;
+  line-height: 1.7;
+}
+body.bare #hint { opacity: 0; }
