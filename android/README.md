@@ -27,6 +27,11 @@ export ANDROID_NDK_HOME=/path/to/Android/Sdk/ndk/29.0.14206865
 На Windows без Visual Studio — с GNU-тулчейном Rust:
 `gradlew.bat :app:assembleRelease -Pmk.rustToolchain=stable-x86_64-pc-windows-gnu`.
 
+Лёгкая сборка (`-Pmk.lite=true`, ~27 МБ вместо ~60): без библиотек ffmpeg — приложение
+докачает их само (~35 МБ с Maven Central) при первом скачивании музыки.
+
+Свежий yt-dlp скачивается при сборке и кладётся в APK: вшитый в youtubedl-android устаревает.
+
 Готовые APK: `app/build/outputs/apk/release/` — `app-arm64-v8a-release.apk` для телефонов,
 `app-x86_64-release.apk` для эмулятора. Подписаны отладочным ключом: ставятся «из файла»
 (разрешите установку из неизвестных источников).

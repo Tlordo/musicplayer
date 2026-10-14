@@ -5,6 +5,7 @@ import android.util.Log
 import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
+import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
@@ -23,6 +24,7 @@ object YtDlp {
         Thread({
             try {
                 YoutubeDL.getInstance().init(app)
+                installBundled()
                 // В лёгкой сборке библиотек ffmpeg в APK нет — их докачает FfmpegPack.
                 if (FfmpegPack.bundled(app)) FFmpeg.getInstance().init(app)
             } catch (e: Throwable) {
@@ -39,7 +41,6 @@ object YtDlp {
         failure?.let { return fail("yt-dlp не запустился: $it") }
         return try {
             when {
-                "--version" in args -> arrayOf("0", YoutubeDL.getInstance().version(app).orEmpty(), "")
                 "-U" in args || "--update" in args -> update()
                 else -> {
                     if (needsFfmpeg(args) && !FfmpegPack.bundled(app)) FfmpegPack.ensure(app)
@@ -55,9 +56,29 @@ object YtDlp {
         }
     }
 
+    /**
+     * yt-dlp из нашего APK (assets/ytdlp/yt-dlp) свежее вшитого в библиотеку — кладём его
+     * на место библиотечного после каждой установки или обновления приложения.
+     */
+    private fun installBundled() {
+        val target = File(app.noBackupFilesDir, "youtubedl-android/yt-dlp/yt-dlp")
+        val marker = File(target.parentFile, ".mk-bundled")
+        val stamp = Server.installStamp(app)
+        if (marker.isFile && marker.readText() == stamp) return
+        val asset = runCatching { app.assets.open("ytdlp/yt-dlp") }.getOrNull() ?: return
+        target.parentFile?.mkdirs()
+        val tmp = File(target.path + ".new")
+        asset.use { input -> tmp.outputStream().use { input.copyTo(it) } }
+        if (!tmp.renameTo(target)) {
+            target.delete()
+            tmp.renameTo(target)
+        }
+        marker.writeText(stamp)
+    }
+
     private fun update(): Array<String> {
         val status = YoutubeDL.getInstance().updateYoutubeDL(app)
-        val version = YoutubeDL.getInstance().version(app).orEmpty()
+        val version = run(arrayOf("--version"))[1].trim()
         val text = when (status) {
             YoutubeDL.UpdateStatus.DONE -> "Updated yt-dlp to $version"
             YoutubeDL.UpdateStatus.ALREADY_UP_TO_DATE -> "yt-dlp is up to date ($version)"

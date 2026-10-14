@@ -76,7 +76,7 @@ object Server {
         for (name in names) copyAssetDir(context, "$path/$name", File(target, name))
     }
 
-    private fun installStamp(context: Context): String {
+    fun installStamp(context: Context): String {
         val info = if (Build.VERSION.SDK_INT >= 33) {
             context.packageManager.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(0))
         } else {

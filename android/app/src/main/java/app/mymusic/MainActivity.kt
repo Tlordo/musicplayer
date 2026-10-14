@@ -2,6 +2,7 @@ package app.mymusic
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -69,6 +70,8 @@ class MainActivity : ComponentActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun createWeb() {
+        // Отладочная сборка: страницу можно открыть в chrome://inspect.
+        if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) WebView.setWebContentsDebuggingEnabled(true)
         val view = WebView(this)
         view.setBackgroundColor(getColor(R.color.bg))
         view.settings.apply {

@@ -1,3 +1,4 @@
+import java.net.URI
 import javax.inject.Inject
 
 plugins {
@@ -64,6 +65,25 @@ abstract class CopyWebAssets : DefaultTask() {
     }
 }
 
+/**
+ * Свежий yt-dlp (zipapp для python) — в assets/ytdlp/yt-dlp. Вшитый в youtubedl-android
+ * быстро устаревает, а YouTube меняется постоянно. Скачивается один раз и лежит в build/.
+ */
+abstract class FetchYtDlp : DefaultTask() {
+    @get:Input abstract val url: Property<String>
+    @get:OutputDirectory abstract val output: DirectoryProperty
+
+    @TaskAction
+    fun run() {
+        val file = output.file("ytdlp/yt-dlp").get().asFile
+        if (file.isFile && file.length() > 1_000_000) return
+        file.parentFile.mkdirs()
+        val tmp = File(file.path + ".part")
+        URI(url.get()).toURL().openStream().use { input -> tmp.outputStream().use { input.copyTo(it) } }
+        if (!tmp.renameTo(file)) throw GradleException("не удалось сохранить $file")
+    }
+}
+
 /** Сервер на Rust собирается cargo-ndk в libmk60_android.so для каждой архитектуры. */
 abstract class CargoNdk : DefaultTask() {
     @get:InputFiles abstract val sources: ConfigurableFileCollection
@@ -91,6 +111,10 @@ val webAssets = tasks.register<CopyWebAssets>("copyWebAssets") {
     source.set(file("../../public"))
 }
 
+val ytdlp = tasks.register<FetchYtDlp>("fetchYtDlp") {
+    url.set(providers.gradleProperty("mk.ytdlpUrl").orElse("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"))
+}
+
 val rustLibs = tasks.register<CargoNdk>("cargoNdk") {
     crateDir.set(file("../rust"))
     toolchain.set(providers.gradleProperty("mk.rustToolchain").orElse(""))
@@ -104,6 +128,7 @@ val rustLibs = tasks.register<CargoNdk>("cargoNdk") {
 androidComponents {
     onVariants { variant ->
         variant.sources.assets?.addGeneratedSourceDirectory(webAssets, CopyWebAssets::output)
+        variant.sources.assets?.addGeneratedSourceDirectory(ytdlp, FetchYtDlp::output)
         variant.sources.jniLibs?.addGeneratedSourceDirectory(rustLibs, CargoNdk::output)
     }
 }
