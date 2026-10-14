@@ -7,6 +7,7 @@ pub mod config;
 mod db;
 mod downloader;
 mod jobs;
+mod names;
 mod peaks;
 mod recs;
 

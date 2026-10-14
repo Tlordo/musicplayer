@@ -56,10 +56,20 @@ impl Downloader {
         let tech = tech_data(&info);
         let user = user_data(&info);
 
-        if !user.thumbnail_url.is_empty() {
-            if let Err(e) = self.fetch_to_file(&user.thumbnail_url, &self.cfg.thumb_path(&video_id)).await {
-                tracing::warn!("не удалось скачать обложку {video_id}: {e:#}");
+        let mut user = user;
+        let mut saved = false;
+        for url in thumbnail_candidates(&info) {
+            match self.fetch_to_file(&url, &self.cfg.thumb_path(&video_id)).await {
+                Ok(()) => {
+                    user.thumbnail_url = url;
+                    saved = true;
+                    break;
+                }
+                Err(e) => tracing::debug!("обложка {url}: {e:#}"),
             }
+        }
+        if !saved {
+            tracing::warn!("не удалось скачать обложку {video_id}");
         }
 
         let json_file = format!("{} [{video_id}]_user_info.json", sanitize_file_name(&user.title));
@@ -180,11 +190,23 @@ fn tech_data(info: &Value) -> TechData {
 
 fn user_data(info: &Value) -> UserData {
     let or = |key: &str, default: &str| str_field(info, key).unwrap_or_else(|| default.to_owned());
+    // У треков YouTube Music есть настоящие поля «трек» и «исполнитель»; у обычных видео —
+    // только «Исполнитель - Песня (Official Video)» от канала, их чистим.
+    let (title, artist) = match (str_field(info, "track"), str_field(info, "artist")) {
+        (Some(track), Some(artist)) => (track, artist.split(", ").next().unwrap_or(&artist).to_owned()),
+        _ => {
+            let channel = str_field(info, "artist")
+                .or_else(|| str_field(info, "channel"))
+                .or_else(|| str_field(info, "uploader"))
+                .map(|c| crate::names::clean_artist(&c))
+                .unwrap_or_default();
+            let (t, a) = crate::names::clean_title(&or("title", "Unknown"), &channel);
+            (t, if a.is_empty() { "Unknown".into() } else { a })
+        }
+    };
     UserData {
-        title: or("title", "Unknown"),
-        artist: str_field(info, "artist")
-            .or_else(|| str_field(info, "uploader"))
-            .unwrap_or_else(|| "Unknown".into()),
+        title,
+        artist,
         album: or("album", "Single"),
         track: or("track", "Unknown"),
         release_date: str_field(info, "upload_date")
@@ -200,19 +222,42 @@ fn user_data(info: &Value) -> UserData {
 
 /// Самая крупная обложка, по возможности не webp (сохраняем как .jpg).
 fn best_thumbnail(info: &Value) -> Option<String> {
+    thumbnail_candidates(info).into_iter().next()
+}
+
+/// Обложки от лучшей к худшей. yt-dlp перечисляет и те, которых на деле нет
+/// (maxresdefault у старых видео), поэтому пробуем по очереди; hqdefault есть всегда.
+fn thumbnail_candidates(info: &Value) -> Vec<String> {
     let thumbs: Vec<&str> = info["thumbnails"]
         .as_array()
         .into_iter()
         .flatten()
         .filter_map(|t| t["url"].as_str())
         .collect();
-    thumbs
+    let mut out: Vec<String> = thumbs
         .iter()
         .rev()
-        .find(|u| !u.contains(".webp") && !u.contains("/vi_webp/"))
-        .or(thumbs.last())
+        .filter(|u| !u.contains(".webp") && !u.contains("/vi_webp/"))
+        .take(3)
         .map(|s| s.to_string())
-        .or_else(|| str_field(info, "thumbnail"))
+        .collect();
+    if let Some(t) = str_field(info, "thumbnail") {
+        out.push(t);
+    }
+    if let Some(id) = info["id"].as_str() {
+        out.push(fallback_thumbnail(id));
+    }
+    if let Some(last) = thumbs.last() {
+        out.push(last.to_string());
+    }
+    let mut seen = HashSet::new();
+    out.retain(|u| seen.insert(u.clone()));
+    out
+}
+
+/// Обложка, которая есть у любого видео YouTube.
+pub fn fallback_thumbnail(id: &str) -> String {
+    format!("https://i.ytimg.com/vi/{id}/hqdefault.jpg")
 }
 
 fn str_field(v: &Value, key: &str) -> Option<String> {

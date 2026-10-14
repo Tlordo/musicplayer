@@ -148,12 +148,20 @@ async fn thumbnail(State(s): State<AppState>, Path(id): Path<String>, req: Reque
     check_id(&id)?;
     let path = s.cfg.thumb_path(&id);
     if !path.is_file() {
-        let url = s
-            .db
-            .thumbnail_url(&id)?
-            .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "Thumbnail not found"))?;
-        if let Err(e) = s.dl.fetch_to_file(&url, &path).await {
-            tracing::warn!("не удалось загрузить обложку {id}: {e:#}");
+        if !s.db.has_track(&id)? {
+            return Err(ApiError::new(StatusCode::NOT_FOUND, "Thumbnail not found"));
+        }
+        // Сохранённая ссылка, а если её нет или она не открылась — обложка, которая есть у любого видео.
+        let mut urls: Vec<String> = s.db.thumbnail_url(&id)?.into_iter().collect();
+        urls.push(crate::downloader::fallback_thumbnail(&id));
+        let mut ok = false;
+        for url in urls {
+            match s.dl.fetch_to_file(&url, &path).await {
+                Ok(()) => { ok = true; break; }
+                Err(e) => tracing::debug!("обложка {id}: {e:#}"),
+            }
+        }
+        if !ok {
             return Err(ApiError::new(StatusCode::NOT_FOUND, "Thumbnail not available"));
         }
     }

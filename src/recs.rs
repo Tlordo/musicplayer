@@ -60,7 +60,19 @@ impl Recommender {
             }
         }
         let _slot = self.slots.acquire().await?;
-        let url = format!("https://www.youtube.com/watch?v={seed}&list=RD{seed}");
+        // Радио YouTube Music (RDAMVM) подбирает именно музыку; обычный микс (RD) — запасной вариант.
+        let mut list = self.read_mix(&format!("https://music.youtube.com/watch?v={seed}&list=RDAMVM{seed}"), seed).await;
+        if list.as_ref().map_or(true, |l| l.is_empty()) {
+            list = self.read_mix(&format!("https://www.youtube.com/watch?v={seed}&list=RD{seed}"), seed).await;
+        }
+        let list = list?;
+
+        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
+        cache.insert(seed.to_owned(), (Instant::now(), list.clone()));
+        Ok(list)
+    }
+
+    async fn read_mix(&self, url: &str, seed: &str) -> Result<Vec<Rec>> {
 
         let mut cmd = Command::new(&self.cfg.ytdlp);
         cmd.args(["--flat-playlist", "--dump-single-json", "--yes-playlist", "--no-warnings", "--encoding", "utf-8"])
@@ -68,7 +80,7 @@ impl Recommender {
         if let Some(cookies) = &self.cfg.cookies {
             cmd.arg("--cookies").arg(cookies);
         }
-        cmd.arg("--").arg(&url).stdin(Stdio::null()).kill_on_drop(true);
+        cmd.arg("--").arg(url).stdin(Stdio::null()).kill_on_drop(true);
 
         let out = tokio::time::timeout(MIX_TIMEOUT, cmd.output())
             .await
@@ -80,11 +92,7 @@ impl Recommender {
             bail!("yt-dlp: {msg}");
         }
         let json: Value = serde_json::from_str(&String::from_utf8_lossy(&out.stdout)).context("не удалось разобрать ответ yt-dlp")?;
-        let list = parse_mix(&json, seed);
-
-        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
-        cache.insert(seed.to_owned(), (Instant::now(), list.clone()));
-        Ok(list)
+        Ok(parse_mix(&json, seed))
     }
 }
 
@@ -97,14 +105,15 @@ pub fn parse_mix(json: &Value, seed: &str) -> Vec<Rec> {
         .filter_map(|e| {
             let id = e["id"].as_str().filter(|id| is_valid_video_id(id) && *id != seed)?;
             let title = e["title"].as_str().filter(|t| !t.is_empty() && !t.starts_with('['))?;
-            let artist = ["artist", "channel", "uploader"]
+            let channel = ["artist", "channel", "uploader"]
                 .iter()
                 .find_map(|k| e[*k].as_str().filter(|s| !s.is_empty()))
-                .map(|s| s.trim_end_matches(" - Topic").to_owned())
+                .map(crate::names::clean_artist)
                 .unwrap_or_default();
+            let (title, artist) = crate::names::clean_title(title, &channel);
             Some(Rec {
                 id: id.to_owned(),
-                title: title.to_owned(),
+                title,
                 artist,
                 duration: e["duration"].as_f64(),
                 url: format!("https://music.youtube.com/watch?v={id}"),
