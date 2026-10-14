@@ -42,11 +42,18 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         frame = FrameLayout(this).apply { setBackgroundColor(getColor(R.color.bg)) }
         setContentView(frame)
-        // Интерфейс не залезает под часы, кнопки навигации и клавиатуру.
+        // Страница рисуется и под часами, и под полосой жестов (фон шапки и оттенок обложки
+        // продолжаются без стыка), а отступы для кнопок узнаёт из --safe-t / --safe-b.
+        // Клавиатура же просто поджимает страницу снизу.
         ViewCompat.setOnApplyWindowInsetsListener(frame) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            v.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
+            val keyboard = ime.bottom > bars.bottom
+            v.setPadding(bars.left, 0, bars.right, if (keyboard) ime.bottom else 0)
+            val density = resources.displayMetrics.density
+            safeTop = bars.top / density
+            safeBottom = if (keyboard) 0f else bars.bottom / density
+            sendInsets()
             WindowInsetsCompat.CONSUMED
         }
 
@@ -131,13 +138,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Цвет фона темы → системные полосы; светлая тема — тёмные значки. */
-    fun setBars(color: Int) {
-        frame.setBackgroundColor(color)
-        val light = Color.luminance(color) > 0.5f
+    /** Отступы системных полос в CSS-пикселях — их читает public/js/android.js. */
+    @Volatile var safeTop = 0f
+        private set
+    @Volatile var safeBottom = 0f
+        private set
+
+    private fun sendInsets() {
+        web?.evaluateJavascript("window.__mkInsets && window.__mkInsets($safeTop, $safeBottom)", null)
+    }
+
+    /** Цвета страницы под полосами: на светлом фоне — тёмные значки, на тёмном — светлые. */
+    fun setBars(top: Int, bottom: Int) {
+        frame.setBackgroundColor(bottom)
         WindowCompat.getInsetsController(window, frame).apply {
-            isAppearanceLightStatusBars = light
-            isAppearanceLightNavigationBars = light
+            isAppearanceLightStatusBars = Color.luminance(top) > 0.5f
+            isAppearanceLightNavigationBars = Color.luminance(bottom) > 0.5f
         }
     }
 

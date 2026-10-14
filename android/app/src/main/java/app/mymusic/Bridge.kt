@@ -25,11 +25,17 @@ class Bridge(private val activity: MainActivity) {
         main.post { Player.stop(activity) }
     }
 
+    /** Фон страницы у верхнего и нижнего края (CSS-цвета). */
     @JavascriptInterface
-    fun setBars(css: String) {
-        val color = parseCssColor(css) ?: return
-        main.post { activity.setBars(color) }
+    fun setBars(top: String, bottom: String) {
+        val t = parseCssColor(top) ?: return
+        val b = parseCssColor(bottom) ?: t
+        main.post { activity.setBars(t, b) }
     }
+
+    /** Текущие отступы системных полос: "верх,низ" в CSS-пикселях. */
+    @JavascriptInterface
+    fun insets(): String = "${activity.safeTop},${activity.safeBottom}"
 
     @JavascriptInterface
     fun download(url: String, name: String) {

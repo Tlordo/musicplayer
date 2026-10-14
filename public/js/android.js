@@ -26,17 +26,38 @@ if (host) {
   };
   const sendState = () => send(() => host.setPlaying(!audio.paused, Math.round(audio.currentTime * 1000)));
 
-  // Полосы системы (часы, кнопки навигации) — в цвет фона текущей темы.
+  // Страница лежит под прозрачными часами и полосой жестов: отступы для кнопок — из приложения.
+  window.__mkInsets = (top, bottom) => {
+    html.style.setProperty('--safe-t', `${top}px`);
+    html.style.setProperty('--safe-b', `${bottom}px`);
+  };
+  send(() => { const [t, b] = String(host.insets()).split(',').map(Number); window.__mkInsets(t || 0, b || 0); });
+
+  // Значки часов и навигации — светлые на тёмном фоне под ними, тёмные на светлом.
+  const colorAt = (y) => {
+    for (let el = document.elementFromPoint(innerWidth / 2, y); el; el = el.parentElement) {
+      const c = getComputedStyle(el).backgroundColor;
+      const alpha = c.startsWith('rgba') ? Number(c.split(',')[3]?.replace(')', '')) : 1;
+      if (c && c !== 'transparent' && alpha >= 0.5) return c;
+    }
+    return getComputedStyle(document.body).backgroundColor;
+  };
   let lastBars = '';
   let barsQueued = false;
   const sendBars = () => {
     barsQueued = false;
-    const bg = getComputedStyle(document.body).backgroundColor;
-    if (bg && bg !== lastBars) { lastBars = bg; send(() => host.setBars(bg)); }
+    const top = colorAt(2);
+    const bottom = colorAt(innerHeight - 2);
+    if (`${top}|${bottom}` === lastBars) return;
+    lastBars = `${top}|${bottom}`;
+    send(() => host.setBars(top, bottom));
   };
-  new MutationObserver(() => {
+  const queueBars = () => {
     if (!barsQueued) { barsQueued = true; requestAnimationFrame(sendBars); }
-  }).observe(html, { attributes: true, attributeFilter: ['style', 'data-design', 'class'] });
+  };
+  new MutationObserver(queueBars).observe(html, { attributes: true, attributeFilter: ['style', 'data-design', 'data-tab', 'data-libview', 'class'] });
+  core.on('tab', queueBars);
+  core.on('track', () => setTimeout(queueBars, 300));
   requestAnimationFrame(sendBars);
 
   core.on('track', sendTrack);
