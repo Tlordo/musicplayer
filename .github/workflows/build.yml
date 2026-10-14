@@ -1,0 +1,45 @@
+# Сборка приложений в GitHub Actions: Windows (.zip) и Linux (.tar.gz).
+# Запуск вручную: вкладка Actions → build → Run workflow. Или пушем тега v*.
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: yt-dlp и ffmpeg для сборки
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force bin, ffmpeg | Out-Null
+          Invoke-WebRequest https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe -OutFile bin/yt-dlp.exe
+          Invoke-WebRequest https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -OutFile ffmpeg.zip
+          Expand-Archive ffmpeg.zip -DestinationPath ffmpeg-src
+          Copy-Item (Get-ChildItem ffmpeg-src -Recurse -Filter ffmpeg.exe | Select-Object -First 1).FullName ffmpeg/
+          Copy-Item (Get-ChildItem ffmpeg-src -Recurse -Filter ffprobe.exe | Select-Object -First 1).FullName ffmpeg/
+      - name: Сборка
+        shell: pwsh
+        run: ./tools/package-windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MyMusic-Windows
+          path: dist/MyMusic-Windows.zip
+
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Системные библиотеки (WebKitGTK)
+        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Сборка
+        run: bash tools/package-linux.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MyMusic-Linux
+          path: dist/MyMusic-Linux.tar.gz

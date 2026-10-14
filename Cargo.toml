@@ -1,7 +1,24 @@
 [package]
 name = "music-player"
-version = "2.0.0"
+version = "2.1.0"
 edition = "2021"
+
+[lib]
+name = "music_player"
+path = "src/lib.rs"
+
+[[bin]]
+name = "music-player"
+path = "src/main.rs"
+
+# Приложение с окном (WebView2 на Windows, WebKitGTK на Linux): cargo build --release --features desktop
+[[bin]]
+name = "mk60-desktop"
+path = "src/bin/mk60-desktop.rs"
+required-features = ["desktop"]
+
+[features]
+desktop = ["dep:tao", "dep:wry"]
 
 [dependencies]
 anyhow = "1"
@@ -17,6 +34,13 @@ tower-http ={ version = "0.6", features = ["cors", "fs", "trace", "set-header"] 
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 zip = { version = "2", default-features = false, features = ["deflate"] }
+local-ip-address = "0.6"
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
+tao = { version = "0.30", optional = true }
+wry = { version = "0.47", optional = true }
+
+[build-dependencies]
+embed-resource = "2.5"
 
 [profile.release]
 lto = true

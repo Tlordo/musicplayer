@@ -36,6 +36,22 @@ cargo run --release
 * Удаление трека убирает и его `*_user_info.json`; удаление несуществующего трека отвечает 404.
 * `cookies.txt` стал необязательным.
 
+## Приложения
+
+**Windows** — переносная папка с окном «Моя музыка.exe», встроенным сервером, yt-dlp и ffmpeg:
+```
+powershell -ExecutionPolicy Bypass -File tools\package-windows.ps1
+```
+(на машине без Visual Studio C++ — с `-Toolchain stable-x86_64-pc-windows-gnu`). Результат — `dist\MyMusic-Windows\` и `.zip`. Данные хранятся рядом с программой в `Data\`.
+
+**Linux** — то же окно на WebKitGTK: `bash tools/package-linux.sh` (зависимости перечислены в начале скрипта), результат — `dist/MyMusic-Linux.tar.gz`; `install-menu-entry.sh` добавит программу в меню.
+
+**Облачная сборка** — `.github/workflows/build.yml` собирает обе версии в GitHub Actions (Actions → build → Run workflow).
+
+**iPhone и любой телефон** — открыть плеер с компьютера (адрес и QR-код: настройки → «Подключить телефон»), затем Safari → «Поделиться» → «На экран Домой»: появится иконка, плеер откроется во весь экран без адресной строки.
+
+Без окна: `cargo run --release` (только сервер) или `cargo run --release --features desktop --bin mk60-desktop` (с окном).
+
 ## Интерфейс
 
 Два дизайна, переключаются в настройках (шестерёнка) без остановки музыки:

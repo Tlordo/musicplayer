@@ -29,3 +29,6 @@ target/
 # Рабочие файлы Impeccable (скриншоты, страницы выбора)
 .impeccable/review/
 .impeccable/questions/
+
+# Готовые сборки приложений
+dist/

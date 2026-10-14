@@ -27,6 +27,39 @@ export function openSettings() {
   dialog.showModal();
 }
 
+/** Адрес для телефона и QR-код, версия yt-dlp — подгружаются после открытия окна. */
+async function fillServerInfo() {
+  const box = body.querySelector('[data-connect]');
+  if (box) {
+    try {
+      const info = await (await fetch('/api/info')).json();
+      const here = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? null : location.origin + '/';
+      const url = (info.urls && info.urls[0]) || here;
+      box.innerHTML = url
+        ? `<img class="qr" src="/api/qr?text=${encodeURIComponent(url)}" alt="QR-код адреса ${esc(url)}" width="168" height="168">
+           <div class="connect-text">
+             <p>Телефон в той же Wi-Fi сети — наведите камеру на код или откройте в браузере:</p>
+             <p class="connect-url"><b>${esc(url)}</b></p>
+             ${(info.urls || []).length > 1 ? `<p class="hint">Другие адреса этого компьютера: ${info.urls.slice(1).map(esc).join(', ')}</p>` : ''}
+             <p class="hint">iPhone: Safari → «Поделиться» → «На экран Домой» — появится иконка, плеер откроется во весь экран. Android: Chrome → ⋮ → «Добавить на гл. экран».</p>
+             <p class="hint">Если не открывается — разрешите программе доступ в частных сетях в брандмауэре Windows.</p>
+           </div>`
+        : '<p class="hint">Компьютер не подключён к локальной сети — телефону не к чему подключаться.</p>';
+    } catch {
+      box.innerHTML = '<p class="hint">Не удалось узнать адрес сервера.</p>';
+    }
+  }
+  const ver = body.querySelector('[data-ytdlp-version]');
+  if (ver) {
+    try {
+      const v = await (await fetch('/api/ytdlp')).json();
+      ver.textContent = v.ok && v.version ? `yt-dlp ${v.version}` : 'yt-dlp не найден';
+    } catch {
+      ver.textContent = 'yt-dlp: нет связи с сервером';
+    }
+  }
+}
+
 dialog.addEventListener('close', () => {
   if (editing) { editing = null; applyTheme(); }
 });
@@ -116,6 +149,21 @@ function render() {
       </div>
     </section>
 
+    <section class="set-sec" aria-labelledby="s-phone">
+      <h3 id="s-phone">Подключить телефон</h3>
+      <div class="connect" data-connect><p class="hint">Узнаю адрес…</p></div>
+    </section>
+
+    <section class="set-sec" aria-labelledby="s-ytdlp">
+      <h3 id="s-ytdlp">Загрузчик YouTube</h3>
+      <p class="hint">YouTube часто меняется, и старый yt-dlp перестаёт скачивать. Если треки не добавляются — обновите его.</p>
+      <div class="row-btns ytdlp-row">
+        <span class="ytdlp-version" data-ytdlp-version>yt-dlp: …</span>
+        <button type="button" class="btn" data-s="ytdlp-update"><svg><use href="#i-refresh"/></svg>Обновить yt-dlp</button>
+      </div>
+      <pre class="ytdlp-out" data-ytdlp-out hidden></pre>
+    </section>
+
     <section class="set-sec" aria-labelledby="s-reset">
       <h3 id="s-reset">Сброс</h3>
       <p class="hint">Настройки хранятся в этом браузере. Свои темы при сбросе сохраняются — их можно перенести на другое устройство экспортом.</p>
@@ -123,6 +171,7 @@ function render() {
         <button type="button" class="btn btn-danger" data-s="reset">Сбросить настройки</button>
       </div>
     </section>`;
+  fillServerInfo();
 }
 
 function editorHtml(design) {
@@ -253,6 +302,23 @@ body.addEventListener('click', (e) => {
     case 'import': body.querySelector('[data-s-file]').click(); break;
     case 'meter': settings.meter = v; save(); core.emit('meter'); render(); break;
     case 'clear-played': core.clearPlayed(); toast('Отметки прослушанного сброшены'); break;
+    case 'ytdlp-update': {
+      const out = body.querySelector('[data-ytdlp-out]');
+      el.disabled = true;
+      el.classList.add('spinning');
+      out.hidden = false;
+      out.textContent = 'Обновляю…';
+      fetch('/api/ytdlp/update', { method: 'POST' })
+        .then((r) => r.json())
+        .then((r) => {
+          out.textContent = r.output || r.error || 'Готово';
+          if (r.version) body.querySelector('[data-ytdlp-version]').textContent = `yt-dlp ${r.version}`;
+          toast(r.ok ? 'yt-dlp обновлён' : 'Не удалось обновить yt-dlp — подробности в настройках', r.ok ? 'ok' : 'error');
+        })
+        .catch((err) => { out.textContent = err.message; })
+        .finally(() => { el.disabled = false; el.classList.remove('spinning'); });
+      break;
+    }
     case 'reset':
       resetSettings();
       switchDesign(settings.design, true);

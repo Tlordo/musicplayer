@@ -1,0 +1,22 @@
+#pragma code_page(65001)
+1 ICON "app.ico"
+
+1 VERSIONINFO
+FILEVERSION 2,1,0,0
+PRODUCTVERSION 2,1,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "041904B0"
+    BEGIN
+      VALUE "FileDescription", "Моя музыка"
+      VALUE "ProductName", "Моя музыка"
+      VALUE "FileVersion", "2.1.0"
+      VALUE "ProductVersion", "2.1.0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x419, 1200
+  END
+END

@@ -24,6 +24,7 @@ pub struct AppState {
     pub dl: Arc<Downloader>,
     pub recs: Arc<Recommender>,
     pub jobs: Arc<jobs::Jobs>,
+    pub port: u16,
 }
 
 pub fn router(state: AppState) -> Router {
@@ -43,6 +44,10 @@ pub fn router(state: AppState) -> Router {
         .route("/api/import", post(import_album).layer(axum::extract::DefaultBodyLimit::disable()))
         .route("/api/add-playlist", post(add_playlist))
         .route("/api/jobs", get(list_jobs))
+        .route("/api/info", get(info))
+        .route("/api/qr", get(qr))
+        .route("/api/ytdlp", get(ytdlp_version))
+        .route("/api/ytdlp/update", post(ytdlp_update))
         .route("/api/track/:video_id", delete(delete_track))
         .with_state(state)
 }
@@ -406,6 +411,63 @@ async fn add_playlist(State(s): State<AppState>, Json(b): Json<PlaylistBody>) ->
 
 async fn list_jobs(State(s): State<AppState>) -> ApiResult<impl IntoResponse> {
     Ok(Json(s.jobs.snapshot()))
+}
+
+// ============ Сведения, QR, yt-dlp ============
+
+/// Версия, адреса для подключения телефона, где лежат данные.
+async fn info(State(s): State<AppState>) -> ApiResult<impl IntoResponse> {
+    Ok(Json(json!({
+        "version": crate::VERSION,
+        "port": s.port,
+        "urls": crate::lan_urls(s.port),
+        "data_dir": s.cfg.data_dir.display().to_string(),
+    })))
+}
+
+#[derive(Deserialize)]
+struct QrQuery {
+    text: String,
+}
+
+/// QR-код (SVG) — чтобы открыть плеер на телефоне, наведя камеру.
+async fn qr(Query(q): Query<QrQuery>) -> ApiResult<Response> {
+    if q.text.len() > 512 {
+        return Err(bad("Слишком длинный текст для QR-кода"));
+    }
+    let code = qrcode::QrCode::new(q.text.as_bytes()).map_err(|e| bad(e.to_string()))?;
+    let svg = code
+        .render::<qrcode::render::svg::Color>()
+        .min_dimensions(240, 240)
+        .quiet_zone(true)
+        .dark_color(qrcode::render::svg::Color("#000000"))
+        .light_color(qrcode::render::svg::Color("#ffffff"))
+        .build();
+    Ok(([(header::CONTENT_TYPE, "image/svg+xml")], svg).into_response())
+}
+
+async fn run_ytdlp(s: &AppState, args: &[&str], secs: u64) -> ApiResult<(bool, String)> {
+    let mut cmd = tokio::process::Command::new(&s.cfg.ytdlp);
+    cmd.args(args).stdin(std::process::Stdio::null()).kill_on_drop(true);
+    let out = tokio::time::timeout(std::time::Duration::from_secs(secs), cmd.output())
+        .await
+        .map_err(|_| bad("yt-dlp не ответил вовремя"))?
+        .map_err(|e| bad(format!("не удалось запустить yt-dlp ({}): {e}", s.cfg.ytdlp.display())))?;
+    let text = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+    Ok((out.status.success(), text.trim().to_owned()))
+}
+
+async fn ytdlp_version(State(s): State<AppState>) -> ApiResult<impl IntoResponse> {
+    let (ok, text) = run_ytdlp(&s, &["--version"], 20).await?;
+    Ok(Json(json!({ "ok": ok, "version": text.lines().next().unwrap_or(""), "path": s.cfg.ytdlp.display().to_string() })))
+}
+
+/// YouTube часто меняется — старый yt-dlp перестаёт скачивать. Это его самообновление.
+async fn ytdlp_update(State(s): State<AppState>) -> ApiResult<impl IntoResponse> {
+    let (ok, text) = run_ytdlp(&s, &["-U"], 180).await?;
+    let (_, version) = run_ytdlp(&s, &["--version"], 20).await.unwrap_or((false, String::new()));
+    tracing::info!("обновление yt-dlp: {text}");
+    Ok(Json(json!({ "ok": ok, "output": text, "version": version.lines().next().unwrap_or("") })))
 }
 
 async fn delete_track(State(s): State<AppState>, Path(id): Path<String>) -> ApiResult<impl IntoResponse> {

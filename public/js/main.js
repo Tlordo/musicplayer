@@ -65,3 +65,8 @@ async function boot() {
 }
 
 boot();
+
+// Оболочка интерфейса — офлайн (только там, где браузер разрешает сервис-воркеры).
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}

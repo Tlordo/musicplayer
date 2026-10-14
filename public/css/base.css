@@ -416,6 +416,23 @@ dialog::backdrop { background: rgba(4, 4, 6, 0.64); }
 
 .row-btns { display: flex; flex-wrap: wrap; gap: 8px; }
 
+.connect { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.qr { flex: none; width: 168px; height: 168px; border-radius: 8px; background: #fff; }
+.connect-text { flex: 1; min-width: 220px; display: grid; gap: 8px; line-height: 1.45; }
+.connect-url { font-size: 1.05rem; overflow-wrap: anywhere; user-select: all; }
+.ytdlp-row { align-items: center; justify-content: space-between; }
+.ytdlp-version { font-variant-numeric: tabular-nums; color: var(--ui-text-2); }
+.ytdlp-out {
+  max-height: 160px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-surface);
+  font: 0.8rem/1.4 ui-monospace, 'Cascadia Mono', monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .editor { display: grid; gap: 14px; padding: 14px; border-radius: var(--ui-radius-sm); background: var(--ui-surface); }
 .editor .field input { background: var(--ui-bg); }
 .ed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 16px; }

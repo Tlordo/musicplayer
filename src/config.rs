@@ -9,6 +9,8 @@ pub struct Config {
     pub music_dir: PathBuf,
     pub info_dir: PathBuf,
     pub tmp_dir: PathBuf,
+    /// Папка Data: музыка, обложки, временные файлы, журнал.
+    pub data_dir: PathBuf,
     pub db_path: PathBuf,
     pub ytdlp: PathBuf,
     pub ffmpeg: Option<PathBuf>,
@@ -50,6 +52,7 @@ impl Config {
             music_dir: root.join("Data").join("Music"),
             info_dir: root.join("Data").join("Info"),
             tmp_dir: root.join("Data").join("tmp"),
+            data_dir: root.join("Data"),
             db_path: root.join("database.db"),
             ytdlp,
             ffmpeg,
@@ -80,17 +83,23 @@ impl Config {
     }
 }
 
-/// Корень проекта — первая папка с `public/`: текущая или выше неё,
-/// затем папка exe и выше (так работает и запуск из target/release).
+/// Корень проекта — первая папка с интерфейсом `public/index.html`: сначала рядом с программой
+/// (переносная версия, target/release), потом от текущей папки.
+///
+/// Признак — именно index.html, а не папка «public»: в Windows регистр не важен,
+/// и иначе за проект сошла бы системная папка «Users/Public».
 fn find_root() -> PathBuf {
-    let cwd = env::current_dir().expect("не удалось получить текущую папку");
+    let has_ui = |d: &Path| d.join("public").join("index.html").is_file();
     let exe_dir = env::current_exe().ok().and_then(|p| p.parent().map(Path::to_path_buf));
-    [Some(cwd.clone()), exe_dir]
-        .into_iter()
-        .flatten()
+    let cwd = env::current_dir().ok();
+    exe_dir
+        .iter()
+        .chain(cwd.iter())
         .flat_map(|start| start.ancestors().map(Path::to_path_buf).collect::<Vec<_>>())
-        .find(|dir| dir.join("public").is_dir())
-        .unwrap_or(cwd)
+        .find(|d| has_ui(d))
+        .or(exe_dir)
+        .or(cwd)
+        .unwrap_or_else(|| PathBuf::from("."))
 }
 
 fn env_path(name: &str) -> Option<PathBuf> {
