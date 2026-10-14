@@ -6,14 +6,12 @@
 //! идут выше. Уже скачанное в библиотеку отфильтровывается.
 
 use std::collections::{HashMap, HashSet};
-use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use serde::Serialize;
 use serde_json::Value;
-use tokio::process::Command;
 use tokio::sync::Semaphore;
 
 use crate::config::Config;
@@ -73,25 +71,13 @@ impl Recommender {
     }
 
     async fn read_mix(&self, url: &str, seed: &str) -> Result<Vec<Rec>> {
-
-        let mut cmd = Command::new(&self.cfg.ytdlp);
-        cmd.args(["--flat-playlist", "--dump-single-json", "--yes-playlist", "--no-warnings", "--encoding", "utf-8"])
-            .args(["--playlist-end", &MIX_LEN.to_string()]);
-        if let Some(cookies) = &self.cfg.cookies {
-            cmd.arg("--cookies").arg(cookies);
-        }
-        cmd.arg("--").arg(url).stdin(Stdio::null()).kill_on_drop(true);
-
-        let out = tokio::time::timeout(MIX_TIMEOUT, cmd.output())
-            .await
-            .context("YouTube не ответил вовремя")?
-            .with_context(|| format!("не удалось запустить {}", self.cfg.ytdlp.display()))?;
-        if !out.status.success() {
-            let err = String::from_utf8_lossy(&out.stderr);
-            let msg = err.lines().filter(|l| l.contains("ERROR")).last().unwrap_or(err.trim());
-            bail!("yt-dlp: {msg}");
-        }
-        let json: Value = serde_json::from_str(&String::from_utf8_lossy(&out.stdout)).context("не удалось разобрать ответ yt-dlp")?;
+        let mut args = crate::ytdlp::base_args(&self.cfg);
+        args.extend(["--flat-playlist", "--dump-single-json", "--yes-playlist", "--playlist-end"].map(String::from));
+        args.push(MIX_LEN.to_string());
+        args.push("--".into());
+        args.push(url.to_owned());
+        let stdout = crate::ytdlp::run_ok(&self.cfg, args, MIX_TIMEOUT).await?;
+        let json: Value = serde_json::from_str(&stdout).context("не удалось разобрать ответ yt-dlp")?;
         Ok(parse_mix(&json, seed))
     }
 }

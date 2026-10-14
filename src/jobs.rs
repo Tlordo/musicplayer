@@ -4,15 +4,13 @@
 //! скачиваются по одному тем же путём, что и одиночное добавление, и сразу
 //! попадают в альбом, названный по плейлисту. Ход задачи виден в `/api/jobs`.
 
-use std::process::Stdio;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use serde::Serialize;
 use serde_json::Value;
-use tokio::process::Command;
 
 use crate::config::Config;
 use crate::db::Db;
@@ -74,22 +72,11 @@ pub struct Playlist {
 
 /// Прочитать состав плейлиста без скачивания.
 pub async fn read_playlist(cfg: &Config, url: &str) -> Result<Playlist> {
-    let mut cmd = Command::new(&cfg.ytdlp);
-    cmd.args(["--flat-playlist", "--dump-single-json", "--yes-playlist", "--no-warnings", "--encoding", "utf-8"]);
-    if let Some(cookies) = &cfg.cookies {
-        cmd.arg("--cookies").arg(cookies);
-    }
-    cmd.arg("--").arg(url).stdin(Stdio::null()).kill_on_drop(true);
-    let out = tokio::time::timeout(Duration::from_secs(90), cmd.output())
-        .await
-        .context("YouTube не ответил вовремя")?
-        .with_context(|| format!("не удалось запустить {}", cfg.ytdlp.display()))?;
-    if !out.status.success() {
-        let err = String::from_utf8_lossy(&out.stderr);
-        let msg = err.lines().filter(|l| l.contains("ERROR")).last().unwrap_or(err.trim());
-        bail!("yt-dlp: {msg}");
-    }
-    let json: Value = serde_json::from_str(&String::from_utf8_lossy(&out.stdout)).context("не удалось разобрать ответ yt-dlp")?;
+    let mut args = crate::ytdlp::base_args(cfg);
+    args.extend(["--flat-playlist", "--dump-single-json", "--yes-playlist", "--"].map(String::from));
+    args.push(url.to_owned());
+    let stdout = crate::ytdlp::run_ok(cfg, args, Duration::from_secs(90)).await?;
+    let json: Value = serde_json::from_str(&stdout).context("не удалось разобрать ответ yt-dlp")?;
     Ok(parse_playlist(&json))
 }
 

@@ -1,11 +1,9 @@
 use std::collections::HashSet;
-use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 
 use anyhow::{bail, Context, Result};
 use serde_json::Value;
 use tokio::io::AsyncWriteExt;
-use tokio::process::Command;
 use tokio::sync::Semaphore;
 
 use crate::config::Config;
@@ -106,40 +104,23 @@ impl Downloader {
 
     /// Один вызов yt-dlp: и метаданные (JSON в stdout), и скачивание с конвертацией в opus.
     async fn run_ytdlp(&self, url: &str) -> Result<Value> {
-        let mut cmd = Command::new(&self.cfg.ytdlp);
-        cmd.args(["--dump-json", "--no-simulate", "--no-playlist", "--no-warnings", "--no-progress", "--encoding", "utf-8"])
-            .args(["-f", "bestaudio/best", "-x", "--audio-format", "opus", "--audio-quality", "0"])
-            .args(["--embed-metadata", "--embed-thumbnail"])
-            .arg("-P")
-            .arg(&self.cfg.music_dir)
-            .args(["-o", "%(id)s.%(ext)s"]);
+        let mut args = crate::ytdlp::base_args(&self.cfg);
+        args.extend(
+            ["--dump-json", "--no-simulate", "--no-playlist", "--no-progress", "-f", "bestaudio/best", "-x", "--audio-format", "opus", "--audio-quality", "0", "--embed-metadata", "--embed-thumbnail", "-o", "%(id)s.%(ext)s"]
+                .map(String::from),
+        );
+        args.push("-P".into());
+        args.push(self.cfg.music_dir.display().to_string());
         if let Some(ffmpeg) = &self.cfg.ffmpeg {
-            cmd.arg("--ffmpeg-location").arg(ffmpeg);
-        }
-        if let Some(cookies) = &self.cfg.cookies {
-            cmd.arg("--cookies").arg(cookies);
+            args.push("--ffmpeg-location".into());
+            args.push(ffmpeg.display().to_string());
         }
         // "--" защищает от URL, начинающихся с "-", которые yt-dlp принял бы за опции.
-        cmd.arg("--").arg(url);
-        cmd.stdin(Stdio::null()).kill_on_drop(true);
+        args.push("--".into());
+        args.push(url.to_owned());
 
         tracing::info!("yt-dlp: скачиваю {url}");
-        let out = cmd
-            .output()
-            .await
-            .with_context(|| format!("не удалось запустить {}", self.cfg.ytdlp.display()))?;
-
-        if !out.status.success() {
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            let msg = stderr
-                .lines()
-                .filter(|l| l.contains("ERROR"))
-                .last()
-                .unwrap_or_else(|| stderr.trim());
-            bail!("yt-dlp: {msg}");
-        }
-
-        let stdout = String::from_utf8_lossy(&out.stdout);
+        let stdout = crate::ytdlp::run_ok(&self.cfg, args, std::time::Duration::from_secs(30 * 60)).await?;
         let line = stdout
             .lines()
             .find(|l| l.trim_start().starts_with('{'))

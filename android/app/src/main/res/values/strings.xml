@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Моя музыка</string>
+    <string name="channel_player">Плеер</string>
+    <string name="action_prev">Предыдущий</string>
+    <string name="action_play">Играть</string>
+    <string name="action_pause">Пауза</string>
+    <string name="action_next">Следующий</string>
+</resources>

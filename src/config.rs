@@ -25,6 +25,11 @@ impl Config {
         let root = env::var_os("MUSIC_ROOT")
             .map(PathBuf::from)
             .unwrap_or_else(find_root);
+        Self::for_root(root)
+    }
+
+    /// Все пути — внутри `root` (на Android это папка приложения); переменные окружения по-прежнему действуют.
+    pub fn for_root(root: PathBuf) -> Self {
 
         let ytdlp = env_path("YTDLP_PATH")
             .or_else(|| {

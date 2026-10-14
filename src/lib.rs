@@ -10,6 +10,7 @@ mod jobs;
 mod names;
 mod peaks;
 mod recs;
+pub mod ytdlp;
 
 use std::future::Future;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
@@ -114,8 +115,11 @@ fn is_virtual(name: &str) -> bool {
 
 /// Адреса этого компьютера в локальной сети, лучшие первыми.
 pub fn lan_ips() -> Vec<IpAddr> {
-    let mut found: Vec<(u8, Ipv4Addr)> = local_ip_address::list_afinet_netifas()
-        .unwrap_or_default()
+    #[cfg(not(target_os = "android"))]
+    let adapters = local_ip_address::list_afinet_netifas().unwrap_or_default();
+    #[cfg(target_os = "android")]
+    let adapters: Vec<(String, IpAddr)> = Vec::new();
+    let mut found: Vec<(u8, Ipv4Addr)> = adapters
         .into_iter()
         .filter_map(|(name, ip)| match ip {
             // Виртуальные адаптеры (Hyper-V, WSL, VMware, VirtualBox, Docker, VPN) — после настоящих.

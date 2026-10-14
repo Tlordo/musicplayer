@@ -9,6 +9,7 @@ import {
   contrast, textOn, mixHex,
 } from './themes.js';
 import { toast } from './ui.js';
+import { saveText } from './native.js';
 
 const dialog = document.getElementById('settings-dialog');
 const body = document.getElementById('settings-body');
@@ -289,6 +290,7 @@ body.addEventListener('click', (e) => {
       render();
       break;
     case 'export': {
+      if (saveText('my-music-themes.json', 'application/json', exportThemes())) { toast('Сохраняю темы в «Загрузки»'); break; }
       const blob = new Blob([exportThemes()], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);

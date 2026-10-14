@@ -6,6 +6,7 @@ import { state, audio, recs } from './core.js';
 import { settings, save } from './store.js';
 import { formatTime, formatLong, formatNumber, plural, yearOf, esc, albumOf } from './format.js';
 import { currentDesign, setCover } from './themes.js';
+import { saveUrl } from './native.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -476,9 +477,12 @@ function openInfo() {
 function download() {
   const t = state.current;
   if (!t) return;
+  const url = `/api/stream/${encodeURIComponent(t.video_id)}`;
+  const name = `${t.artist} - ${t.title}.opus`.replace(/[\\/:*?"<>|]/g, ' ');
+  if (saveUrl(url, name)) { toast('Сохраняю в «Загрузки»'); return; }
   const a = document.createElement('a');
-  a.href = `/api/stream/${encodeURIComponent(t.video_id)}`;
-  a.download = `${t.artist} - ${t.title}.opus`.replace(/[\\/:*?"<>|]/g, ' ');
+  a.href = url;
+  a.download = name;
   document.body.append(a);
   a.click();
   a.remove();
@@ -596,4 +600,4 @@ core.on('frame', (f) => {
   currentDesign().frame?.(f);
 });
 
-export { setTab, flashRow };
+export { setTab, flashRow, runAction };

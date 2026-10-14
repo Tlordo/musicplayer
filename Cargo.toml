@@ -34,10 +34,13 @@ tower-http ={ version = "0.6", features = ["cors", "fs", "trace", "set-header"] 
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 zip = { version = "2", default-features = false, features = ["deflate"] }
-local-ip-address = "0.6"
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 tao = { version = "0.30", optional = true }
 wry = { version = "0.47", optional = true }
+
+# Список сетевых адаптеров — на компьютерах; на Android адрес берётся по маршруту.
+[target.'cfg(not(target_os = "android"))'.dependencies]
+local-ip-address = "0.6"
 
 [build-dependencies]
 embed-resource = "2.5"

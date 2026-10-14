@@ -455,14 +455,10 @@ async fn qr(Query(q): Query<QrQuery>) -> ApiResult<Response> {
 }
 
 async fn run_ytdlp(s: &AppState, args: &[&str], secs: u64) -> ApiResult<(bool, String)> {
-    let mut cmd = tokio::process::Command::new(&s.cfg.ytdlp);
-    cmd.args(args).stdin(std::process::Stdio::null()).kill_on_drop(true);
-    let out = tokio::time::timeout(std::time::Duration::from_secs(secs), cmd.output())
+    let out = crate::ytdlp::run(&s.cfg, args.iter().map(|a| a.to_string()).collect(), std::time::Duration::from_secs(secs))
         .await
-        .map_err(|_| bad("yt-dlp не ответил вовремя"))?
-        .map_err(|e| bad(format!("не удалось запустить yt-dlp ({}): {e}", s.cfg.ytdlp.display())))?;
-    let text = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
-    Ok((out.status.success(), text.trim().to_owned()))
+        .map_err(|e| bad(format!("не удалось запустить yt-dlp: {e:#}")))?;
+    Ok((out.ok, format!("{}{}", out.stdout, out.stderr).trim().to_owned()))
 }
 
 async fn ytdlp_version(State(s): State<AppState>) -> ApiResult<impl IntoResponse> {

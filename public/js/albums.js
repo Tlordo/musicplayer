@@ -7,6 +7,7 @@ import { settings } from './store.js';
 import { esc, formatTime, formatLong, plural, albumOf } from './format.js';
 import { currentDesign } from './themes.js';
 import { registerActions, toast, isDesktop, setTab } from './ui.js';
+import { saveUrl } from './native.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -213,10 +214,15 @@ export function renderJobs() {
 const importInput = document.createElement('input');
 importInput.type = 'file';
 importInput.accept = '.zip,application/zip';
+// Можно выбрать сразу несколько архивов (например, медиатеку, разбитую на части) — по очереди.
+importInput.multiple = true;
 importInput.addEventListener('change', async () => {
-  const file = importInput.files[0];
+  const files = [...importInput.files];
   importInput.value = '';
-  if (!file) return;
+  for (const file of files) await importOne(file);
+});
+
+async function importOne(file) {
   const job = { name: `Импорт «${file.name.replace(/\.zip$/i, '')}»`, p: 0, status: 'отправляю…' };
   jobs.local.push(job);
   renderJobs();
@@ -241,7 +247,7 @@ importInput.addEventListener('change', async () => {
     jobs.local = jobs.local.filter((j) => j !== job);
     renderJobs();
   }
-});
+}
 
 // ============ Действия ============
 function openAlbum(key) {
@@ -271,6 +277,7 @@ registerActions({
   'album-download': () => {
     const a = core.findAlbum(albums.open);
     if (!a || !a.tracks.length) return;
+    if (saveUrl(core.exportUrl(a))) { toast('Собираю архив альбома — он появится в «Загрузках»', 'info', 4500); return; }
     const link = document.createElement('a');
     link.href = core.exportUrl(a);
     link.download = '';

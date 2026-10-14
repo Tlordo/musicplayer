@@ -1,4 +1,4 @@
-# Сборка приложений в GitHub Actions: Windows (.zip) и Linux (.tar.gz).
+# Сборка приложений в GitHub Actions: Windows (.zip), Linux (.tar.gz) и Android (.apk).
 # Запуск вручную: вкладка Actions → build → Run workflow. Или пушем тега v*.
 name: build
 
@@ -43,3 +43,27 @@ jobs:
         with:
           name: MyMusic-Linux
           path: dist/MyMusic-Linux.tar.gz
+
+  android:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,x86_64-linux-android
+      - name: NDK и cargo-ndk
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;29.0.14206865" > /dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.14206865" >> "$GITHUB_ENV"
+          cargo install cargo-ndk --locked
+      - name: Сборка APK
+        working-directory: android
+        run: bash ./gradlew :app:assembleRelease --console=plain
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MyMusic-Android
+          path: android/app/build/outputs/apk/release/*.apk

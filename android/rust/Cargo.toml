@@ -1,0 +1,25 @@
+[package]
+name = "mk60-android"
+version = "2.1.0"
+edition = "2021"
+publish = false
+
+# Отдельный проект: собирается под Android через cargo-ndk (см. android/README.md).
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+music-player = { path = "../.." }
+anyhow = "1"
+jni = "0.21"
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "macros"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+opt-level = "s"
