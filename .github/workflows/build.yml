@@ -1,5 +1,6 @@
 # Сборка приложений в GitHub Actions: Windows (.zip), Linux (.tar.gz) и Android (.apk).
-# Запуск вручную: вкладка Actions → build → Run workflow. Или пушем тега v*.
+# Запуск вручную: вкладка Actions → build → Run workflow. Или пушем тега v* — тогда
+# готовые файлы публикуются ещё и в GitHub Releases.
 name: build
 
 on:
@@ -67,3 +68,24 @@ jobs:
         with:
           name: MyMusic-Android
           path: android/app/build/outputs/apk/release/*.apk
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, linux, android]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Имена файлов
+        run: |
+          mkdir release
+          cp artifacts/MyMusic-Windows/MyMusic-Windows.zip release/
+          cp artifacts/MyMusic-Linux/MyMusic-Linux.tar.gz release/
+          cp "$(ls artifacts/MyMusic-Android/*.apk | head -n1)" release/MyMusic-Android.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
