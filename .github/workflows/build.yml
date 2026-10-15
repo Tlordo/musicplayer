@@ -1,10 +1,15 @@
 # Сборка приложений в GitHub Actions: Windows (.zip), Linux (.tar.gz) и Android (.apk).
-# Запуск вручную: вкладка Actions → build → Run workflow. Или пушем тега v* — тогда
-# готовые файлы публикуются ещё и в GitHub Releases.
+# Запуск вручную: вкладка Actions → build → Run workflow. Если при этом указать версию (v2.1.0)
+# или запушить тег v*, готовые файлы публикуются ещё и в GitHub Releases.
 name: build
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Версия релиза, например v2.1.0 (пусто — только собрать)"
+        required: false
+        default: ""
   push:
     tags: ["v*"]
 
@@ -70,7 +75,7 @@ jobs:
           path: android/app/build/outputs/apk/release/*.apk
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.version != ''
     needs: [windows, linux, android]
     runs-on: ubuntu-22.04
     permissions:
@@ -87,5 +92,8 @@ jobs:
           cp "$(ls artifacts/MyMusic-Android/*.apk | head -n1)" release/MyMusic-Android.apk
       - uses: softprops/action-gh-release@v2
         with:
+          # Тег из ручного запуска создаётся на собранном коммите.
+          tag_name: ${{ inputs.version || github.ref_name }}
+          target_commitish: ${{ github.sha }}
           files: release/*
           generate_release_notes: true
