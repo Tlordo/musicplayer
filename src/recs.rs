@@ -4,6 +4,8 @@
 //! плейлист `RD<id>` — это тот же микс, что YouTube показывает справа от видео.
 //! Результаты нескольких семян сливаются: треки, которые встречаются в нескольких миксах,
 //! идут выше. Уже скачанное в библиотеку отфильтровывается.
+//!
+//! Здесь же поиск по названию: те же «плоские» записи, только из поиска YouTube Music.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
@@ -20,6 +22,8 @@ use crate::downloader::is_valid_video_id;
 const CACHE_TTL: Duration = Duration::from_secs(30 * 60);
 const MIX_TIMEOUT: Duration = Duration::from_secs(45);
 const MIX_LEN: usize = 40;
+const SEARCH_TIMEOUT: Duration = Duration::from_secs(30);
+const SEARCH_LEN: usize = 20;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Rec {
@@ -71,14 +75,39 @@ impl Recommender {
     }
 
     async fn read_mix(&self, url: &str, seed: &str) -> Result<Vec<Rec>> {
+        Ok(parse_mix(&self.read_flat(url, MIX_LEN, MIX_TIMEOUT).await?, seed))
+    }
+
+    /// Поиск по названию: сначала среди песен YouTube Music, если там пусто — обычный поиск YouTube.
+    pub async fn search(&self, query: &str) -> Result<Vec<Rec>> {
+        let key = format!("?{}", query.to_lowercase());
+        if let Some(v) = self.cached(&key) {
+            return Ok(v);
+        }
+        let _slot = self.slots.acquire().await?;
+        let mut music = reqwest::Url::parse_with_params("https://music.youtube.com/search", [("q", query)])?;
+        music.set_fragment(Some("songs"));
+        let mut list = self.read_flat(music.as_str(), SEARCH_LEN, SEARCH_TIMEOUT).await.map(|j| parse_mix(&j, ""));
+        if list.as_ref().map_or(true, |l| l.is_empty()) {
+            let plain = format!("ytsearch{SEARCH_LEN}:{query}");
+            list = self.read_flat(&plain, SEARCH_LEN, SEARCH_TIMEOUT).await.map(|j| parse_mix(&j, ""));
+        }
+        let list = list?;
+
+        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
+        cache.insert(key, (Instant::now(), list.clone()));
+        Ok(list)
+    }
+
+    /// Плейлист или поиск без скачивания: только список записей.
+    async fn read_flat(&self, url: &str, len: usize, timeout: Duration) -> Result<Value> {
         let mut args = crate::ytdlp::base_args(&self.cfg);
         args.extend(["--flat-playlist", "--dump-single-json", "--yes-playlist", "--playlist-end"].map(String::from));
-        args.push(MIX_LEN.to_string());
+        args.push(len.to_string());
         args.push("--".into());
         args.push(url.to_owned());
-        let stdout = crate::ytdlp::run_ok(&self.cfg, args, MIX_TIMEOUT).await?;
-        let json: Value = serde_json::from_str(&stdout).context("не удалось разобрать ответ yt-dlp")?;
-        Ok(parse_mix(&json, seed))
+        let stdout = crate::ytdlp::run_ok(&self.cfg, args, timeout).await?;
+        serde_json::from_str(&stdout).context("не удалось разобрать ответ yt-dlp")
     }
 }
 

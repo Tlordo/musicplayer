@@ -88,16 +88,17 @@
         <button type="button" class="icon-btn" data-close aria-label="Закрыть"><svg><use href="#i-x"/></svg></button>
       </header>
       <label class="field">
-        <span class="field-label">Ссылка</span>
-        <input type="url" id="url-input" placeholder="https://music.youtube.com/watch?v=…" required autocomplete="off" inputmode="url" enterkeyhint="go">
+        <span class="field-label">Ссылка или название</span>
+        <input type="text" id="url-input" placeholder="ссылка YouTube или «исполнитель — песня»" required autocomplete="off" enterkeyhint="go">
       </label>
       <fieldset class="add-mode" id="add-mode" hidden>
         <legend class="field-label">Это ссылка на плейлист или альбом</legend>
         <label><input type="radio" name="add-mode" value="track" checked><span>Только этот трек</span></label>
         <label><input type="radio" name="add-mode" value="playlist"><span>Весь альбом / плейлист — в новый альбом</span></label>
       </fieldset>
-      <p class="hint">Подойдут ссылки youtube.com, youtu.be и music.youtube.com, в том числе на альбомы и плейлисты. Загрузка идёт в фоне — окно можно закрыть.</p>
+      <p class="hint">Вставьте ссылку youtube.com, youtu.be или music.youtube.com (подойдут и альбомы, и плейлисты) — или введите название, и плеер найдёт трек на YouTube. Загрузка идёт в фоне — окно можно закрыть.</p>
       <p class="status" id="add-status" role="status"></p>
+      <ul class="pick-list search-results" id="add-results" hidden></ul>
       <div class="sheet-actions">
         <button type="button" class="btn" data-close>Отмена</button>
         <button type="submit" class="btn btn-primary" id="submit-add"><span class="rec-dot" aria-hidden="true"></span><span id="submit-label">Загрузить</span></button>

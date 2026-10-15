@@ -35,6 +35,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/thumbnail/:video_id", get(thumbnail))
         .route("/api/peaks/:video_id", get(peaks))
         .route("/api/recommendations", get(recommendations))
+        .route("/api/search", get(search))
         .route("/api/albums", get(list_albums).post(create_album))
         .route("/api/albums/:id", axum::routing::patch(update_album).delete(delete_album))
         .route("/api/albums/:id/tracks", post(add_album_track))
@@ -232,6 +233,35 @@ async fn recommendations(State(s): State<AppState>, Query(q): Query<RecsQuery>) 
     let mut exclude = s.db.all_ids()?;
     exclude.extend(seeds.iter().cloned());
     Ok(Json(json!({ "seeds": seeds, "items": merge(mixes, &exclude, 40) })))
+}
+
+#[derive(Deserialize)]
+struct SearchQuery {
+    q: Option<String>,
+}
+
+/// Поиск трека на YouTube по названию. Уже скачанные помечены `in_library`.
+async fn search(State(s): State<AppState>, Query(q): Query<SearchQuery>) -> ApiResult<impl IntoResponse> {
+    let query = q.q.as_deref().map(str::trim).unwrap_or_default();
+    if query.is_empty() {
+        return Err(bad("Введите название"));
+    }
+    if query.chars().count() > 200 {
+        return Err(bad("Слишком длинный запрос"));
+    }
+    let items = s.recs.search(query).await.map_err(|e| {
+        tracing::warn!("поиск «{query}»: {e:#}");
+        ApiError::new(StatusCode::BAD_GATEWAY, format!("{e:#}"))
+    })?;
+    let have = s.db.all_ids()?;
+    let items: Vec<_> = items
+        .into_iter()
+        .map(|r| {
+            let in_library = have.contains(&r.id);
+            json!({ "id": r.id, "title": r.title, "artist": r.artist, "duration": r.duration, "url": r.url, "thumb": r.thumb, "in_library": in_library })
+        })
+        .collect();
+    Ok(Json(json!({ "items": items })))
 }
 
 // ============ Альбомы ============
