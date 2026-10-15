@@ -34,11 +34,6 @@ pub fn set_runner(f: impl Fn(Vec<String>) -> Result<Output> + Send + Sync + 'sta
     let _ = RUNNER.set(Box::new(f));
 }
 
-/// Есть ли у yt-dlp свой ffmpeg (на Android его подключает оболочка).
-pub fn external_runner() -> bool {
-    RUNNER.get().is_some()
-}
-
 pub async fn run(cfg: &Config, args: Vec<String>, timeout: Duration) -> Result<Output> {
     if let Some(runner) = RUNNER.get() {
         let job = tokio::task::spawn_blocking(move || runner(args));

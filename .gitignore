@@ -1,9 +1,3 @@
-# Зависимости Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
 # Локальная база данных и конфигурация
 database.db
 database.db-shm

@@ -4,7 +4,7 @@
 #   powershell -ExecutionPolicy Bypass -File tools\package-windows.ps1 -Toolchain stable-x86_64-pc-windows-gnu
 #
 # В папку кладутся: «Моя музыка.exe» (окно), music-player.exe (только сервер), public\,
-# bin\yt-dlp.exe и ffmpeg\ffmpeg.exe — их скрипт берёт с этого компьютера (проект, node_modules, PATH).
+# bin\yt-dlp.exe и ffmpeg\ffmpeg.exe — их скрипт берёт с этого компьютера (проект, PATH).
 # Данные (музыка, база) появятся рядом в Data\ при первом запуске — папку можно переносить целиком.
 
 param([string]$Toolchain = "")
@@ -30,7 +30,7 @@ Get-ChildItem "$dist\public" -Recurse -Include *.env | Remove-Item -Force
 
 function First-Existing([string[]]$paths) { $paths | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1 }
 
-$yt = First-Existing @("$root\bin\yt-dlp.exe", "$root\yt-dlp.exe", "$root\node_modules\yt-dlp-exec\bin\yt-dlp.exe", (Get-Command yt-dlp.exe -ErrorAction SilentlyContinue).Source)
+$yt = First-Existing @("$root\bin\yt-dlp.exe", "$root\yt-dlp.exe", (Get-Command yt-dlp.exe -ErrorAction SilentlyContinue).Source)
 if ($yt) { Copy-Item $yt "$dist\bin\yt-dlp.exe"; Write-Host "yt-dlp: $yt" }
 else { Write-Warning "yt-dlp.exe не найден — положите его в $dist\bin\ (https://github.com/yt-dlp/yt-dlp/releases)" }
 

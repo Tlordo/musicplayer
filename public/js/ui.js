@@ -600,4 +600,4 @@ core.on('frame', (f) => {
   currentDesign().frame?.(f);
 });
 
-export { setTab, flashRow, runAction };
+export { setTab, runAction };
