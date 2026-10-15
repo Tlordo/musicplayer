@@ -325,6 +325,12 @@ export async function addTrack(url) {
   return data.track;
 }
 
+/** Поиск трека на YouTube по названию: [{ id, title, artist, duration, url, thumb, in_library }]. */
+export async function searchTracks(q) {
+  const data = await api('GET', `/api/search?q=${encodeURIComponent(q)}`);
+  return data.items || [];
+}
+
 export async function removeTrack(track) {
   const res = await fetch(`/api/track/${encodeURIComponent(track.video_id)}`, { method: 'DELETE' });
   const data = await res.json().catch(() => ({}));

@@ -36,7 +36,6 @@ impl Config {
                 [
                     root.join(format!("yt-dlp{EXE}")),
                     root.join("bin").join(format!("yt-dlp{EXE}")),
-                    root.join("node_modules/yt-dlp-exec/bin").join(format!("yt-dlp{EXE}")),
                 ]
                 .into_iter()
                 .find(|p| p.is_file())

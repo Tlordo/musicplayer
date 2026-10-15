@@ -380,10 +380,87 @@ const addStatus = $('#add-status');
 let adding = false;
 
 function openAdd() {
-  if (!adding) { addStatus.textContent = ''; addStatus.className = 'status'; }
+  if (!adding && !searching) { addStatus.textContent = ''; addStatus.className = 'status'; }
   addDialog.showModal();
   $('#url-input').focus();
 }
+
+// В поле — ссылка или название? Название ищется на YouTube.
+const isLink = (v) => /^https?:\/\//i.test(v) || /^(www\.|m\.|music\.)?(youtube\.com|youtu\.be)\//i.test(v);
+function submitLabel() {
+  const v = $('#url-input').value.trim();
+  return v && !isLink(v) ? 'Найти' : 'Загрузить';
+}
+
+// ---- Поиск по названию ----
+const search = { items: [], busy: new Set() };
+let searching = false;
+let searchToken = 0;
+
+function renderSearch() {
+  const box = $('#add-results');
+  box.hidden = !search.items.length;
+  box.innerHTML = search.items.map((r, i) => {
+    const sub = [r.artist, r.duration ? formatTime(r.duration) : ''].filter(Boolean).map(esc).join(' · ');
+    const busy = search.busy.has(r.id);
+    const btn = r.in_library
+      ? `<span class="icon-btn in-lib" title="Уже в библиотеке" aria-label="Уже в библиотеке"><svg aria-hidden="true"><use href="#i-check"/></svg></span>`
+      : `<button type="button" class="icon-btn" data-search-add="${i}" aria-busy="${busy}" ${busy ? 'disabled' : ''} aria-label="Загрузить «${esc(r.title)}»" title="Загрузить в библиотеку">
+          <svg class="idle" aria-hidden="true"><use href="#i-plus"/></svg><svg class="busy" aria-hidden="true"><use href="#i-refresh"/></svg>
+        </button>`;
+    return `<li class="search-row">
+      <img src="${esc(r.thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+      <span class="pick-text"><span class="pick-name">${esc(r.title)}</span><span class="pick-meta">${sub}</span></span>
+      ${btn}
+    </li>`;
+  }).join('');
+}
+
+async function runSearch(q) {
+  const token = ++searchToken;
+  searching = true;
+  $('#submit-add').disabled = true;
+  $('#submit-label').textContent = 'Ищу…';
+  addStatus.className = 'status';
+  addStatus.textContent = `Ищу «${q}» на YouTube…`;
+  try {
+    const items = await core.searchTracks(q);
+    if (token !== searchToken) return;
+    search.items = items;
+    addStatus.textContent = items.length ? '' : 'Ничего не нашлось. Попробуйте написать иначе или вставьте ссылку.';
+  } catch (err) {
+    if (token !== searchToken) return;
+    addStatus.className = 'status error';
+    addStatus.textContent = `Поиск не удался: ${err.message}. Проверьте интернет и попробуйте ещё раз.`;
+  } finally {
+    if (token === searchToken) {
+      searching = false;
+      $('#submit-add').disabled = false;
+      $('#submit-label').textContent = submitLabel();
+      renderSearch();
+    }
+  }
+}
+
+$('#add-results').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-search-add]');
+  if (!btn) return;
+  const r = search.items[+btn.dataset.searchAdd];
+  if (!r || r.in_library || search.busy.has(r.id)) return;
+  search.busy.add(r.id);
+  renderSearch();
+  try {
+    const track = await core.addTrack(r.url);
+    r.in_library = true;
+    toast(`Добавлен «${track?.title || r.title}»`, 'ok');
+    flashRow(track?.video_id);
+  } catch (err) {
+    toast(`Не удалось добавить «${r.title}»: ${err.message}`, 'error', 5000);
+  } finally {
+    search.busy.delete(r.id);
+    renderSearch();
+  }
+});
 
 // Ссылка на альбом/плейлист: предлагаем скачать его целиком.
 function playlistKind(url) {
@@ -392,7 +469,9 @@ function playlistKind(url) {
   return null;
 }
 $('#url-input').addEventListener('input', (e) => {
-  const kind = playlistKind(e.target.value.trim());
+  if (!adding && !searching) $('#submit-label').textContent = submitLabel();
+  const v = e.target.value.trim();
+  const kind = isLink(v) ? playlistKind(v) : null;
   const box = $('#add-mode');
   const was = !box.hidden;
   box.hidden = !kind;
@@ -402,8 +481,13 @@ $('#url-input').addEventListener('input', (e) => {
 $('#add-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const input = $('#url-input');
-  const url = input.value.trim();
+  let url = input.value.trim();
   if (!url || adding) return;
+  if (!isLink(url)) {
+    if (!searching) runSearch(url);
+    return;
+  }
+  if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
   if (!$('#add-mode').hidden && $('input[name="add-mode"]:checked').value === 'playlist') {
     adding = true;
     $('#submit-add').disabled = true;
@@ -600,4 +684,4 @@ core.on('frame', (f) => {
   currentDesign().frame?.(f);
 });
 
-export { setTab, flashRow, runAction };
+export { setTab, runAction };

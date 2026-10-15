@@ -99,6 +99,15 @@ html[data-libview="album"] .library-view { display: none !important; }
 .pick-track img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
 .pick-text { display: grid; min-width: 0; }
 
+/* Результаты поиска в окне «Добавить трек» */
+.search-results { list-style: none; padding: 0 6px; }
+.search-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 52px; padding: 4px 4px 4px 8px; border-radius: var(--ui-radius-sm); }
+.search-row:hover { background: var(--ui-surface); }
+.search-row img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; background: var(--ui-surface-2); }
+.search-row .icon-btn .busy, .search-row .icon-btn[aria-busy="true"] .idle { display: none; }
+.search-row .icon-btn[aria-busy="true"] .busy { display: block; animation: spin 0.9s linear infinite; }
+.search-row .in-lib { color: var(--ui-accent); }
+
 /* ============ Фоновые загрузки ============ */
 .jobs {
   position: fixed;
