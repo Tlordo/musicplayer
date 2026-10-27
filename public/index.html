@@ -75,6 +75,12 @@
       <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2 0-1.6-1.5-2-1.5-3.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4-4-7-9-7z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="7.5" cy="11" r="1.4" fill="currentColor"/><circle cx="10.5" cy="7" r="1.4" fill="currentColor"/><circle cx="15.5" cy="7.5" r="1.4" fill="currentColor"/></symbol>
       <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
       <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-heart-line" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-9.3-9.2C1.4 7.4 3.6 4 7.1 4c2 0 3.6 1.1 4.9 2.8C13.3 5.1 14.9 4 16.9 4c3.5 0 5.7 3.4 4.4 6.8C19.5 15.4 12 20 12 20z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-queue" viewBox="0 0 24 24"><path d="M4 6h12M4 11h12M4 16h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 14.5v5.5l5-2.75z" fill="currentColor"/></symbol>
+      <symbol id="i-play-next" viewBox="0 0 24 24"><path d="M4 18h9M4 13h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 4.5v5l4.5-2.5zM14 4.5v5l4.5-2.5z" fill="currentColor"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20v-6M10 20V9M15 20v-9M20 20V5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+      <symbol id="i-chev-up" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     </defs>
   </svg>
 
@@ -182,6 +188,47 @@
         <button type="button" class="btn" data-close>Отмена</button>
         <button type="button" class="btn btn-primary" id="pick-add" disabled><svg><use href="#i-plus"/></svg><span id="pick-add-label">Добавить</span></button>
       </div>
+    </div>
+  </dialog>
+
+  <dialog class="sheet small" id="track-dialog" aria-label="Действия с треком">
+    <div class="sheet-body">
+      <div class="ts-head" id="track-sheet-head"></div>
+      <div class="sheet-menu" id="track-sheet-items"></div>
+    </div>
+  </dialog>
+
+  <dialog class="sheet" id="queue-dialog" aria-labelledby="queue-title">
+    <div class="sheet-body">
+      <header class="sheet-head">
+        <h2 id="queue-title">Очередь</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Закрыть"><svg><use href="#i-x"/></svg></button>
+      </header>
+      <div class="queue-body" id="queue-body"></div>
+    </div>
+  </dialog>
+
+  <dialog class="sheet small" id="sleep-dialog" aria-labelledby="sleep-title">
+    <div class="sheet-body">
+      <header class="sheet-head">
+        <h2 id="sleep-title">Таймер сна</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Закрыть"><svg><use href="#i-x"/></svg></button>
+      </header>
+      <p class="status" id="sleep-status" role="status"></p>
+      <div class="pill-row" id="sleep-opts"></div>
+      <p class="hint">Последние 20 секунд звук плавно затихает, потом плеер ставит паузу.</p>
+      <div class="sheet-actions"><button type="button" class="btn btn-danger" id="sleep-off" hidden>Выключить таймер</button></div>
+    </div>
+  </dialog>
+
+  <dialog class="sheet wide" id="stats-dialog" aria-labelledby="stats-title">
+    <div class="sheet-body">
+      <header class="sheet-head">
+        <h2 id="stats-title">Статистика</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Закрыть"><svg><use href="#i-x"/></svg></button>
+      </header>
+      <div class="segmented" role="radiogroup" aria-label="Период" id="stats-periods"></div>
+      <div class="stats-body" id="stats-body"></div>
     </div>
   </dialog>
 

@@ -71,7 +71,20 @@ export function renderTrack() {
   setCover(cover || null);
   renderTime();
   markRows();
+  renderLike();
   updateMediaSession();
+}
+
+function renderLike() {
+  const on = !!(state.current && state.current.liked);
+  const label = on ? 'Убрать из любимого (F)' : 'В любимое (F)';
+  $$('[data-act="like"]').forEach((b) => {
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on);
+    b.setAttribute('aria-label', label);
+    b.title = label;
+  });
+  $$('[data-like-icon]').forEach((u) => u.setAttribute('href', on ? '#i-heart' : '#i-heart-line'));
 }
 
 export function renderTime() {
@@ -256,6 +269,7 @@ const builtin = {
   info: () => openInfo(),
   download: () => download(),
   delete: () => confirmDelete(),
+  like: () => core.toggleLike(state.current),
   cover: () => openCover(),
   'clear-search': () => {
     $$('input[data-search]').forEach((i) => { i.value = ''; });
@@ -537,8 +551,7 @@ $('#add-form').addEventListener('submit', async (e) => {
   }
 });
 
-function openInfo() {
-  const t = state.current;
+function openInfo(t = state.current) {
   if (!t) return;
   const rows = [
     ['Название', t.title],
@@ -558,8 +571,7 @@ function openInfo() {
   $('#info-dialog').showModal();
 }
 
-function download() {
-  const t = state.current;
+function download(t = state.current) {
   if (!t) return;
   const url = `/api/stream/${encodeURIComponent(t.video_id)}`;
   const name = `${t.artist} - ${t.title}.opus`.replace(/[\\/:*?"<>|]/g, ' ');
@@ -573,8 +585,7 @@ function download() {
   toast('Скачивание началось');
 }
 
-function confirmDelete() {
-  const t = state.current;
+function confirmDelete(t = state.current) {
   if (!t) return;
   const dlg = $('#confirm-dialog');
   $('#confirm-text').textContent = `«${t.title}» — ${t.artist}`;
@@ -679,9 +690,10 @@ core.on('state', renderState);
 core.on('meter', renderState);
 core.on('time', () => renderProgress(core.progress()));
 core.on('played', () => renderList());
+core.on('like', renderLike);
 core.on('frame', (f) => {
   renderProgress(f.p);
   currentDesign().frame?.(f);
 });
 
-export { setTab, runAction };
+export { setTab, runAction, openInfo, download, confirmDelete, flashRow };

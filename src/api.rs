@@ -50,6 +50,9 @@ pub fn router(state: AppState) -> Router {
         .route("/api/ytdlp", get(ytdlp_version))
         .route("/api/ytdlp/update", post(ytdlp_update))
         .route("/api/track/:video_id", delete(delete_track))
+        .route("/api/track/:video_id/play", post(record_play))
+        .route("/api/track/:video_id/like", post(set_like))
+        .route("/api/stats", get(stats))
         .with_state(state)
 }
 
@@ -174,14 +177,20 @@ async fn peaks(State(s): State<AppState>, Path(id): Path<String>) -> ApiResult<R
     check_id(&id)?;
     let cache = s.cfg.peaks_path(&id);
     if let Ok(bytes) = tokio::fs::read(&cache).await {
-        return Ok(([(header::CONTENT_TYPE, "application/json")], bytes).into_response());
+        // Кэш старой версии без громкости пересчитываем один раз.
+        let fresh = serde_json::from_slice::<serde_json::Value>(&bytes)
+            .map(|v| v.get("loudness").is_some())
+            .unwrap_or(false);
+        if fresh {
+            return Ok(([(header::CONTENT_TYPE, "application/json")], bytes).into_response());
+        }
     }
     let audio = s.cfg.audio_path(&id);
     if !audio.is_file() {
         return Err(ApiError::new(StatusCode::NOT_FOUND, "Track file not found"));
     }
     let data = crate::peaks::compute(&s.cfg.ffmpeg_cmd(), &audio).await?;
-    let body = serde_json::to_vec(&json!({ "peaks": data }))?;
+    let body = serde_json::to_vec(&json!({ "peaks": data.peaks, "loudness": data.loudness }))?;
     if let Err(e) = tokio::fs::write(&cache, &body).await {
         tracing::warn!("не удалось сохранить форму волны {id}: {e}");
     }
@@ -523,4 +532,47 @@ async fn delete_track(State(s): State<AppState>, Path(id): Path<String>) -> ApiR
         }
     }
     Ok(Json(json!({ "success": true })))
+}
+
+// ============ Прослушивания и избранное ============
+
+#[derive(Deserialize)]
+struct PlayRequest {
+    /// Сколько секунд трек реально звучал.
+    #[serde(default)]
+    seconds: f64,
+}
+
+async fn record_play(State(s): State<AppState>, Path(id): Path<String>, Json(body): Json<PlayRequest>) -> ApiResult<impl IntoResponse> {
+    check_id(&id)?;
+    if !s.db.record_play(&id, body.seconds.min(24.0 * 3600.0))? {
+        return Err(ApiError::new(StatusCode::NOT_FOUND, "Track not found in library"));
+    }
+    Ok(Json(json!({ "success": true })))
+}
+
+#[derive(Deserialize)]
+struct LikeRequest {
+    liked: bool,
+}
+
+async fn set_like(State(s): State<AppState>, Path(id): Path<String>, Json(body): Json<LikeRequest>) -> ApiResult<impl IntoResponse> {
+    check_id(&id)?;
+    if !s.db.set_liked(&id, body.liked)? {
+        return Err(ApiError::new(StatusCode::NOT_FOUND, "Track not found in library"));
+    }
+    Ok(Json(json!({ "success": true, "liked": body.liked })))
+}
+
+#[derive(Deserialize)]
+struct StatsQuery {
+    /// За сколько последних дней; без параметра — за всё время.
+    days: Option<i64>,
+    /// Смещение часового пояса устройства в минутах (как −Date.getTimezoneOffset()).
+    tz: Option<i64>,
+}
+
+async fn stats(State(s): State<AppState>, Query(q): Query<StatsQuery>) -> ApiResult<impl IntoResponse> {
+    let days = q.days.filter(|d| *d > 0).map(|d| d.min(36_500));
+    Ok(Json(s.db.stats(days, q.tz.unwrap_or(0).clamp(-14 * 60, 14 * 60))?))
 }
