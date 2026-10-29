@@ -8,7 +8,7 @@ import {
   saveCustomTheme, deleteCustomTheme, exportThemes, importThemes,
   contrast, textOn, mixHex,
 } from './themes.js';
-import { toast } from './ui.js';
+import { toast, runAction } from './ui.js';
 import { saveText } from './native.js';
 
 const dialog = document.getElementById('settings-dialog');
@@ -80,10 +80,10 @@ function swatch(theme, design) {
   return `<span class="sw" aria-hidden="true">${colors.map((c) => `<i style="background:${esc(c)}"></i>`).join('')}</span>`;
 }
 
-function switchRow(key, title, hint) {
+function switchRow(key, title, hint, checked = settings[key]) {
   return `<label class="switch-row">
     <span class="switch-text"><span>${title}</span>${hint ? `<small>${hint}</small>` : ''}</span>
-    <input type="checkbox" class="switch" data-set="${key}"${settings[key] ? ' checked' : ''}>
+    <input type="checkbox" class="switch" data-set="${key}"${checked ? ' checked' : ''}>
   </label>`;
 }
 
@@ -150,6 +150,20 @@ function render() {
       </div>
     </section>
 
+    <section class="set-sec" aria-labelledby="s-sound">
+      <h3 id="s-sound">Звук</h3>
+      ${switchRow('normalize', 'Выравнивать громкость', 'Тихие и громкие треки звучат одинаково (EBU R128, −14 LUFS)')}
+      ${eqHtml()}
+    </section>
+
+    <section class="set-sec" aria-labelledby="s-stats">
+      <h3 id="s-stats">Статистика</h3>
+      <p class="hint">Сколько и что вы слушаете: время, любимые треки и исполнители по дням и месяцам. Хранится на сервере — общая для телефона и компьютера.</p>
+      <div class="row-btns">
+        <button type="button" class="btn" data-s="stats"><svg><use href="#i-chart"/></svg>Открыть статистику</button>
+      </div>
+    </section>
+
     <section class="set-sec" aria-labelledby="s-phone">
       <h3 id="s-phone">Подключить телефон</h3>
       <div class="connect" data-connect><p class="hint">Узнаю адрес…</p></div>
@@ -173,6 +187,30 @@ function render() {
       </div>
     </section>`;
   fillServerInfo();
+}
+
+function eqHtml() {
+  const eq = settings.eq;
+  const gains = core.eqGains();
+  const hz = (f) => (f >= 1000 ? `${+(f / 1000).toFixed(1)}к` : f);
+  const presets = [...Object.entries(core.EQ_PRESETS), ['custom', { name: 'Свой' }]];
+  return `<div class="eq"${eq.on ? '' : ' data-off'}>
+    ${switchRow('eqOn', 'Эквалайзер', 'Пять полос, ±12 дБ', eq.on)}
+    <label class="field">
+      <span class="field-label">Пресет</span>
+      <select class="eq-preset" data-eq-preset ${eq.on ? '' : 'disabled'}>
+        ${presets.map(([id, p]) => `<option value="${id}"${id === eq.preset ? ' selected' : ''}>${p.name}</option>`).join('')}
+      </select>
+    </label>
+    <div class="eq-bands">
+      ${core.EQ_BANDS.map((f, i) => `<label class="eq-band">
+        <output>${gains[i] > 0 ? '+' : ''}${gains[i]}</output>
+        <input type="range" min="-12" max="12" step="1" value="${gains[i]}" data-eq-band="${i}" ${eq.on ? '' : 'disabled'} aria-label="${hz(f)} Гц, дБ">
+        <span>${hz(f)}</span>
+      </label>`).join('')}
+    </div>
+    ${core.hasAudioFx() ? '' : '<p class="hint">Этот браузер не даёт обрабатывать звук — эквалайзер и выравнивание не работают.</p>'}
+  </div>`;
 }
 
 function editorHtml(design) {
@@ -304,6 +342,7 @@ body.addEventListener('click', (e) => {
     case 'import': body.querySelector('[data-s-file]').click(); break;
     case 'meter': settings.meter = v; save(); core.emit('meter'); render(); break;
     case 'clear-played': core.clearPlayed(); toast('Отметки прослушанного сброшены'); break;
+    case 'stats': dialog.close(); runAction('stats'); break;
     case 'ytdlp-update': {
       const out = body.querySelector('[data-ytdlp-out]');
       el.disabled = true;
@@ -328,6 +367,8 @@ body.addEventListener('click', (e) => {
       core.applyFilters();
       core.emit('state');
       core.emit('meter');
+      core.applyEq();
+      core.applyNormalize();
       toast('Настройки сброшены');
       render();
       break;
@@ -336,8 +377,16 @@ body.addEventListener('click', (e) => {
 
 body.addEventListener('change', async (e) => {
   const t = e.target;
-  if (t.matches('[data-set]')) {
+  if (t.matches('[data-set="eqOn"]')) {
+    core.setEq({ on: t.checked });
+    render();
+  } else if (t.matches('[data-eq-preset]')) {
+    if (t.value === 'custom') core.setEq({ preset: 'custom' });
+    else core.setEq({ preset: t.value, gains: [...core.EQ_PRESETS[t.value].gains] });
+    render();
+  } else if (t.matches('[data-set]')) {
     settings[t.dataset.set] = t.checked;
+    if (t.dataset.set === 'normalize') core.applyNormalize();
     save();
     if (t.dataset.set === 'coverColors') applyTheme();
     if (t.dataset.set === 'markPlayed') core.emit('library', core.state);
@@ -355,6 +404,16 @@ body.addEventListener('change', async (e) => {
 
 body.addEventListener('input', (e) => {
   const t = e.target;
+  if (t.matches('[data-eq-band]')) {
+    // Сдвинули ползунок — пресет становится «своим», начиная с текущих значений.
+    const gains = [...core.eqGains()];
+    gains[+t.dataset.eqBand] = Number(t.value);
+    core.setEq({ preset: 'custom', gains });
+    t.parentElement.querySelector('output').textContent = `${t.value > 0 ? '+' : ''}${t.value}`;
+    const sel = body.querySelector('[data-eq-preset]');
+    if (sel) sel.value = 'custom';
+    return;
+  }
   if (!editing) return;
   if (t.matches('[data-ed-name]')) { editing.name = t.value; return; }
   if (t.matches('[data-ed]')) {

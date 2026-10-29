@@ -128,6 +128,7 @@ export default {
       <button type="button" role="radio" data-sort="title" title="По названию" aria-label="По названию"><svg><use href="#i-sort-az"/></svg></button>
       <button type="button" role="radio" data-sort="artist" title="По исполнителю" aria-label="По исполнителю"><svg><use href="#i-user"/></svg></button>
       <button type="button" role="radio" data-sort="album" title="По альбому" aria-label="По альбому"><svg><use href="#i-disc"/></svg></button>
+      <button type="button" role="radio" data-sort="plays" title="Чаще слушаю" aria-label="Чаще слушаю"><svg><use href="#i-chart"/></svg></button>
     </div>
   </div>
   <div class="tracks-wrap">
@@ -141,6 +142,8 @@ export default {
   </div>
   <div class="albums-view lib-stack">
     <div class="albums-scroll">
+      <div class="albums-head"><h2>Подборки</h2></div>
+      <div class="album-grid" data-albums-smart></div>
       <div class="albums-head">
         <h2>Мои альбомы</h2>
         <span class="albums-actions">
@@ -245,11 +248,15 @@ export default {
           <input type="range" data-volume min="0" max="100" value="80" aria-label="Громкость">
         </div>
         <div class="extras-btns">
+          <button type="button" class="icon-btn toggle like-btn" data-act="like" data-needs-track aria-label="В любимое (F)" title="В любимое (F)"><svg><use data-like-icon href="#i-heart-line"/></svg></button>
           <button type="button" class="icon-btn toggle" data-act="meter" aria-label="Спектр (V)" title="Спектр (V)"><svg><use href="#i-meter"/></svg></button>
           <button type="button" class="icon-btn toggle" data-act="lyrics-inline" aria-label="Текст песни вместо спектра" title="Текст песни вместо спектра"><svg><use href="#i-lyrics"/></svg></button>
           <span class="menu-wrap">
             <button type="button" class="icon-btn" data-act="menu" aria-haspopup="true" aria-expanded="false" aria-label="Ещё" title="Ещё"><svg><use href="#i-more"/></svg></button>
             <div class="menu" role="menu" hidden>
+              <button type="button" role="menuitem" data-act="queue"><svg aria-hidden="true"><use href="#i-queue"/></svg>Очередь</button>
+              <button type="button" role="menuitem" data-act="sleep"><svg aria-hidden="true"><use href="#i-moon"/></svg>Таймер сна<span class="menu-badge" data-sleep-badge hidden></span></button>
+              <button type="button" role="menuitem" data-act="stats"><svg aria-hidden="true"><use href="#i-chart"/></svg>Статистика</button>
               <button type="button" role="menuitem" data-act="add-to-album" data-needs-track><svg aria-hidden="true"><use href="#i-album"/></svg>В альбом…</button>
               <button type="button" role="menuitem" data-act="info" data-needs-track><svg aria-hidden="true"><use href="#i-info"/></svg>О треке</button>
               <button type="button" role="menuitem" data-act="download" data-needs-track><svg aria-hidden="true"><use href="#i-down"/></svg>Скачать файл</button>
@@ -286,7 +293,7 @@ export default {
     const art = info.covers.length >= 4
       ? info.covers.map((c) => `<img src="${esc(c)}" alt="" loading="lazy">`).join('')
       : info.covers.length ? `<img src="${esc(info.covers[0])}" alt="" loading="lazy">` : '<svg aria-hidden="true"><use href="#i-album"/></svg>';
-    const sub = a.kind === 'meta' ? `${esc(a.artist || '')} · ${info.countText}` : info.countText;
+    const sub = a.artist ? `${esc(a.artist)} · ${info.countText}` : info.countText;
     return `<button type="button" class="album-card" data-act="album-open" data-key="${esc(a.key)}">
       <span class="album-art${info.covers.length >= 4 ? ' mosaic' : ''}">${art}</span>
       <span class="album-name">${esc(a.name)}</span>
@@ -371,9 +378,7 @@ export default {
       const id = t.video_id;
       if (peaksCache.has(id)) { peaks = peaksCache.get(id); return; }
       try {
-        const res = await fetch(`/api/peaks/${encodeURIComponent(id)}`);
-        if (!res.ok) throw new Error();
-        const data = await res.json();
+        const data = await core.trackAnalysis(id);
         peaksCache.set(id, data.peaks);
         if (state.current && state.current.video_id === id) { peaks = data.peaks; waveKey = ''; }
       } catch { /* нет ffmpeg или файла — останется ровная полоса */ }

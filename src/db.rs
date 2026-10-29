@@ -48,6 +48,14 @@ pub struct Track {
     pub filesize_mb: Option<f64>,
     pub extension: Option<String>,
     pub original_url: Option<String>,
+    /// Сколько раз прослушан (см. `Db::record_play`).
+    pub plays: i64,
+    /// Время последнего прослушивания, unix-секунды.
+    pub last_played: Option<i64>,
+    /// В избранном.
+    pub liked: bool,
+    /// Когда добавлен в избранное, unix-секунды.
+    pub liked_at: Option<i64>,
     /// Порядок добавления (rowid техзаписи): больше — новее.
     pub added: i64,
     pub file_exists: bool,
@@ -74,6 +82,10 @@ impl Track {
             filesize_mb: r.get("filesize_mb")?,
             extension: r.get("extension")?,
             original_url: r.get("original_url")?,
+            plays: r.get("plays")?,
+            last_played: r.get("last_played")?,
+            liked: r.get::<_, i64>("liked")? != 0,
+            liked_at: r.get("liked_at")?,
             added: r.get("added")?,
             file_exists: false,
             video_id,
@@ -93,8 +105,33 @@ fn value_to_string(v: rusqlite::types::Value) -> Option<String> {
 }
 
 const TRACK_SELECT: &str = "
-    SELECT u.*, t.abr, t.filesize_mb, t.extension, t.original_url, t.rowid AS added
-    FROM userData u JOIN techData t ON u.video_id = t.video_id";
+    SELECT u.*, t.abr, t.filesize_mb, t.extension, t.original_url, t.rowid AS added,
+           COALESCE(st.plays, 0) AS plays, st.last_played, COALESCE(st.liked, 0) AS liked, st.liked_at
+    FROM userData u JOIN techData t ON u.video_id = t.video_id
+    LEFT JOIN stats st ON st.video_id = u.video_id";
+
+/// Сводка прослушиваний за период (или за всё время).
+#[derive(Debug, Serialize)]
+pub struct Stats {
+    pub plays: i64,
+    pub seconds: f64,
+    pub tracks: i64,
+    /// [(video_id, прослушиваний, секунд)] — самые слушаемые треки.
+    pub top_tracks: Vec<(String, i64, f64)>,
+    /// [(исполнитель, прослушиваний, секунд)].
+    pub top_artists: Vec<(String, i64, f64)>,
+    /// Последние прослушанные треки, без повторов, новые первыми.
+    pub recent: Vec<String>,
+    /// По дням: [(дата YYYY-MM-DD, прослушиваний, секунд)].
+    pub days: Vec<(String, i64, f64)>,
+}
+
+fn now_secs() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
 
 /// Своя подборка: имя и упорядоченный список треков.
 #[derive(Debug, Clone, Serialize)]
@@ -149,7 +186,20 @@ impl Db {
                  video_id TEXT NOT NULL,
                  position INTEGER NOT NULL,
                  PRIMARY KEY (album_id, video_id)
-             );",
+             );
+             CREATE TABLE IF NOT EXISTS stats (
+                 video_id TEXT PRIMARY KEY,
+                 plays INTEGER NOT NULL DEFAULT 0,
+                 last_played INTEGER,
+                 liked INTEGER NOT NULL DEFAULT 0,
+                 liked_at INTEGER
+             );
+             CREATE TABLE IF NOT EXISTS history (
+                 video_id TEXT NOT NULL,
+                 at INTEGER NOT NULL,
+                 seconds REAL NOT NULL
+             );
+             CREATE INDEX IF NOT EXISTS history_at ON history(at);",
         )?;
 
         // Миграция для старых баз без колонки original_url.
@@ -268,10 +318,7 @@ impl Db {
 
     pub fn create_album(&self, name: &str, source_url: Option<&str>) -> Result<i64> {
         let conn = self.conn();
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_secs() as i64)
-            .unwrap_or(0);
+        let now = now_secs();
         conn.execute(
             "INSERT INTO albums (name, created, source_url) VALUES (?1, ?2, ?3)",
             params![name, now, source_url],
@@ -413,6 +460,8 @@ impl Db {
             .optional()?;
         tx.execute("DELETE FROM userData WHERE video_id = ?1", [video_id])?;
         tx.execute("DELETE FROM album_tracks WHERE video_id = ?1", [video_id])?;
+        tx.execute("DELETE FROM stats WHERE video_id = ?1", [video_id])?;
+        tx.execute("DELETE FROM history WHERE video_id = ?1", [video_id])?;
         let removed = tx.execute("DELETE FROM techData WHERE video_id = ?1", [video_id])?;
         tx.commit()?;
         Ok(if removed > 0 || json_file.is_some() {
@@ -420,5 +469,76 @@ impl Db {
         } else {
             None
         })
+    }
+
+    // ============ Прослушивания и избранное ============
+
+    /// Трек прослушан: `seconds` — сколько он реально звучал. false — такого трека нет.
+    pub fn record_play(&self, video_id: &str, seconds: f64) -> Result<bool> {
+        let mut conn = self.conn();
+        let tx = conn.transaction()?;
+        if !tx.prepare_cached("SELECT 1 FROM techData WHERE video_id = ?1")?.exists([video_id])? {
+            return Ok(false);
+        }
+        let now = now_secs();
+        tx.execute(
+            "INSERT INTO stats (video_id, plays, last_played) VALUES (?1, 1, ?2)
+             ON CONFLICT(video_id) DO UPDATE SET plays = plays + 1, last_played = ?2",
+            params![video_id, now],
+        )?;
+        tx.execute(
+            "INSERT INTO history (video_id, at, seconds) VALUES (?1, ?2, ?3)",
+            params![video_id, now, seconds.max(0.0)],
+        )?;
+        tx.commit()?;
+        Ok(true)
+    }
+
+    pub fn set_liked(&self, video_id: &str, liked: bool) -> Result<bool> {
+        let conn = self.conn();
+        if !conn.prepare_cached("SELECT 1 FROM techData WHERE video_id = ?1")?.exists([video_id])? {
+            return Ok(false);
+        }
+        conn.execute(
+            "INSERT INTO stats (video_id, liked, liked_at) VALUES (?1, ?2, ?3)
+             ON CONFLICT(video_id) DO UPDATE SET liked = ?2, liked_at = ?3",
+            params![video_id, liked as i64, if liked { Some(now_secs()) } else { None }],
+        )?;
+        Ok(true)
+    }
+
+    /// Сводка за последние `days` дней (`None` — за всё время).
+    /// `tz_offset_min` — смещение часового пояса устройства, чтобы дни делились по местной полуночи.
+    pub fn stats(&self, days: Option<i64>, tz_offset_min: i64) -> Result<Stats> {
+        let conn = self.conn();
+        let since = days.map(|d| now_secs() - d * 86_400).unwrap_or(0);
+        // Только треки, которые ещё в библиотеке.
+        let base = "FROM history h JOIN userData u ON u.video_id = h.video_id WHERE h.at >= ?1";
+
+        let (plays, seconds, tracks): (i64, f64, i64) = conn.query_row(
+            &format!("SELECT COUNT(*), COALESCE(SUM(h.seconds), 0), COUNT(DISTINCT h.video_id) {base}"),
+            [since],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )?;
+        let triples = |sql: String, arg: i64| -> Result<Vec<(String, i64, f64)>> {
+            let mut stmt = conn.prepare(&sql)?;
+            let rows = stmt.query_map(params![since, arg], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
+            Ok(rows.collect::<rusqlite::Result<_>>()?)
+        };
+        let top_tracks = triples(
+            format!("SELECT h.video_id, COUNT(*) AS n, SUM(h.seconds) {base} GROUP BY h.video_id ORDER BY n DESC, MAX(h.at) DESC LIMIT ?2"),
+            20,
+        )?;
+        let top_artists = triples(
+            format!("SELECT COALESCE(NULLIF(u.artist, ''), '—'), COUNT(*) AS n, SUM(h.seconds) {base} GROUP BY 1 ORDER BY n DESC LIMIT ?2"),
+            10,
+        )?;
+        let days = triples(
+            format!("SELECT date(h.at + ?2 * 60, 'unixepoch') AS d, COUNT(*), SUM(h.seconds) {base} GROUP BY d ORDER BY d"),
+            tz_offset_min,
+        )?;
+        let mut stmt = conn.prepare(&format!("SELECT h.video_id {base} GROUP BY h.video_id ORDER BY MAX(h.at) DESC LIMIT 30"))?;
+        let recent = stmt.query_map([since], |r| r.get(0))?.collect::<rusqlite::Result<_>>()?;
+        Ok(Stats { plays, seconds, tracks, top_tracks, top_artists, recent, days })
     }
 }

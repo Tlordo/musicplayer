@@ -32,6 +32,8 @@ export function renderAlbums() {
   const user = core.userAlbums();
   const meta = core.metaAlbums();
   const card = (a) => design.renderAlbumCard(a, infoOf(a), helpers);
+  const s = $('[data-albums-smart]');
+  if (s) s.innerHTML = core.smartAlbums().map(card).join('');
   const u = $('[data-albums-user]');
   if (u) u.innerHTML = user.map(card).join('');
   const m = $('[data-albums-meta]');
@@ -99,7 +101,7 @@ function ask(title, text, yes) {
 // Добавить трек в альбом
 const pickAlbum = $('#pick-album-dialog');
 let pickTrack = null;
-async function openAlbumPicker(track) {
+export async function openAlbumPicker(track) {
   if (!track) return;
   pickTrack = track;
   if (!albums.loaded) await core.loadAlbums();
@@ -334,5 +336,7 @@ registerActions({
 
 core.on('albums', renderAlbums);
 core.on('library', renderAlbums);
+core.on('like', renderAlbums);
+core.on('stats', renderAlbums);
 core.on('track', () => renderAlbum());
 core.on('jobs', renderJobs);

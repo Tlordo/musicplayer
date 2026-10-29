@@ -28,6 +28,10 @@ export const state = {
   dragging: false,   // пользователь тянет перемотку
   dragP: 0,
   queue: null,       // { key, ids } — играем альбом; null — библиотеку в текущем порядке
+  upNext: local.upNext(),  // id треков, которые пользователь поставил в очередь («следующим», «в очередь»)
+  back: [],          // что играло раньше — для «предыдущего» (в том числе в режиме «вперемешку»)
+  shuffleSeen: new Set(),  // уже сыгранные в этом круге «вперемешку» — без повторов, пока не кончится список
+  sleep: null,       // таймер сна: { at: мс } или { endOfTrack: true }
 };
 
 // ============ Библиотека ============
@@ -37,6 +41,7 @@ const SORTS = {
   artist: (a, b) => collator.compare(a.artist || '', b.artist || '') || collator.compare(a.title || '', b.title || ''),
   title: (a, b) => collator.compare(a.title || '', b.title || ''),
   album: (a, b) => collator.compare(a.album || '', b.album || '') || collator.compare(a.title || '', b.title || ''),
+  plays: (a, b) => (b.plays || 0) - (a.plays || 0) || (b.last_played || 0) - (a.last_played || 0),
 };
 
 export async function loadLibrary() {
@@ -85,16 +90,53 @@ export function find(id) {
 }
 
 // ============ Звук и анализ ============
+// Цепочка: файл → выравнивание громкости → эквалайзер → ограничитель → затухание (таймер сна) → выход.
+// Индикаторы и musetext слушают уже обработанный звук.
 let ctx = null;
 let analysers = null;   // [левый, правый, моно-спектр]
 let streamDest = null;
+let normGain = null;
+let eqNodes = [];
+let fadeGain = null;
 const timeBuf = new Float32Array(1024);
+
+/** Полосы эквалайзера, Гц. */
+export const EQ_BANDS = [60, 230, 910, 3600, 14000];
+export const EQ_PRESETS = {
+  flat: { name: 'Ровно', gains: [0, 0, 0, 0, 0] },
+  bass: { name: 'Больше баса', gains: [6, 3, 0, 0, 0] },
+  treble: { name: 'Яркий', gains: [0, 0, 0, 3, 5] },
+  vocal: { name: 'Голос', gains: [-2, -1, 3, 3, 0] },
+  rock: { name: 'Рок', gains: [4, 1, -1, 2, 4] },
+  electronic: { name: 'Электроника', gains: [5, 2, 0, 1, 4] },
+  acoustic: { name: 'Акустика', gains: [2, 1, 1, 2, 2] },
+  night: { name: 'Тихо ночью', gains: [-3, -1, 1, 0, -3] },
+};
 
 function initAudioGraph() {
   if (ctx) return;
   try {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     const src = ctx.createMediaElementSource(audio);
+    normGain = ctx.createGain();
+    eqNodes = EQ_BANDS.map((f, i) => {
+      const b = ctx.createBiquadFilter();
+      b.type = i === 0 ? 'lowshelf' : i === EQ_BANDS.length - 1 ? 'highshelf' : 'peaking';
+      b.frequency.value = f;
+      b.Q.value = 1;
+      return b;
+    });
+    // Подъём громкости и баса не должен хрипеть: мягкий ограничитель у самого потолка.
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -1;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.25;
+    fadeGain = ctx.createGain();
+    let node = src;
+    for (const n of [normGain, ...eqNodes, limiter, fadeGain]) { node.connect(n); node = n; }
+
     const splitter = ctx.createChannelSplitter(2);
     const l = ctx.createAnalyser();
     const r = ctx.createAnalyser();
@@ -102,18 +144,76 @@ function initAudioGraph() {
     l.fftSize = r.fftSize = 1024;
     spec.fftSize = 512;
     spec.smoothingTimeConstant = 0.72;
-    src.connect(ctx.destination);
-    src.connect(splitter);
+    fadeGain.connect(ctx.destination);
+    fadeGain.connect(splitter);
     splitter.connect(l, 0);
     splitter.connect(r, 1);
-    src.connect(spec);
+    fadeGain.connect(spec);
     streamDest = ctx.createMediaStreamDestination();
-    src.connect(streamDest);
+    fadeGain.connect(streamDest);
     analysers = [l, r, spec];
+    applyEq();
+    applyNormalize();
   } catch (err) {
     console.warn('Web Audio недоступен:', err);
     analysers = null;
   }
+}
+
+/** Есть ли обработка звука (эквалайзер, выравнивание, плавный таймер). */
+export function hasAudioFx() {
+  initAudioGraph();
+  return !!fadeGain;
+}
+
+export function eqGains() {
+  return settings.eq.preset === 'custom' ? settings.eq.gains : (EQ_PRESETS[settings.eq.preset] || EQ_PRESETS.flat).gains;
+}
+
+export function applyEq() {
+  if (!eqNodes.length) return;
+  const gains = settings.eq.on ? eqGains() : EQ_BANDS.map(() => 0);
+  eqNodes.forEach((n, i) => n.gain.setTargetAtTime(gains[i] || 0, ctx.currentTime, 0.04));
+}
+
+export function setEq(patch) {
+  Object.assign(settings.eq, patch);
+  save();
+  applyEq();
+  emit('eq');
+}
+
+// ---- Выравнивание громкости ----
+// Сервер меряет громкость трека по EBU R128 вместе с формой волны; приводим всё к −14 LUFS,
+// как стриминговые сервисы. Тише −14 поднимаем не больше чем на 6 дБ.
+const TARGET_LUFS = -14;
+const analysis = new Map();   // id → Promise<{ peaks, loudness }>
+
+/** Форма волны и громкость трека (одна загрузка на трек, общая для всех). */
+export function trackAnalysis(id) {
+  if (!analysis.has(id)) {
+    const p = fetch(`/api/peaks/${encodeURIComponent(id)}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .catch((err) => { analysis.delete(id); throw err; });
+    analysis.set(id, p);
+  }
+  return analysis.get(id);
+}
+
+let normToken = 0;
+export async function applyNormalize() {
+  if (!normGain) return;
+  const t = state.current;
+  const token = ++normToken;
+  let db = 0;
+  if (settings.normalize && t) {
+    try {
+      const a = await trackAnalysis(t.video_id);
+      if (token !== normToken) return;
+      if (typeof a.loudness === 'number') db = Math.max(-12, Math.min(6, TARGET_LUFS - a.loudness));
+    } catch { /* нет файла — оставляем как есть */ }
+  }
+  normGain.gain.setTargetAtTime(10 ** (db / 20), ctx.currentTime, 0.05);
 }
 
 /** Уровни левого и правого канала, 0…~1.1 (−40…−4 дБ). */
@@ -155,13 +255,24 @@ export function playFrom(track, queue = null) {
   load(track, true);
 }
 
-export function load(track, autoplay) {
+/** goingBack — шаг «назад» по истории: тогда текущий трек в историю не кладём. */
+export function load(track, autoplay, goingBack = false) {
   clearTimeout(restoreTimer);
+  flushListen();
+  const prevId = state.current && state.current.video_id;
+  if (!goingBack && prevId && prevId !== track.video_id) {
+    state.back.push(prevId);
+    if (state.back.length > 200) state.back.shift();
+  }
   state.current = track;
+  state.shuffleSeen.add(track.video_id);
+  listen.id = track.video_id;
   initAudioGraph();
+  restoreFade();
   audio.src = `/api/stream/${encodeURIComponent(track.video_id)}`;
   audio.load();
   local.saveLast(track.video_id);
+  applyNormalize();
   emit('track', track);
   if (autoplay) play();
 }
@@ -169,6 +280,9 @@ export function load(track, autoplay) {
 /** Вставить трек без воспроизведения (при запуске). */
 export function cue(track) {
   state.current = track;
+  state.shuffleSeen.add(track.video_id);
+  listen.id = track.video_id;
+  applyNormalize();
   emit('track', track);
 }
 
@@ -202,9 +316,15 @@ function neighbour(step) {
   const list = queueList();
   if (!list.length) return null;
   if (settings.shuffle && list.length > 1) {
-    let t;
-    do { t = list[Math.floor(Math.random() * list.length)]; } while (state.current && t.video_id === state.current.video_id);
-    return t;
+    // «Вперемешку» без повторов: каждый трек по разу, потом новый круг.
+    const cur = state.current && state.current.video_id;
+    let pool = list.filter((t) => t.video_id !== cur && !state.shuffleSeen.has(t.video_id));
+    if (!pool.length) {
+      state.shuffleSeen.clear();
+      if (cur) state.shuffleSeen.add(cur);
+      pool = list.filter((t) => t.video_id !== cur);
+    }
+    return pool[Math.floor(Math.random() * pool.length)];
   }
   const idx = state.current ? list.findIndex((t) => t.video_id === state.current.video_id) : -1;
   let i = idx + step;
@@ -214,14 +334,181 @@ function neighbour(step) {
 }
 
 export function next() {
-  const t = neighbour(1);
+  const t = takeUpNext() || neighbour(1);
   if (t) load(t, true);
 }
 
 export function prev() {
   if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+  while (state.back.length) {
+    const t = find(state.back.pop());
+    if (t) { load(t, true, true); return; }
+  }
   const t = neighbour(-1);
-  if (t) load(t, true);
+  if (t) load(t, true, true);
+}
+
+// ============ Очередь ============
+function saveUpNext() {
+  local.saveUpNext(state.upNext);
+  emit('queue');
+}
+
+function takeUpNext() {
+  while (state.upNext.length) {
+    const t = find(state.upNext.shift());
+    if (t) { saveUpNext(); return t; }
+  }
+  return null;
+}
+
+/** Поставить трек сразу после текущего. */
+export function playNext(track) {
+  state.upNext = [track.video_id, ...state.upNext.filter((id) => id !== track.video_id)];
+  saveUpNext();
+}
+
+/** Добавить трек в конец очереди. */
+export function enqueue(track) {
+  if (!state.upNext.includes(track.video_id)) state.upNext.push(track.video_id);
+  saveUpNext();
+}
+
+export function dequeue(index) {
+  state.upNext.splice(index, 1);
+  saveUpNext();
+}
+
+export function moveInQueue(from, to) {
+  if (to < 0 || to >= state.upNext.length) return;
+  const [id] = state.upNext.splice(from, 1);
+  state.upNext.splice(to, 0, id);
+  saveUpNext();
+}
+
+export function clearUpNext() {
+  state.upNext = [];
+  saveUpNext();
+}
+
+/** Что прозвучит дальше: очередь пользователя и следующие треки из списка/альбома. */
+export function upcoming(limit = 25) {
+  const queued = state.upNext.map(find).filter(Boolean);
+  if (settings.shuffle) return { queued, then: [], shuffled: true };
+  const list = queueList();
+  const idx = state.current ? list.findIndex((t) => t.video_id === state.current.video_id) : -1;
+  let then = list.slice(idx + 1, idx + 1 + limit);
+  if (settings.repeat === 'all' && then.length < limit) then = then.concat(list.slice(0, Math.min(idx + 1, limit - then.length)));
+  return { queued, then, shuffled: false };
+}
+
+/** Где сейчас играем: «Библиотека» или имя альбома. */
+export function contextName() {
+  if (state.queue) {
+    const a = findAlbum(state.queue.key);
+    if (a) return a.name;
+  }
+  return 'Библиотека';
+}
+
+// ============ Таймер сна ============
+const FADE_SEC = 20;
+
+/** minutes > 0 — остановить через столько минут; 'track' — после текущего трека; 0 — выключить. */
+export function setSleep(minutes) {
+  restoreFade();
+  if (minutes === 'track') state.sleep = { endOfTrack: true };
+  else if (minutes > 0) state.sleep = { at: Date.now() + minutes * 60000 };
+  else state.sleep = null;
+  emit('sleep');
+}
+
+/** Сколько секунд осталось до сна (null — таймер выключен или ждёт конца трека). */
+export function sleepLeft() {
+  return state.sleep && state.sleep.at ? Math.max(0, (state.sleep.at - Date.now()) / 1000) : null;
+}
+
+function restoreFade() {
+  if (!fadeGain) return;
+  fadeGain.gain.cancelScheduledValues(ctx.currentTime);
+  fadeGain.gain.setValueAtTime(1, ctx.currentTime);
+}
+
+function sleepNow() {
+  state.sleep = null;
+  pause();
+  // Громкость возвращаем чуть позже, чтобы пауза не щёлкнула полной громкостью.
+  setTimeout(restoreFade, 300);
+  emit('sleep');
+  emit('toast', { text: 'Таймер сна: музыка остановлена. Спокойной ночи', type: 'info', ms: 6000 });
+}
+
+// Не в кадровом цикле: при выключенном экране кадры не рисуются, а таймер должен сработать.
+setInterval(() => {
+  const left = sleepLeft();
+  if (left === null) return;
+  if (left <= 0) { sleepNow(); return; }
+  if (fadeGain && left < FADE_SEC && !audio.paused) fadeGain.gain.setTargetAtTime(left / FADE_SEC, ctx.currentTime, 0.3);
+  emit('sleep-tick');
+}, 500);
+
+// ============ Прослушивания ============
+// Трек считается прослушанным, если звучал хотя бы половину длины или 30 секунд (как у Last.fm).
+const listen = { id: null, sec: 0, lastT: null };
+
+audio.addEventListener('timeupdate', () => {
+  const t = audio.currentTime;
+  if (!audio.paused && listen.lastT !== null) {
+    const d = t - listen.lastT;
+    if (d > 0 && d < 2) listen.sec += d;
+  }
+  listen.lastT = t;
+});
+audio.addEventListener('seeking', () => { listen.lastT = null; });
+
+function flushListen(beacon = false) {
+  const { id, sec } = listen;
+  listen.sec = 0;
+  listen.lastT = null;
+  const t = id && find(id);
+  if (!t) return;
+  const dur = t._sec || audio.duration || 0;
+  if (sec < Math.min(30, dur ? dur / 2 : 30)) return;
+  t.plays = (t.plays || 0) + 1;
+  t.last_played = Math.floor(Date.now() / 1000);
+  const url = `/api/track/${encodeURIComponent(id)}/play`;
+  const body = JSON.stringify({ seconds: Math.round(sec) });
+  if (beacon && navigator.sendBeacon) {
+    navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+    return;
+  }
+  fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true })
+    .catch(() => { /* сервер недоступен — не страшно */ });
+  emit('stats', t);
+}
+addEventListener('pagehide', () => flushListen(true));
+
+// ============ Избранное ============
+export async function toggleLike(track) {
+  if (!track) return;
+  const liked = !track.liked;
+  track.liked = liked;
+  track.liked_at = liked ? Math.floor(Date.now() / 1000) : null;
+  emit('like', track);
+  try {
+    await api('POST', `/api/track/${encodeURIComponent(track.video_id)}/like`, { liked });
+    emit('toast', { text: liked ? 'Добавлено в «Любимое»' : 'Убрано из «Любимого»', type: liked ? 'ok' : 'info', ms: 2200 });
+  } catch (err) {
+    track.liked = !liked;
+    emit('like', track);
+    emit('toast', { text: `Не получилось: ${err.message}`, type: 'error' });
+  }
+}
+
+/** Статистика прослушиваний за days дней (без days — за всё время). */
+export function loadStats(days) {
+  const tz = -new Date().getTimezoneOffset();
+  return api('GET', `/api/stats?tz=${tz}${days ? `&days=${days}` : ''}`);
 }
 
 export function seek(sec) {
@@ -268,6 +555,8 @@ audio.addEventListener('playing', () => {
   }
 });
 audio.addEventListener('ended', () => {
+  flushListen();
+  if (state.sleep && state.sleep.endOfTrack) { sleepNow(); return; }
   if (settings.repeat === 'one') { audio.currentTime = 0; play(); return; }
   if (settings.autoNext) next();
 });
@@ -337,8 +626,10 @@ export async function removeTrack(track) {
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
   const wasCurrent = state.current && state.current.video_id === track.video_id;
+  if (wasCurrent) { listen.id = null; listen.sec = 0; }
   const nextTrack = wasCurrent ? neighbour(1) : null;
   state.library = state.library.filter((t) => t.video_id !== track.video_id);
+  if (state.upNext.includes(track.video_id)) { state.upNext = state.upNext.filter((id) => id !== track.video_id); saveUpNext(); }
   state.played.delete(track.video_id);
   local.savePlayed(state.played);
   if (wasCurrent) {
@@ -408,8 +699,27 @@ export function userAlbums() {
   return albums.user.map((a) => ({ key: 'u:' + a.id, kind: 'user', id: a.id, name: a.name, tracks: a.tracks.filter((id) => find(id)) }));
 }
 
+/** Подборки, которые плеер собирает сам по прослушиваниям и избранному. */
+export function smartAlbums() {
+  const lib = state.library;
+  const now = Date.now() / 1000;
+  const ids = (list) => list.map((t) => t.video_id);
+  const byPlays = (a, b) => (b.plays || 0) - (a.plays || 0) || (b.last_played || 0) - (a.last_played || 0);
+  const liked = lib.filter((t) => t.liked).sort((a, b) => (b.liked_at || 0) - (a.liked_at || 0));
+  const top = lib.filter((t) => (t.plays || 0) >= 2).sort(byPlays).slice(0, 25);
+  const forgotten = lib.filter((t) => (t.plays || 0) >= 3 && t.last_played && now - t.last_played > 30 * 86400).sort(byPlays).slice(0, 25);
+  const unheard = lib.filter((t) => !t.plays && !state.played.has(t.video_id)).sort((a, b) => (b.added || 0) - (a.added || 0)).slice(0, 50);
+  const smart = (key, name, artist, list, always) => (always || list.length ? [{ key: 's:' + key, kind: 'smart', name, artist, tracks: ids(list) }] : []);
+  return [
+    ...smart('liked', 'Любимое', 'отмеченные сердцем', liked, true),
+    ...smart('top', 'Чаще всего', 'по числу прослушиваний', top),
+    ...smart('forgotten', 'Давно не слушал', 'любимые, но забытые', forgotten),
+    ...smart('unheard', 'Ещё не слушал', 'новое в библиотеке', unheard),
+  ];
+}
+
 export function findAlbum(key) {
-  return [...userAlbums(), ...metaAlbums()].find((a) => a.key === key) || null;
+  return [...smartAlbums(), ...userAlbums(), ...metaAlbums()].find((a) => a.key === key) || null;
 }
 
 export function playAlbum(album, startId) {

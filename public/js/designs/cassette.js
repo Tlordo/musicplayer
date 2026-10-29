@@ -136,13 +136,15 @@ export default {
     </label>
     <fieldset class="sort-boxes">
       <legend class="form-label">порядок</legend>
-      ${SORT_BOX('added', 'новые')}${SORT_BOX('artist', 'артист')}${SORT_BOX('title', 'название')}${SORT_BOX('album', 'альбом')}
+      ${SORT_BOX('added', 'новые')}${SORT_BOX('artist', 'артист')}${SORT_BOX('title', 'название')}${SORT_BOX('album', 'альбом')}${SORT_BOX('plays', 'частые')}
     </fieldset>
   </div>
 
   <div class="form-head" aria-hidden="true"><span>№</span><span>наименование</span><span>время</span></div>
 
   <div class="albums-view tracklist-wrap shelf">
+    <div class="shelf-head"><span class="form-label">подборки</span></div>
+    <ol class="spines" data-albums-smart></ol>
     <div class="shelf-head">
       <span class="form-label">мои кассеты</span>
       <span class="shelf-actions">
@@ -198,10 +200,14 @@ export default {
       <span class="wheels" data-wheels></span>
     </div>
     <span class="deck-top-tools">
+      <button type="button" class="icon-btn like-btn" data-act="like" data-needs-track aria-label="В любимое (F)" title="В любимое (F)"><svg><use data-like-icon href="#i-heart-line"/></svg></button>
       <button type="button" class="text-btn lyrics-btn" data-act="lyrics" data-needs-track title="Текст песни на весь экран (L)"><svg aria-hidden="true"><use href="#i-lyrics-full"/></svg>текст</button>
       <span class="menu-wrap">
         <button type="button" class="icon-btn" data-act="menu" aria-haspopup="true" aria-expanded="false" aria-label="Ещё" title="Ещё"><svg><use href="#i-more"/></svg></button>
         <div class="menu down" role="menu" hidden>
+          <button type="button" role="menuitem" data-act="queue"><svg aria-hidden="true"><use href="#i-queue"/></svg>Очередь</button>
+          <button type="button" role="menuitem" data-act="sleep"><svg aria-hidden="true"><use href="#i-moon"/></svg>Таймер сна<span class="menu-badge" data-sleep-badge hidden></span></button>
+          <button type="button" role="menuitem" data-act="stats"><svg aria-hidden="true"><use href="#i-chart"/></svg>Статистика</button>
           <button type="button" role="menuitem" data-act="add-to-album" data-needs-track><svg aria-hidden="true"><use href="#i-album"/></svg>В альбом…</button>
           <button type="button" role="menuitem" data-act="info" data-needs-track><svg aria-hidden="true"><use href="#i-info"/></svg>О треке</button>
           <button type="button" role="menuitem" data-act="download" data-needs-track><svg aria-hidden="true"><use href="#i-down"/></svg>Скачать файл</button>
@@ -308,7 +314,7 @@ export default {
 
   renderAlbumCard(a, info, { esc }) {
     const thumb = info.covers.length ? `<img src="${esc(info.covers[0])}" alt="" loading="lazy">` : '';
-    const sub = [a.kind === 'meta' ? esc(a.artist || '') : '', info.countText, info.count ? info.timeText : ''].filter(Boolean).join(' · ');
+    const sub = [esc(a.artist || ''), info.countText, info.count ? info.timeText : ''].filter(Boolean).join(' · ');
     return `<li><button type="button" class="spine" data-act="album-open" data-key="${esc(a.key)}">
       <span class="spine-stripes" aria-hidden="true"><i></i><i></i><i></i></span>
       <span class="spine-thumb">${thumb}</span>
@@ -322,7 +328,7 @@ export default {
     return `<div class="tape-head">
       <span class="row-thumb big">${thumb}</span>
       <span class="tape-title">
-        <span class="form-label">${own ? 'моя кассета' : 'альбом · ' + esc(a.artist || '')}</span>
+        <span class="form-label">${own ? 'моя кассета' : (a.kind === 'smart' ? 'подборка · ' : 'альбом · ') + esc(a.artist || '')}</span>
         <span class="tape-name">${esc(a.name)}</span>
         <span class="tape-sub">${info.countText}${info.count ? ' · ' + info.timeText : ''}</span>
       </span>

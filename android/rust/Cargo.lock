@@ -933,7 +933,7 @@ dependencies = [
 
 [[package]]
 name = "mk60-android"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "jni",
@@ -945,7 +945,7 @@ dependencies = [
 
 [[package]]
 name = "music-player"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "axum",

@@ -16,8 +16,10 @@ export const DEFAULTS = {
   volume: 0.8,
   shuffle: false,
   repeat: 'off',           // off | all | one
-  sort: 'added',           // added | artist | title | album
+  sort: 'added',           // added | artist | title | album | plays
   folded: false,           // свёрнутая библиотека на десктопе
+  normalize: true,         // выравнивать громкость треков (−14 LUFS)
+  eq: { on: false, preset: 'flat', gains: [0, 0, 0, 0, 0] },   // эквалайзер, дБ по полосам core.EQ_BANDS
 };
 
 function read(key, fallback) {
@@ -40,6 +42,8 @@ function load() {
     Object.assign(s, saved);
     s.theme = { ...DEFAULTS.theme, ...(saved.theme || {}) };
     if (!Array.isArray(s.customThemes)) s.customThemes = [];
+    s.eq = { ...DEFAULTS.eq, ...(saved.eq || {}) };
+    if (!Array.isArray(s.eq.gains) || s.eq.gains.length !== DEFAULTS.eq.gains.length) s.eq.gains = [...DEFAULTS.eq.gains];
   } else {
     // Переезд с прошлой версии интерфейса (отдельные ключи).
     for (const k of ['volume', 'shuffle', 'repeat', 'sort', 'folded']) {
@@ -48,7 +52,7 @@ function load() {
     }
     if (read('vu', true) === false) s.meter = 'off';
   }
-  if (!['added', 'artist', 'title', 'album'].includes(s.sort)) s.sort = 'added';
+  if (!['added', 'artist', 'title', 'album', 'plays'].includes(s.sort)) s.sort = 'added';
   if (!['off', 'all', 'one'].includes(s.repeat)) s.repeat = 'off';
   if (!['viz', 'lyrics', 'off'].includes(s.meter)) s.meter = 'viz';
   if (!['classic', 'cassette'].includes(s.design)) s.design = 'classic';
@@ -73,4 +77,6 @@ export const local = {
   savePlayed(set) { write('mk.played', [...set]); },
   last() { return read('mk.last', read('last', null)); },
   saveLast(id) { write('mk.last', id); },
+  upNext() { const v = read('mk.upnext', []); return Array.isArray(v) ? v.filter((id) => typeof id === 'string') : []; },
+  saveUpNext(ids) { write('mk.upnext', ids); },
 };
