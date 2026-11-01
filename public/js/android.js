@@ -62,8 +62,8 @@ if (host) {
 
   core.on('track', sendTrack);
   core.on('state', sendState);
-  audio.addEventListener('loadedmetadata', sendTrack);
-  audio.addEventListener('seeked', sendState);
+  core.onAudio('loadedmetadata', sendTrack);
+  core.onAudio('seeked', sendState);
 
   window.__mkMedia = (cmd) => {
     if (cmd === 'play') core.play();

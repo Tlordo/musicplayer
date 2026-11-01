@@ -152,6 +152,11 @@ function render() {
 
     <section class="set-sec" aria-labelledby="s-sound">
       <h3 id="s-sound">Звук</h3>
+      <label class="ed-field ed-range xfade">
+        <span class="switch-text"><span>Плавный переход</span><small>Конец трека затихает, следующий нарастает поверх него</small></span>
+        <input type="range" min="0" max="12" step="1" value="${settings.crossfade}" data-crossfade aria-label="Длина перехода, секунды">
+        <output>${crossfadeLabel()}</output>
+      </label>
       ${switchRow('normalize', 'Выравнивать громкость', 'Тихие и громкие треки звучат одинаково (EBU R128, −14 LUFS)')}
       ${eqHtml()}
     </section>
@@ -188,6 +193,8 @@ function render() {
     </section>`;
   fillServerInfo();
 }
+
+const crossfadeLabel = () => (settings.crossfade ? `${settings.crossfade} с` : 'выкл');
 
 function eqHtml() {
   const eq = settings.eq;
@@ -404,6 +411,12 @@ body.addEventListener('change', async (e) => {
 
 body.addEventListener('input', (e) => {
   const t = e.target;
+  if (t.matches('[data-crossfade]')) {
+    settings.crossfade = Number(t.value);
+    save();
+    t.parentElement.querySelector('output').textContent = crossfadeLabel();
+    return;
+  }
   if (t.matches('[data-eq-band]')) {
     // Сдвинули ползунок — пресет становится «своим», начиная с текущих значений.
     const gains = [...core.eqGains()];

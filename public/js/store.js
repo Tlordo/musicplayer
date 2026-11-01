@@ -18,6 +18,7 @@ export const DEFAULTS = {
   repeat: 'off',           // off | all | one
   sort: 'added',           // added | artist | title | album | plays
   folded: false,           // свёрнутая библиотека на десктопе
+  crossfade: 5,            // плавный переход между треками, секунды (0 — выключен)
   normalize: true,         // выравнивать громкость треков (−14 LUFS)
   eq: { on: false, preset: 'flat', gains: [0, 0, 0, 0, 0] },   // эквалайзер, дБ по полосам core.EQ_BANDS
 };
@@ -52,6 +53,7 @@ function load() {
     }
     if (read('vu', true) === false) s.meter = 'off';
   }
+  if (!(s.crossfade >= 0 && s.crossfade <= 12)) s.crossfade = DEFAULTS.crossfade;
   if (!['added', 'artist', 'title', 'album', 'plays'].includes(s.sort)) s.sort = 'added';
   if (!['off', 'all', 'one'].includes(s.repeat)) s.repeat = 'off';
   if (!['viz', 'off'].includes(s.meter)) s.meter = 'viz';
