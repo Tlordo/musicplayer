@@ -311,7 +311,6 @@ registerActions({
 // Q — очередь, F — в любимое.
 document.addEventListener('keydown', (e) => {
   if (e.target.closest('input, textarea, select, dialog, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (document.getElementById('lyrics-full').hidden === false) return;
   if (e.code === 'KeyQ') openQueue();
   else if (e.code === 'KeyF' && state.current) core.toggleLike(state.current);
 });

@@ -1,6 +1,7 @@
 // Текст песни: musetext во фрейме того же сайта, которому плеер отдаёт трек, позицию и звук
 // через window.mkHost (см. public/musetext/js/host-bridge.js).
-// Два режима: встроенный — на месте индикатора дизайна, и полноэкранный — поверх всего.
+// Сцена делится на два фрейма: слова на прозрачном фоне лежат поверх плеера, а фон и вспышки —
+// позади него, так что обложка и кнопки остаются на виду. Оба фрейма не перехватывают нажатия.
 
 import * as core from './core.js';
 import { state, audio } from './core.js';
@@ -9,9 +10,9 @@ import { albumOf } from './format.js';
 
 const subs = new Map();   // имя фрейма → обработчики
 let frameSeq = 0;
-let inline = null;        // { frame, slot, status }
-let full = null;          // фрейм полноэкранного режима
+let view = null;          // открытый текст: { frame, fx, status, wait, notFound }
 const overlay = document.getElementById('lyrics-full');
+const html = document.documentElement;
 
 function session() {
   const t = state.current;
@@ -57,26 +58,24 @@ window.mkHost = {
     const t = state.current;
     return t ? new URL(t.thumbnail_api, location.href).href : null;
   },
-  status(msg, mode) { if (mode === 'inline') setInlineStatus(msg); },
+  status(msg) { setStatus(msg); },
   audioReactOff() { return !settings.lyricsReact; },
 };
 
 // Во вступлении musetext показывает пустую сцену — подписываем, что это не поломка.
-const waitEl = () => inline && inline.wait;
 setInterval(() => {
-  const w = waitEl();
-  if (!w) return;
+  if (!view) return;
+  const w = view.wait;
   let first = null;
   try {
-    const app = inline.frame.contentWindow.museApp;
+    const app = view.frame.contentWindow.museApp;
     if (app && app.timeline && app.timeline.length) first = app.timeline[0].start;
   } catch { /* фрейм ещё грузится */ }
   const t = state.current;
   const left = first != null ? first - audio.currentTime : null;
-  const searching = first == null && !inline.notFound;
+  const searching = first == null && !view.notFound;
   const show = !!t && (searching || (left != null && left > 1));
   if (show) {
-    w.querySelector('b').textContent = t.title;
     if (searching) {
       w.querySelector('span').textContent = 'ищу текст песни…';
     } else {
@@ -87,98 +86,99 @@ setInterval(() => {
   w.hidden = !show;
 }, 500);
 
-function makeFrame(mode) {
+function makeFrame(layer) {
   const f = document.createElement('iframe');
   f.name = `mk-lyrics-${++frameSeq}`;
-  f.src = `musetext/index.html?embed=${mode}`;
-  f.title = 'Текст песни';
-  f.allow = 'fullscreen; autoplay';
-  f.className = `lyrics-frame lyrics-frame-${mode}`;
+  f.src = `musetext/index.html?embed=${layer}`;
+  f.title = layer === 'text' ? 'Текст песни' : '';
+  f.tabIndex = -1;
+  f.allow = 'autoplay';
+  f.className = `lyrics-frame lyrics-${layer}`;
+  if (layer === 'fx') f.setAttribute('aria-hidden', 'true');
   return f;
 }
 
-function dropFrame(f) {
-  if (!f) return;
-  subs.delete(f.name);
-  f.remove();
-}
-
-// ============ Встроенный режим ============
 let statusTimer = null;
-function setInlineStatus(msg) {
-  if (!inline) return;
+function setStatus(msg) {
+  if (!view) return;
   clearTimeout(statusTimer);
-  inline.status.textContent = msg;
-  inline.status.hidden = !msg;
-  if (/не найден|пуст/i.test(msg)) inline.notFound = true;
+  view.status.textContent = msg;
+  view.status.hidden = !msg;
+  if (/не найден|пуст/i.test(msg)) view.notFound = true;
   // Итоговые сообщения («LRCLIB · 34 строк…») прячем, «не найден» оставляем на виду.
   if (msg && !/не найден|пуст/i.test(msg)) {
-    statusTimer = setTimeout(() => { if (inline) inline.status.hidden = true; }, /строк/.test(msg) ? 2500 : 6000);
+    statusTimer = setTimeout(() => { if (view) view.status.hidden = true; }, /строк/.test(msg) ? 2500 : 6000);
   }
 }
 
-function visible(el) {
-  return !!(el && el.offsetParent !== null && el.getClientRects().length);
+// ============ Слой поверх плеера ============
+/** Нижний край слоя — верх кнопок управления, их дизайн отмечает data-lyrics-floor. */
+function place() {
+  const player = document.querySelector('.player');
+  if (!view || !player) return;
+  player.scrollTop = 0;
+  const floor = player.querySelector('[data-lyrics-floor]');
+  const h = floor ? player.getBoundingClientRect().bottom - floor.getBoundingClientRect().top : 0;
+  overlay.style.setProperty('--lyrics-floor', `${Math.max(0, Math.round(h))}px`);
 }
 
-/** Привести встроенный фрейм в соответствие с настройками и разметкой. */
-export function syncInline() {
-  const slot = document.querySelector('[data-lyrics-slot]');
-  const want = settings.meter === 'lyrics' && state.current && !full && visible(slot);
-  if (!want) {
-    if (inline) { dropFrame(inline.frame); inline.status.remove(); inline.wait.remove(); inline = null; }
+export function openFull() {
+  if (!state.current) {
+    core.emit('toast', { text: 'Сначала включите трек', type: 'info' });
     return;
   }
-  if (inline && inline.slot === slot && slot.contains(inline.frame)) return;
-  if (inline) { dropFrame(inline.frame); inline.status.remove(); inline.wait.remove(); }
-  const frame = makeFrame('inline');
+  const player = document.querySelector('.player');
+  if (view || !player) return;
+  const frame = makeFrame('text');
+  const fx = makeFrame('fx');
   const status = document.createElement('p');
   status.className = 'lyrics-status';
   status.hidden = true;
   const wait = document.createElement('div');
   wait.className = 'lyrics-wait';
   wait.hidden = true;
-  wait.innerHTML = '<b></b><span></span>';
-  slot.append(frame, wait, status);
-  inline = { frame, slot, status, wait };
-}
-
-// ============ Полноэкранный режим ============
-export function openFull() {
-  if (!state.current) {
-    core.emit('toast', { text: 'Сначала включите трек', type: 'info' });
-    return;
-  }
-  if (full) return;
-  full = makeFrame('full');
-  overlay.append(full);
+  wait.innerHTML = '<span></span>';
+  overlay.prepend(frame, wait, status);
+  view = { frame, fx, status, wait, notFound: false };
+  player.append(fx, overlay);
+  html.classList.add('lyrics-open');
   overlay.hidden = false;
-  document.documentElement.classList.add('lyrics-open');
-  syncInline();
-  overlay.querySelector('.lyrics-close').focus();
+  place();
+  renderButtons();
 }
 
 export function closeFull() {
-  if (!full) return;
-  dropFrame(full);
-  full = null;
+  if (!view) return;
+  subs.delete(view.frame.name);
+  subs.delete(view.fx.name);
+  view.frame.remove();
+  view.fx.remove();
+  view.status.remove();
+  view.wait.remove();
+  view = null;
   overlay.hidden = true;
-  document.documentElement.classList.remove('lyrics-open');
-  syncInline();
+  html.classList.remove('lyrics-open');
+  // Разметка плеера пересоздаётся при смене дизайна, а слой должен пережить её.
+  document.body.append(overlay);
+  renderButtons();
+}
+
+function renderButtons() {
+  document.querySelectorAll('[data-act="lyrics"]').forEach((b) => b.setAttribute('aria-pressed', String(!!view)));
+}
+
+export function toggleLyrics() {
+  if (view) closeFull(); else openFull();
 }
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && full) closeFull();
+  if (e.key === 'Escape' && view && !document.querySelector('dialog[open]')) closeFull();
 });
-// Кнопка «Закрыть» работает сама по себе, независимо от общего обработчика действий.
-overlay.querySelector('.lyrics-close').addEventListener('click', () => closeFull());
 
 // Плеер рассказывает musetext обо всём, что меняется, и раз в секунду подтверждает позицию.
-core.on('track', () => { push(); syncInline(); });
+core.on('track', (t) => { push(); if (!t) closeFull(); else requestAnimationFrame(place); });
 core.on('state', push);
 core.on('time', push);
-core.on('meter', syncInline);
-// Встроенный текст живёт только в видимом плеере: на телефоне — после перехода на вкладку плеера.
-core.on('tab', () => requestAnimationFrame(syncInline));
+core.on('tab', () => requestAnimationFrame(place));
 setInterval(() => { if (subs.size && !audio.paused) push(); }, 1000);
-window.addEventListener('resize', () => requestAnimationFrame(syncInline));
+window.addEventListener('resize', () => requestAnimationFrame(place));

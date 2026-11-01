@@ -451,7 +451,7 @@ html:not(.has-track) .mini { display: none; }
   left: 0;
   right: 0;
   bottom: 0;
-  height: 26%;
+  height: 12%;
   width: 100%;
   z-index: -1;
   opacity: var(--spectrum-opacity);
@@ -506,6 +506,7 @@ html:not([data-meter="viz"]) .spectrum { display: none; }
 .lyrics-btn svg { font-size: 20px; }
 .lyrics-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--text) 16%, transparent); }
 .lyrics-btn:disabled { opacity: 0.35; }
+.lyrics-btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 @media (min-width: 960px) {
   .player-top-title { visibility: hidden; }
 }
@@ -557,15 +558,6 @@ html.has-track .cover-empty { display: none; }
 /* мини-эквалайзер под обложкой — только на телефоне */
 .spectrum-mini { display: none; width: min(64%, 260px); height: 26px; }
 
-/* текст песни — полоса на месте индикатора, обложка остаётся на виду */
-.lyrics-band {
-  width: 100%;
-  height: clamp(140px, 24dvh, 260px);
-  border-radius: 14px;
-  box-shadow: 0 18px 40px -20px var(--shadow-cover);
-}
-html:not(.has-track) .lyrics-band { display: none; }
-
 .details { display: grid; gap: 6px; min-width: 0; width: 100%; }
 .meta {
   display: flex;
@@ -580,8 +572,6 @@ html:not(.has-track) .lyrics-band { display: none; }
 .meta-album { font-weight: 600; color: var(--text-2); }
 .meta-year { color: var(--text-3); }
 .meta > :not([hidden]) ~ :not([hidden])::before { content: '•'; margin-right: 10px; color: var(--text-3); }
-.pill { padding: 2px 9px; border-radius: 999px; background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text-2); font-weight: 600; }
-.meta > .pill::before { display: none; }
 .title {
   font-family: var(--ui-font-head);
   font-size: clamp(1.6rem, 4.2vw, 2.7rem);
@@ -596,18 +586,15 @@ html:not(.has-track) .lyrics-band { display: none; }
   overflow: hidden;
 }
 .artist { font-size: clamp(1rem, 1.6vw, 1.2rem); color: var(--text-2); }
-.stats { display: flex; justify-content: center; gap: 18px; margin-top: 4px; font-size: 0.85rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
-.stats > span { display: inline-flex; align-items: center; gap: 6px; }
-html:not(.has-track) .stats,
 html:not(.has-track) .meta { visibility: hidden; }
 
 @media (min-width: 960px) {
   .hero { grid-template-columns: auto minmax(0, 1fr); align-items: end; justify-items: start; text-align: left; gap: 36px; }
   .art { width: clamp(240px, 28vw, 380px); }
-  .meta, .stats { justify-content: flex-start; }
+  .meta { justify-content: flex-start; }
   .spectrum-mini { display: none !important; }
-  /* с текстом песни обложка чуть меньше, чтобы полоса текста поместилась */
-  html[data-meter="lyrics"].has-track .art { width: clamp(200px, 22vw, 280px); }
+  /* настройки уже есть в шапке библиотеки — вторая шестерёнка нужна, только когда она свёрнута */
+  html:not(.folded) .settings-top { display: none; }
 }
 
 /* ============ Управление ============ */
@@ -713,9 +700,6 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border: 0; bo
   .spectrum { display: none !important; }
   .art { width: min(100%, 34dvh, 420px); }
   html[data-meter="viz"] .spectrum-mini { display: block; margin-top: -6px; }
-  html[data-meter="lyrics"].has-track .art { width: min(50%, 20dvh); }
-  html[data-meter="lyrics"].has-track .stats { display: none; }
-  .lyrics-band { height: clamp(110px, 18dvh, 170px); }
   .hero { gap: 14px; }
   .player-top-title { font-size: 0.72rem; }
 }

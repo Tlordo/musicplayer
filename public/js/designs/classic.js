@@ -200,7 +200,7 @@ export default {
     <button type="button" class="icon-btn unfold-btn" data-act="unfold" aria-label="Показать библиотеку" title="Показать библиотеку (B)"><svg><use href="#i-list"/></svg></button>
     <button type="button" class="icon-btn back-btn" data-act="tab-library" aria-label="К библиотеке"><svg><use href="#i-chev-down"/></svg></button>
     <span class="player-top-title">Сейчас играет</span>
-    <button type="button" class="lyrics-btn" data-act="lyrics" data-needs-track title="Текст песни на весь экран (L)"><svg aria-hidden="true"><use href="#i-lyrics-full"/></svg><span>Текст</span></button>
+    <button type="button" class="lyrics-btn" data-act="lyrics" data-needs-track title="Текст песни (L)"><svg aria-hidden="true"><use href="#i-lyrics-full"/></svg><span>Текст</span></button>
     <button type="button" class="icon-btn settings-top" data-act="settings" aria-label="Настройки" title="Настройки"><svg><use href="#i-gear"/></svg></button>
   </header>
 
@@ -219,18 +219,11 @@ export default {
         <p class="meta">
           <span class="meta-album" data-bind="album" data-hide-empty></span>
           <span class="meta-year" data-bind="year" data-hide-empty></span>
-          <span class="pill" data-bind="bitrate" data-hide-empty></span>
-        </p>
-        <p class="stats">
-          <span title="Просмотры"><svg aria-hidden="true"><use href="#i-eye"/></svg><span data-bind="views"></span></span>
-          <span title="Лайки"><svg aria-hidden="true"><use href="#i-heart"/></svg><span data-bind="likes"></span></span>
         </p>
       </div>
     </section>
 
-    <div class="lyrics-band lyrics-slot" data-lyrics-slot></div>
-
-    <section class="deck">
+    <section class="deck" data-lyrics-floor>
       <div class="seek" data-seek role="slider" tabindex="0" aria-label="Перемотка" aria-valuemin="0" aria-valuemax="100">
         <canvas class="wave" data-wave aria-hidden="true"></canvas>
       </div>
@@ -250,11 +243,10 @@ export default {
         <div class="extras-btns">
           <button type="button" class="icon-btn toggle like-btn" data-act="like" data-needs-track aria-label="В любимое (F)" title="В любимое (F)"><svg><use data-like-icon href="#i-heart-line"/></svg></button>
           <button type="button" class="icon-btn toggle" data-act="meter" aria-label="Спектр (V)" title="Спектр (V)"><svg><use href="#i-meter"/></svg></button>
-          <button type="button" class="icon-btn toggle" data-act="lyrics-inline" aria-label="Текст песни вместо спектра" title="Текст песни вместо спектра"><svg><use href="#i-lyrics"/></svg></button>
+          <button type="button" class="icon-btn" data-act="queue" aria-label="Очередь (Q)" title="Очередь (Q)"><svg><use href="#i-queue"/></svg></button>
           <span class="menu-wrap">
             <button type="button" class="icon-btn" data-act="menu" aria-haspopup="true" aria-expanded="false" aria-label="Ещё" title="Ещё"><svg><use href="#i-more"/></svg></button>
             <div class="menu" role="menu" hidden>
-              <button type="button" role="menuitem" data-act="queue"><svg aria-hidden="true"><use href="#i-queue"/></svg>Очередь</button>
               <button type="button" role="menuitem" data-act="sleep"><svg aria-hidden="true"><use href="#i-moon"/></svg>Таймер сна<span class="menu-badge" data-sleep-badge hidden></span></button>
               <button type="button" role="menuitem" data-act="stats"><svg aria-hidden="true"><use href="#i-chart"/></svg>Статистика</button>
               <button type="button" role="menuitem" data-act="add-to-album" data-needs-track><svg aria-hidden="true"><use href="#i-album"/></svg>В альбом…</button>

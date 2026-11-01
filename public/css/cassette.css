@@ -129,8 +129,7 @@ html:not([data-tab="player"]) .player { display: none; }
   overflow: hidden;
 }
 .brand { display: flex; flex-direction: column; padding-bottom: 10px; }
-.brand-mk { font-weight: 700; font-size: 2.6rem; line-height: 0.9; letter-spacing: -0.01em; }
-.brand-sub { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--print-2); margin-top: 4px; }
+.brand-mk { font-weight: 700; font-size: 1.9rem; line-height: 0.9; letter-spacing: -0.01em; }
 
 .stripes { display: flex; gap: 7px; align-self: stretch; margin-right: -18px; transform: skewX(-24deg); }
 .stripes i { display: block; width: 18px; }
@@ -146,15 +145,12 @@ html:not([data-tab="player"]) .player { display: none; }
   padding: 12px 20px 8px;
   border-bottom: 1px solid var(--rule);
 }
-.owner-name { color: var(--ball); font-size: 1.45rem; line-height: 1; white-space: nowrap; }
-/* сторона А — библиотека, сторона Б — рекомендации */
 .side-switch { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
-.side-word { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--print-2); margin-right: 3px; }
 .side-btn {
   display: inline-grid;
   place-items: center;
-  min-width: 30px;
-  height: 30px;
+  min-height: 36px;
+  padding: 0 10px;
   border: 1.5px solid var(--print);
   font-weight: 700;
   font-size: 0.95rem;
@@ -167,8 +163,6 @@ html[data-libview="library"] .side-a,
 html[data-libview="recs"] .side-b,
 html[data-libview="albums"] .side-shelf,
 html[data-libview="album"] .side-shelf { background: var(--print); color: var(--card); }
-.side-shelf { padding: 0 8px; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; margin-left: 4px; }
-html[data-libview="albums"] .form-head { display: none; }
 
 /* ============ Полка с кассетами (альбомы) ============ */
 .shelf { background: var(--card) !important; padding: 0 14px 16px 20px; }
@@ -333,21 +327,6 @@ li.removable .row { border-bottom: 0; }
   .sort-boxes legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 }
 
-.form-head {
-  display: grid;
-  grid-template-columns: 3rem 1fr 4.2rem;
-  --thumb: 0px;
-  border-top: 2px solid var(--print);
-  border-bottom: 1px solid var(--print);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--print-2);
-}
-.form-head span { padding: 6px 10px; }
-.form-head span:first-child { text-align: center; border-right: 1.5px solid var(--orange); }
-.form-head span:last-child { border-left: 1px solid var(--rule); text-align: center; }
 
 .tracklist-wrap {
   flex: 1;
@@ -387,7 +366,7 @@ li.removable .row { border-bottom: 0; }
   color: var(--print-2);
   font-variant-numeric: tabular-nums;
 }
-.row-num > svg { position: absolute; inset: 50% auto auto 1px; width: 22px; height: 22px; translate: 0 -62%; color: var(--ball); opacity: 0.85; }
+.row-num > svg { position: absolute; inset: 50% auto auto 1px; width: 22px; height: 22px; translate: 0 -62%; color: var(--ball); opacity: 0.35; }
 
 /* обложка — маленькая фотокарточка, вклеенная в строку вкладыша */
 .row-thumb {
@@ -500,6 +479,7 @@ li.removable .row { border-bottom: 0; }
 
 /* ============ Дека ============ */
 .player {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -514,25 +494,25 @@ li.removable .row { border-bottom: 0; }
 .player > * { width: 100%; max-width: 560px; }
 
 .deck-top { display: flex; align-items: center; gap: 12px; min-height: 44px; }
-.side-badge {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 1.5px solid var(--on-shell-3);
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--on-shell-2);
-}
+/* обложка с названием — по центру свободного места, управление прижато к клавишам */
+.case { margin-top: auto; }
+.now { margin-bottom: auto; }
 .deck-top-tools { margin-left: auto; display: flex; align-items: center; color: var(--on-shell-2); }
 .lyrics-btn { padding: 0 10px; border: 1.5px solid color-mix(in srgb, var(--on-shell) 22%, transparent); min-height: 38px; margin-right: 4px; }
 .lyrics-btn svg { font-size: 19px; }
+.lyrics-btn[aria-pressed="true"] { color: var(--orange); border-color: var(--orange); }
 .menu { right: 0; }
 .deck-top-tools .icon-btn:hover:not(:disabled) { color: var(--on-shell); }
 
-.counter { display: flex; align-items: center; gap: 10px; }
-.counter-label { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--on-shell-3); }
+.seek-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.seek-total { font-family: var(--f-mono); font-size: 0.95rem; color: var(--on-shell-2); }
+.seek-line { position: relative; height: 32px; cursor: pointer; touch-action: none; }
+.seek-line::before,
+.seek-line::after { content: ''; position: absolute; left: 0; top: 50%; height: 4px; margin-top: -2px; border-radius: 2px; }
+.seek-line::before { right: 0; background: #34363d; }
+.seek-line::after { width: calc(var(--p, 0) * 100%); background: var(--orange); }
+.seek-line:hover::before { background: #4a4d57; }
+.seek-line:focus-visible { outline-offset: 2px; }
 .wheels { display: inline-flex; gap: 2px; padding: 3px; background: #050506; border-radius: 4px; }
 .wheel {
   position: relative;
@@ -576,18 +556,6 @@ li.removable .row { border-bottom: 0; }
   cursor: zoom-in;
 }
 .jfront:hover:not(:disabled) { rotate: -1deg; translate: 0 -3px; }
-.jfront-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 2px 2px 6px;
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--print-2);
-}
-.jfront-head b { font-size: 1.05rem; letter-spacing: 0; color: var(--print); }
 .jfront-art { position: relative; display: block; aspect-ratio: 1; overflow: hidden; background: var(--card-2); }
 .jfront-art img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.4s; }
 .jfront-art img.loaded { opacity: 1; }
@@ -601,11 +569,6 @@ li.removable .row { border-bottom: 0; }
   background: repeating-linear-gradient(transparent 0 15px, var(--rule) 15px 16px);
 }
 html.has-track .jfront-empty { display: none; }
-.jfront-stripes { display: flex; height: 10px; margin: 6px -6px 0; }
-.jfront-stripes i { flex: 1; }
-.jfront-stripes i:nth-child(1) { background: var(--orange); }
-.jfront-stripes i:nth-child(2) { background: var(--yellow); }
-.jfront-stripes i:nth-child(3) { background: var(--cobalt); flex: 2; }
 
 /* кассета перекрывает низ вкладыша — как лежит на столе рядом с коробкой */
 .cassette {
@@ -666,13 +629,7 @@ html.has-track .jfront-empty { display: none; }
   background: var(--card);
   border-bottom: 1px solid var(--rule);
 }
-.label-side { flex: none; font-weight: 700; font-size: 1.1rem; line-height: 1; padding: 2px 6px; background: var(--print); color: var(--card); border-radius: 2px; }
 .label-title { min-width: 0; font-size: clamp(0.95rem, 3.6vw, 1.3rem); color: var(--ball); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.label-stripes { position: absolute; inset: auto 0 0; height: 9%; display: flex; }
-.label-stripes i { flex: 1; }
-.label-stripes i:nth-child(1) { background: var(--orange); }
-.label-stripes i:nth-child(2) { background: var(--yellow); }
-.label-stripes i:nth-child(3) { background: var(--cobalt); flex: 2; }
 
 /* окно кассеты — это и есть перемотка: ведите по ленте */
 .window-scrub {
@@ -719,55 +676,34 @@ html.has-track .jfront-empty { display: none; }
   overflow: hidden;
 }
 .now-artist { margin-top: 6px; font-size: 1.05rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--yellow); }
-.now-meta { margin-top: 4px; font-size: 0.9rem; color: var(--on-shell-2); font-variant-numeric: tabular-nums; }
 @media (max-width: 959px) {
   .now-title { font-size: clamp(1.6rem, 6.6vw, 2.2rem); }
-  .now-meta { display: none; }
 }
 @media (max-width: 480px) {
-  .counter-label { display: none; }
   .deck-top { gap: 6px; }
   .player { gap: 12px; }
 }
-.now-meta:empty { display: none; }
-.times { display: flex; justify-content: center; gap: 8px; margin-top: 6px; font-family: var(--f-mono); font-size: 0.9rem; color: var(--on-shell-2); }
-.times-sep { color: var(--on-shell-3); }
 
 /* ---------- панель деки ---------- */
 .panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 12px;
-  background: linear-gradient(color-mix(in srgb, var(--deck) 80%, #3a3d46), color-mix(in srgb, var(--deck) 90%, #3a3d46));
-  border: 1px solid color-mix(in srgb, var(--deck) 70%, #50535c);
+  gap: 6px;
 }
 .panel-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
-.panel-row.actions { justify-content: space-around; }
 
-/* стекло индикатора: флуоресцентные сегменты или текст песни */
+/* стекло индикатора */
 .meter-box {
   position: relative;
   border-radius: 6px;
   overflow: hidden;
   background: #050608;
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-  height: clamp(64px, 11dvh, 96px);
+  height: clamp(40px, 6dvh, 60px);
 }
 .vfd { display: block; width: 100%; height: 100%; padding: 6px 4px; }
 html[data-meter="off"] .meter-box { display: none; }
-html[data-meter="lyrics"] .vfd { display: none; }
-.meter-box .lyrics-slot { position: absolute; inset: 0; }
-html[data-meter="lyrics"] .meter-box { height: clamp(120px, 18dvh, 200px); }
-/* с текстом песни на телефоне обложка и кассета скромнее, чтобы всё влезло над клавишами */
-@media (max-width: 959px) {
-  html[data-meter="lyrics"].has-track .jfront { --w: min(50%, 26dvh); }
-  html[data-meter="lyrics"].has-track .cassette { --w: min(54%, calc(17dvh * 1.58)); }
-}
-html[data-meter="lyrics"]:not(.has-track) .meter-box { display: none; }
-
 .led-btn {
   position: relative;
   display: inline-flex;
@@ -781,14 +717,10 @@ html[data-meter="lyrics"]:not(.has-track) .meter-box { display: none; }
   border-radius: 8px;
   font-size: 20px;
   color: var(--on-shell-2);
-  background: color-mix(in srgb, var(--deck) 70%, #50535c);
-  box-shadow: 0 2px 0 #0c0d0f, 0 3px 6px rgba(0, 0, 0, 0.35);
-  transition: color 0.2s, transform 0.1s, box-shadow 0.1s;
+  transition: color 0.2s;
 }
-.led-btn:active { transform: translateY(2px); box-shadow: 0 0 0 #0c0d0f, 0 1px 2px rgba(0, 0, 0, 0.35); }
-.led { width: 7px; height: 7px; border-radius: 50%; background: #3b3d45; transition: background-color 0.2s; }
-.led-btn.on { color: var(--on-shell); }
-.led-btn.on .led { background: radial-gradient(circle at 40% 35%, #ffd2bd 0 18%, var(--orange) 45%, #c63a0a 100%); }
+.led-btn:hover { color: var(--on-shell); }
+.led-btn.on { color: var(--orange); }
 .repeat-one { position: absolute; right: 6px; bottom: 4px; font-size: 0.68rem; font-weight: 700; color: var(--orange); display: none; }
 .led-btn.one .repeat-one { display: block; }
 
@@ -877,15 +809,16 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 22px; border: 0; bo
 @media (min-width: 960px) {
   .player > * { max-width: 760px; }
   .case { grid-template-columns: auto auto; justify-content: center; align-items: center; gap: clamp(20px, 3vw, 44px); }
-  .jfront { --w: min(30dvh, 280px); justify-self: auto; margin: 0; }
+  .jfront { --w: min(38dvh, 360px); justify-self: auto; margin: 0; }
   .cassette { --w: min(calc(30dvh * 1.58), 440px); justify-self: auto; margin: 0; }
-  .panel { max-width: 640px; }
+  .panel { max-width: 632px; }
+  html:not(.folded) .settings-top { display: none; }
 }
 
 /* ============ Компактные телефоны ============ */
 @media (max-height: 720px) and (max-width: 959px) {
   .meter-box { height: 52px; }
-  .panel { padding: 8px; gap: 6px; }
+  .panel { gap: 4px; }
   .now-artist { margin-top: 2px; }
 }
 
