@@ -8,7 +8,7 @@ export const DEFAULTS = {
   theme: { classic: 'emerald', cassette: 'mk60' },
   customThemes: [],        // [{ id, name, design, vars: { '--accent': '#…' } }]
   coverColors: false,      // акцент из обложки текущего трека (по умолчанию — цвета темы)
-  meter: 'viz',            // 'viz' — индикатор дизайна, 'lyrics' — текст песни, 'off'
+  meter: 'viz',            // 'viz' — индикатор дизайна, 'off'
   lyricsReact: true,       // musetext реагирует на звук плеера
   resumeLast: true,        // при запуске вставлять последний трек
   autoNext: true,          // по окончании играть следующий
@@ -54,7 +54,7 @@ function load() {
   }
   if (!['added', 'artist', 'title', 'album', 'plays'].includes(s.sort)) s.sort = 'added';
   if (!['off', 'all', 'one'].includes(s.repeat)) s.repeat = 'off';
-  if (!['viz', 'lyrics', 'off'].includes(s.meter)) s.meter = 'viz';
+  if (!['viz', 'off'].includes(s.meter)) s.meter = 'viz';
   if (!['classic', 'cassette'].includes(s.design)) s.design = 'classic';
   return s;
 }

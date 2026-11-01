@@ -4,7 +4,7 @@ import * as core from './core.js';
 import { settings, save, local } from './store.js';
 import { registerDesigns, applyTheme, currentDesign } from './themes.js';
 import { mountDesign, registerActions, renderState } from './ui.js';
-import { openFull, closeFull, syncInline } from './lyrics.js';
+import { closeFull, toggleLyrics } from './lyrics.js';
 import { initSettings, openSettings } from './settings.js';
 import { renderAlbums, renderJobs } from './albums.js';
 import './extras.js';
@@ -19,6 +19,7 @@ registerDesigns(DESIGNS);
 function switchDesign(id, force) {
   if (!DESIGNS[id]) id = 'classic';
   if (id === settings.design && !force) return;
+  closeFull();
   settings.design = id;
   save();
   const link = document.getElementById('design-css');
@@ -29,7 +30,6 @@ function switchDesign(id, force) {
     mountDesign();
     renderAlbums();
     renderJobs();
-    syncInline();
   };
   if (link.getAttribute('href') === href) { done(); return; }
   // Новая таблица стилей грузится рядом со старой, чтобы не было кадра без оформления.
@@ -43,8 +43,7 @@ function switchDesign(id, force) {
 
 registerActions({
   settings: () => openSettings(),
-  lyrics: () => openFull(),
-  'lyrics-close': () => closeFull(),
+  lyrics: () => toggleLyrics(),
 });
 
 initSettings(DESIGNS, switchDesign);
@@ -61,7 +60,6 @@ async function boot() {
     if (t) core.cue(t);
   }
   renderState();
-  syncInline();
   core.loadAlbums();
   core.pollJobs();
 }

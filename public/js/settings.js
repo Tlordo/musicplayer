@@ -90,7 +90,7 @@ function switchRow(key, title, hint, checked = settings[key]) {
 function render() {
   const design = currentDesign();
   const active = activeTheme(design);
-  const meterOpts = [['viz', design.meterName], ['lyrics', 'Текст песни'], ['off', 'Выключен']];
+  const meterOpts = [['viz', design.meterName], ['off', 'Выключен']];
 
   body.innerHTML = `
     <header class="sheet-head">
@@ -136,7 +136,7 @@ function render() {
       <div class="segmented" role="radiogroup" aria-labelledby="s-meter">
         ${meterOpts.map(([v, label]) => `<button type="button" role="radio" aria-checked="${settings.meter === v}" data-s="meter" data-v="${v}">${label}</button>`).join('')}
       </div>
-      <p class="hint">«Текст песни» — musetext: слова в такт треку на месте индикатора. Полноэкранный режим открывается кнопкой <svg class="inline-icon"><use href="#i-expand"/></svg> или клавишей L.</p>
+      <p class="hint">Текст песни — musetext: слова в такт треку. Кнопка «Текст» или клавиша L: слова появляются поверх плеера, а фон и вспышки — позади него.</p>
       ${switchRow('lyricsReact', 'Текст реагирует на звук', 'Вспышки и движение слов в такт музыке')}
     </section>
 

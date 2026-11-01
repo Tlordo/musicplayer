@@ -127,7 +127,6 @@ export function renderState() {
     b.title = { off: 'Повтор выключен (R)', all: 'Повтор всего списка (R)', one: 'Повтор одного трека (R)' }[settings.repeat];
   });
   $$('[data-act="meter"]').forEach((b) => { b.classList.toggle('on', settings.meter === 'viz'); b.setAttribute('aria-pressed', settings.meter === 'viz'); });
-  $$('[data-act="lyrics-inline"]').forEach((b) => { b.classList.toggle('on', settings.meter === 'lyrics'); b.setAttribute('aria-pressed', settings.meter === 'lyrics'); });
   html.dataset.meter = settings.meter;
   const vol = Math.round(audio.volume * 100);
   $$('input[data-volume]').forEach((r) => { r.value = audio.muted ? 0 : vol; r.style.setProperty('--fill', `${audio.muted ? 0 : vol}%`); });
@@ -264,7 +263,6 @@ const builtin = {
   repeat: () => core.cycleRepeat(),
   mute: () => core.toggleMute(),
   meter: () => { settings.meter = settings.meter === 'viz' ? 'off' : 'viz'; save(); core.emit('meter'); },
-  'lyrics-inline': () => { settings.meter = settings.meter === 'lyrics' ? 'viz' : 'lyrics'; save(); core.emit('meter'); },
   add: () => openAdd(),
   info: () => openInfo(),
   download: () => download(),
@@ -630,7 +628,6 @@ if ('mediaSession' in navigator) {
 // ============ Горячие клавиши ============
 document.addEventListener('keydown', (e) => {
   if (e.target.closest('input, textarea, select, dialog, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (document.getElementById('lyrics-full').hidden === false && e.code !== 'Escape') return;
   // Пробел и Enter на кнопке в фокусе нажимают её саму — не дублируем это паузой.
   if ((e.code === 'Space' || e.code === 'Enter') && e.target.closest('button, [role="button"]')) return;
   switch (e.code) {

@@ -470,61 +470,34 @@ dialog::backdrop { background: rgba(4, 4, 6, 0.64); }
 .ed-range output { min-width: 3.5em; text-align: right; color: var(--ui-text-2); font-variant-numeric: tabular-nums; }
 
 /* ============ Текст песни ============ */
-.lyrics-slot { position: relative; display: none; overflow: hidden; background: #000; }
-html[data-meter="lyrics"] .lyrics-slot { display: block; }
-.lyrics-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #000; }
-.lyrics-status {
+/* Слова поверх плеера, но выше кнопок; фон и вспышки — под всем его содержимым. Клики проходят насквозь. */
+.lyrics-full {
+  position: absolute;
+  inset: 0 0 var(--lyrics-floor, 0);
+  z-index: 8;
+  overflow: hidden;
+  pointer-events: none;
+}
+.player > .lyrics-full { width: auto; max-width: none; }
+.player > .lyrics-fx { width: 100%; max-width: none; }
+html.lyrics-open .player { overflow: hidden; isolation: isolate; }
+.lyrics-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; pointer-events: none; color-scheme: dark; background: transparent; }
+.lyrics-fx { z-index: -1; opacity: 0.6; transition: opacity 0.5s; }
+.lyrics-status,
+.lyrics-wait {
   position: absolute;
   left: 12px;
   right: 12px;
   bottom: 10px;
   z-index: 1;
-  font: 600 0.8rem/1.35 var(--ui-font);
-  color: rgba(255, 255, 255, 0.78);
-  text-align: center;
-  pointer-events: none;
-}
-/* пока идёт вступление — название трека и сколько ждать первой строки */
-.lyrics-wait {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: grid;
-  place-content: center;
-  gap: 6px;
-  padding: 16px;
-  text-align: center;
+  font: 600 0.85rem/1.35 var(--ui-font);
   color: #fff;
-  pointer-events: none;
-  /* мягкая подложка — подпись читается на любом фоне musetext */
-  background: radial-gradient(70% 80% at 50% 50%, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.2));
-  transition: opacity 0.4s;
+  text-align: center;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+  font-variant-numeric: tabular-nums;
 }
-.lyrics-wait[hidden] { display: grid !important; opacity: 0; }
-.lyrics-wait b { font: 700 clamp(1.1rem, 3vw, 1.6rem)/1.15 var(--ui-font-head); letter-spacing: -0.01em; text-wrap: balance; }
-.lyrics-wait span { font: 500 0.85rem/1.3 var(--ui-font); color: rgba(255, 255, 255, 0.9); font-variant-numeric: tabular-nums; }
-
-.lyrics-full { position: fixed; inset: 0; z-index: 20; background: #000; animation: lyrics-in 0.45s var(--ease-out); }
-@keyframes lyrics-in { from { opacity: 0; transform: scale(1.03); } }
-.lyrics-close {
-  position: absolute;
-  z-index: 2;
-  left: calc(14px + env(safe-area-inset-left, 0px));
-  top: calc(12px + var(--safe-t));
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 16px 0 12px;
-  border-radius: 999px;
-  font: 600 0.95rem/1 var(--ui-font);
-  color: #fff;
-  background: rgba(0, 0, 0, 0.72);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28), 0 6px 18px rgba(0, 0, 0, 0.4);
-  transition: background-color 0.18s;
-}
-.lyrics-close svg { font-size: 20px; }
-.lyrics-close:hover { background: rgba(0, 0, 0, 0.88); }
+.lyrics-wait { bottom: 32px; transition: opacity 0.4s; }
+.lyrics-wait[hidden] { display: block !important; opacity: 0; }
 
 /* ============ Уведомления ============ */
 .toasts {

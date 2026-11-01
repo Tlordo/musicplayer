@@ -105,19 +105,15 @@ export default {
   <header class="jcard-head">
     <div class="brand">
       <span class="brand-mk">МК-60</span>
-      <span class="brand-sub">магнитофонная кассета · тип I</span>
     </div>
     <div class="stripes" aria-hidden="true"><i></i><i></i><i></i></div>
   </header>
 
   <div class="jcard-owner">
-    <span class="form-label">запись</span>
-    <span class="hand owner-name">моя музыка</span>
-    <span class="side-switch" role="tablist" aria-label="Сторона вкладыша">
-      <span class="side-word">сторона</span>
-      <button type="button" role="tab" class="side-btn side-a" data-act="libview-library" title="Сторона А — моя музыка">А</button>
-      <button type="button" role="tab" class="side-btn side-b" data-act="libview-recs" title="Сторона Б — что ещё записать (рекомендации)">Б</button>
-      <button type="button" role="tab" class="side-btn side-shelf" data-act="libview-albums" title="Полка — альбомы">полка</button>
+    <span class="side-switch" role="tablist" aria-label="Раздел">
+      <button type="button" role="tab" class="side-btn side-a" data-act="libview-library">Треки</button>
+      <button type="button" role="tab" class="side-btn side-shelf" data-act="libview-albums">Альбомы</button>
+      <button type="button" role="tab" class="side-btn side-b" data-act="libview-recs">Похожее</button>
     </span>
     <span class="jcard-stats"><span data-bind="count"></span> · <span data-bind="total"></span></span>
   </div>
@@ -130,17 +126,14 @@ export default {
 
   <div class="jcard-tools library-view">
     <label class="search-line">
-      <span class="form-label">найти</span>
       <input type="search" class="hand" data-search placeholder="название, исполнитель…" autocomplete="off" enterkeyhint="search" aria-label="Поиск по вкладышу">
       <button type="button" class="icon-btn small" data-act="clear-search" aria-label="Очистить поиск" hidden><svg><use href="#i-x"/></svg></button>
     </label>
     <fieldset class="sort-boxes">
-      <legend class="form-label">порядок</legend>
+      <legend class="sr">Порядок</legend>
       ${SORT_BOX('added', 'новые')}${SORT_BOX('artist', 'артист')}${SORT_BOX('title', 'название')}${SORT_BOX('album', 'альбом')}${SORT_BOX('plays', 'частые')}
     </fieldset>
   </div>
-
-  <div class="form-head" aria-hidden="true"><span>№</span><span>наименование</span><span>время</span></div>
 
   <div class="albums-view tracklist-wrap shelf">
     <div class="shelf-head"><span class="form-label">подборки</span></div>
@@ -194,18 +187,12 @@ export default {
 
 <main class="player" aria-label="Плеер">
   <div class="deck-top">
-    <span class="side-badge" aria-hidden="true">А</span>
-    <div class="counter" data-counter aria-label="Прошло времени">
-      <span class="counter-label">счётчик</span>
-      <span class="wheels" data-wheels></span>
-    </div>
     <span class="deck-top-tools">
       <button type="button" class="icon-btn like-btn" data-act="like" data-needs-track aria-label="В любимое (F)" title="В любимое (F)"><svg><use data-like-icon href="#i-heart-line"/></svg></button>
-      <button type="button" class="text-btn lyrics-btn" data-act="lyrics" data-needs-track title="Текст песни на весь экран (L)"><svg aria-hidden="true"><use href="#i-lyrics-full"/></svg>текст</button>
+      <button type="button" class="text-btn lyrics-btn" data-act="lyrics" data-needs-track title="Текст песни (L)"><svg aria-hidden="true"><use href="#i-lyrics-full"/></svg>текст</button>
       <span class="menu-wrap">
         <button type="button" class="icon-btn" data-act="menu" aria-haspopup="true" aria-expanded="false" aria-label="Ещё" title="Ещё"><svg><use href="#i-more"/></svg></button>
         <div class="menu down" role="menu" hidden>
-          <button type="button" role="menuitem" data-act="queue"><svg aria-hidden="true"><use href="#i-queue"/></svg>Очередь</button>
           <button type="button" role="menuitem" data-act="sleep"><svg aria-hidden="true"><use href="#i-moon"/></svg>Таймер сна<span class="menu-badge" data-sleep-badge hidden></span></button>
           <button type="button" role="menuitem" data-act="stats"><svg aria-hidden="true"><use href="#i-chart"/></svg>Статистика</button>
           <button type="button" role="menuitem" data-act="add-to-album" data-needs-track><svg aria-hidden="true"><use href="#i-album"/></svg>В альбом…</button>
@@ -221,9 +208,7 @@ export default {
 
   <div class="case">
     <button type="button" class="jfront" data-act="cover" data-needs-track aria-label="Обложка во весь экран">
-      <span class="jfront-head"><b>МК-60</b><span>сторона А</span></span>
       <span class="jfront-art"><img data-cover alt=""><span class="jfront-empty hand">без обложки</span></span>
-      <span class="jfront-stripes" aria-hidden="true"><i></i><i></i><i></i></span>
     </button>
 
     <div class="cassette" data-cassette>
@@ -255,8 +240,7 @@ export default {
         <g data-hub="r" class="hub"><circle cx="198" cy="97" r="10"/><path d="M198 87.5v5M198 101.5v5M189.8 92.2l4.3 2.5M201.9 99.3l4.3 2.5M189.8 101.8l4.3-2.5M201.9 94.7l4.3-2.5"/></g>
       </svg>
       <div class="label" aria-hidden="true">
-        <span class="label-strip"><span class="label-side">А</span><span class="label-title hand" data-bind="title"></span></span>
-        <span class="label-stripes"><i></i><i></i><i></i></span>
+        <span class="label-strip"><span class="label-title hand" data-bind="title"></span></span>
       </div>
       <div class="window-scrub" data-seek role="slider" tabindex="0" aria-label="Перемотка: ведите по окошку кассеты" aria-valuemin="0" aria-valuemax="100">
         <span class="scrub-head"></span>
@@ -267,24 +251,23 @@ export default {
   <div class="now">
     <h2 class="now-title hand" data-bind="title"></h2>
     <p class="now-artist" data-bind="artist"></p>
-    <p class="now-meta" data-bind="meta"></p>
-    <p class="times"><span data-bind="time-cur">0:00</span><span class="times-sep">/</span><span data-bind="time-total">0:00</span></p>
   </div>
 
-  <div class="panel">
-    <div class="meter-box">
-      <canvas class="vfd" data-meter="vfd" aria-hidden="true"></canvas>
-      <div class="lyrics-slot" data-lyrics-slot></div>
+  <div class="panel" data-lyrics-floor>
+    <div class="meter-box"><canvas class="vfd" data-meter="vfd" aria-hidden="true"></canvas></div>
+    <div class="seek-row">
+      <span class="wheels" data-wheels aria-hidden="true"></span>
+      <div class="seek-line" data-seek role="slider" tabindex="0" aria-label="Перемотка" aria-valuemin="0" aria-valuemax="100"></div>
+      <span class="seek-total" data-bind="time-total">0:00</span>
     </div>
     <div class="panel-row">
-      <button type="button" class="led-btn" data-act="shuffle" title="Вперемешку (S)"><span class="led"></span><svg><use href="#i-shuffle"/></svg><span class="sr">Вперемешку</span></button>
-      <button type="button" class="led-btn" data-act="repeat" title="Повтор (R)"><span class="led"></span><svg><use href="#i-repeat"/></svg><span class="repeat-one" aria-hidden="true">1</span><span class="sr">Повтор</span></button>
+      <button type="button" class="led-btn" data-act="shuffle" title="Вперемешку (S)"><svg><use href="#i-shuffle"/></svg><span class="sr">Вперемешку</span></button>
+      <button type="button" class="led-btn" data-act="repeat" title="Повтор (R)"><svg><use href="#i-repeat"/></svg><span class="repeat-one" aria-hidden="true">1</span><span class="sr">Повтор</span></button>
       <div class="volume">
         <button type="button" class="icon-btn" data-act="mute" aria-label="Выключить звук (M)"><svg><use data-vol-icon href="#i-vol"/></svg></button>
         <input type="range" data-volume min="0" max="100" value="80" aria-label="Громкость">
       </div>
-      <button type="button" class="led-btn" data-act="meter" title="Индикатор уровня (V)"><span class="led"></span><svg><use href="#i-meter"/></svg><span class="sr">Индикатор уровня</span></button>
-      <button type="button" class="led-btn" data-act="lyrics-inline" title="Текст песни на месте индикатора"><span class="led"></span><svg><use href="#i-lyrics"/></svg><span class="sr">Текст песни</span></button>
+      <button type="button" class="led-btn" data-act="queue" title="Очередь (Q)"><svg><use href="#i-queue"/></svg><span class="sr">Очередь</span></button>
     </div>
   </div>
 </main>
