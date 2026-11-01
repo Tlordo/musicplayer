@@ -328,7 +328,7 @@ document.addEventListener('input', (e) => {
     $$('input[data-search]').forEach((i) => { if (i !== e.target) i.value = e.target.value; });
     core.setQuery(e.target.value);
   } else if (e.target.matches('input[data-volume]')) {
-    audio.muted = false;
+    core.setMuted(false);
     core.setVolume(e.target.value / 100);
   }
 });

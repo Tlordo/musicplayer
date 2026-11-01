@@ -649,3 +649,4 @@ html.lyrics-open .player { overflow: hidden; isolation: isolate; }
   color: var(--ui-text);
 }
 .eq-preset:disabled { opacity: 0.5; }
+.xfade input { accent-color: var(--ui-accent); }
