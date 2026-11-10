@@ -7,6 +7,7 @@ import { settings } from './store.js';
 import { esc, formatTime, formatLong, plural } from './format.js';
 import { registerActions, toast, openInfo, download, confirmDelete, isDesktop, setTab } from './ui.js';
 import { openAlbumPicker } from './albums.js';
+import './gestures.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];

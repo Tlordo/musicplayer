@@ -601,16 +601,36 @@ function confirmDelete(t = state.current) {
 }
 
 // ============ Экран блокировки телефона ============
+// Обложка — с её настоящим размером (Android выбирает картинку по sizes; у YouTube это 1280×720
+// или 480×360), значок приложения — только если обложка не загрузилась. Позиция для ползунка
+// на экране блокировки обновляется при смене трека, паузе, перемотке, длительности и скорости.
+let artToken = 0;
 function updateMediaSession() {
   if (!('mediaSession' in navigator)) return;
   const t = state.current;
-  if (!t) { navigator.mediaSession.metadata = null; return; }
-  navigator.mediaSession.metadata = new MediaMetadata({
-    title: t.title || '',
-    artist: t.artist || '',
-    album: albumOf(t),
-    artwork: [{ src: new URL(t.thumbnail_api, location.href).href, sizes: '1280x720', type: 'image/jpeg' }],
-  });
+  if (!t) { navigator.mediaSession.metadata = null; updatePositionState(); return; }
+  const meta = (artwork) => {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: t.title || '', artist: t.artist || '', album: albumOf(t), artwork });
+  };
+  const src = new URL(t.thumbnail_api, location.href).href;
+  const icons = [192, 512].map((n) => ({ src: new URL(`icons/icon-${n}.png`, location.href).href, sizes: `${n}x${n}`, type: 'image/png' }));
+  meta([{ src, sizes: '1280x720' }]);
+  const token = ++artToken;
+  const img = new Image();
+  img.onload = () => { if (token === artToken && img.naturalWidth) meta([{ src, sizes: `${img.naturalWidth}x${img.naturalHeight}` }]); };
+  img.onerror = () => { if (token === artToken) meta(icons); };
+  img.src = src;
+  updatePositionState();
+}
+
+function updatePositionState() {
+  const ms = navigator.mediaSession;
+  if (!ms || !ms.setPositionState) return;
+  const d = audio.duration;
+  try {
+    if (!state.current || !Number.isFinite(d) || d <= 0) { ms.setPositionState(); return; }
+    ms.setPositionState({ duration: d, playbackRate: audio.playbackRate || 1, position: Math.min(d, Math.max(0, audio.currentTime || 0)) });
+  } catch { /* Safari до 15 и старые Chrome — без ползунка */ }
 }
 
 if ('mediaSession' in navigator) {
@@ -618,11 +638,15 @@ if ('mediaSession' in navigator) {
   const safe = (name, fn) => { try { ms.setActionHandler(name, fn); } catch { /* не поддерживается */ } };
   safe('play', () => core.play());
   safe('pause', () => core.pause());
+  safe('stop', () => core.pause());
   safe('previoustrack', () => core.prev());
   safe('nexttrack', () => core.next());
-  safe('seekto', (d) => { if (d.seekTime != null) core.seek(d.seekTime); });
-  safe('seekbackward', (d) => core.seek(audio.currentTime - (d.seekOffset || 10)));
-  safe('seekforward', (d) => core.seek(audio.currentTime + (d.seekOffset || 10)));
+  safe('seekto', (d) => { if (d.seekTime != null) { core.seek(d.seekTime); updatePositionState(); } });
+  safe('seekbackward', (d) => { core.seek(audio.currentTime - (d.seekOffset || 10)); updatePositionState(); });
+  safe('seekforward', (d) => { core.seek(audio.currentTime + (d.seekOffset || 10)); updatePositionState(); });
+  core.on('state', updatePositionState);
+  core.on('time', updatePositionState);
+  ['durationchange', 'ratechange'].forEach((ev) => core.onAudio(ev, updatePositionState));
 }
 
 // ============ Горячие клавиши ============

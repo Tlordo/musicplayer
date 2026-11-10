@@ -176,6 +176,13 @@ export default {
     </div>
   </div>
 
+  <div class="mini" data-mini data-act="tab-player" role="button" tabindex="0" aria-label="Открыть кассету">
+    <span class="mini-cover"><img data-cover alt=""></span>
+    <span class="mini-text"><span class="mini-title hand" data-bind="title"></span><span class="mini-artist" data-bind="artist"></span></span>
+    <svg class="mini-tape" aria-hidden="true"><use href="#i-tape"/></svg>
+    <span class="mini-progress" data-seek-view aria-hidden="true"></span>
+  </div>
+
   <footer class="jcard-foot">
     <button type="button" class="stamp" data-act="add"><span class="rec-dot" aria-hidden="true"></span>записать трек</button>
     <span class="jcard-foot-tools">
@@ -206,7 +213,7 @@ export default {
     </span>
   </div>
 
-  <div class="case">
+  <div class="case" data-swipe-stage>
     <button type="button" class="jfront" data-act="cover" data-needs-track aria-label="Обложка во весь экран">
       <span class="jfront-art"><img data-cover alt=""><span class="jfront-empty hand">без обложки</span></span>
     </button>
