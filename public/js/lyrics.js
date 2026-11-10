@@ -9,6 +9,7 @@ import { settings } from './store.js';
 import { albumOf } from './format.js';
 
 const subs = new Map();   // имя фрейма → обработчики
+const streams = new Set(); // копии звукового потока, выданные фреймам — гасим при закрытии
 let frameSeq = 0;
 let view = null;          // открытый текст: { frame, fx, status, wait, notFound }
 const overlay = document.getElementById('lyrics-full');
@@ -53,7 +54,14 @@ window.mkHost = {
     else if (cmd === 'previous' || cmd === 'prev') core.prev();
     else if (cmd === 'close') closeFull();
   },
-  stream() { return core.audioStream(); },
+  // Каждому фрейму — своя копия потока: закрываясь, он гасит её, а не общий поток плеера.
+  stream() {
+    const s = core.audioStream();
+    if (!s) return null;
+    const copy = s.clone();
+    streams.add(copy);
+    return copy;
+  },
   cover() {
     const t = state.current;
     return t ? new URL(t.thumbnail_api, location.href).href : null;
@@ -151,8 +159,17 @@ export function closeFull() {
   if (!view) return;
   subs.delete(view.frame.name);
   subs.delete(view.fx.name);
-  view.frame.remove();
-  view.fx.remove();
+  clearTimeout(statusTimer);
+  // Фрейм разбираем полностью: гасим его звук (AudioContext musetext), выгружаем документ
+  // и только потом убираем из DOM — иначе движок и его анализатор живут до сборки мусора.
+  for (const f of [view.frame, view.fx]) {
+    try { f.contentWindow?.museApp?.audio?.stop?.(); } catch { /* фрейм ещё не загрузился */ }
+    try { f.src = 'about:blank'; } catch { /* уже выгружен */ }
+    f.remove();
+  }
+  streams.forEach((s) => s.getTracks().forEach((tr) => tr.stop()));
+  streams.clear();
+  core.releaseAudioStream();
   view.status.remove();
   view.wait.remove();
   view = null;

@@ -4,10 +4,11 @@
 import * as core from './core.js';
 import { state, albums, jobs } from './core.js';
 import { settings } from './store.js';
-import { esc, formatTime, formatLong, plural, albumOf } from './format.js';
+import { esc, formatTime, formatLong, plural, albumOf, smallCover } from './format.js';
 import { currentDesign } from './themes.js';
 import { registerActions, toast, isDesktop, setTab } from './ui.js';
 import { saveUrl } from './native.js';
+import { renderVirtual } from './vlist.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -21,7 +22,7 @@ function infoOf(album) {
     count: n,
     countText: `${n} ${plural(n, 'трек', 'трека', 'треков')}`,
     timeText: formatLong(tracks.reduce((s, t) => s + (t._sec || 0), 0)),
-    covers: tracks.slice(0, 4).map((t) => t.thumbnail_api),
+    covers: tracks.slice(0, 4).map((t) => smallCover(t, 320)),
   };
 }
 
@@ -54,14 +55,16 @@ export function renderAlbum() {
   }
   const design = currentDesign();
   head.innerHTML = design.renderAlbumHead(album, infoOf(album), helpers);
-  const cur = state.current && state.current.video_id;
   const tracks = album.tracks.map(core.find).filter(Boolean);
-  list.innerHTML = tracks.map((t, i) => design.renderRow(t, i, {
-    current: t.video_id === cur,
-    played: settings.markPlayed && state.played.has(t.video_id),
-    missing: t.file_exists === false,
-    removable: album.kind === 'user',
-  }, helpers)).join('');
+  renderVirtual(list, tracks.length, (i) => {
+    const t = tracks[i];
+    return design.renderRow(t, i, {
+      current: t.video_id === (state.current && state.current.video_id),
+      played: settings.markPlayed && state.played.has(t.video_id),
+      missing: t.file_exists === false,
+      removable: album.kind === 'user',
+    }, helpers);
+  });
   $$('[data-album-empty]').forEach((el) => { el.hidden = tracks.length > 0; });
 }
 
@@ -150,7 +153,7 @@ function renderPicker() {
   $('[data-pick-tracks]').innerHTML = list.length
     ? list.map((t) => `<label class="pick-track">
         <input type="checkbox" value="${esc(t.video_id)}" ${picked.has(t.video_id) ? 'checked' : ''}>
-        <img src="${esc(t.thumbnail_api)}" alt="" loading="lazy">
+        <img src="${esc(smallCover(t))}" alt="" loading="lazy" decoding="async">
         <span class="pick-text"><span class="pick-name">${esc(t.title)}</span><span class="pick-meta">${esc(t.artist || '')}</span></span>
       </label>`).join('')
     : `<p class="hint">${q ? 'Ничего не нашлось.' : 'Все треки библиотеки уже в этом альбоме.'}</p>`;

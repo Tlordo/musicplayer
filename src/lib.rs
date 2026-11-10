@@ -10,6 +10,7 @@ mod jobs;
 mod names;
 mod peaks;
 mod recs;
+mod thumbs;
 pub mod ytdlp;
 
 use std::future::Future;
@@ -32,6 +33,27 @@ use crate::downloader::Downloader;
 use crate::recs::Recommender;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Рантайм tokio для сервера. Нагрузка — один пользователь и пара телефонов, поэтому рабочих
+/// потоков не больше четырёх, а не по числу ядер (на 16-ядерном компьютере было 16 потоков со своими стеками).
+pub fn runtime() -> std::io::Result<tokio::runtime::Runtime> {
+    let workers = std::thread::available_parallelism().map_or(2, |n| n.get()).clamp(1, 4);
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(workers)
+        // Блокирующие задачи — редкие чтения файлов; простаивающие потоки не держим дольше 5 секунд.
+        .max_blocking_threads(16)
+        .thread_keep_alive(std::time::Duration::from_secs(5))
+        .enable_all()
+        .build()
+}
+
+/// Фоновый ffmpeg не должен открывать консоль: у программы с окном каждый такой запуск —
+/// это ещё и процесс conhost (≈12 МБ) и мелькнувшее чёрное окно.
+pub(crate) fn no_console(cmd: &mut tokio::process::Command) -> &mut tokio::process::Command {
+    #[cfg(windows)]
+    cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    cmd
+}
 
 /// Создать папки данных.
 pub fn prepare(cfg: &Config) -> Result<()> {

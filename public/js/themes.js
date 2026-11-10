@@ -143,6 +143,8 @@ function analyze(url) {
     img.src = url;
   });
   coverCache.set(url, job);
+  // Цвета нужны только для недавних обложек — держим последние 40.
+  if (coverCache.size > 40) coverCache.delete(coverCache.keys().next().value);
   return job;
 }
 

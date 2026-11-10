@@ -5,6 +5,7 @@ import * as core from '../core.js';
 import { state } from '../core.js';
 import { settings } from '../store.js';
 import { accentFrom, textOn } from '../themes.js';
+import { smallCover } from '../format.js';
 
 // Цвет CSS-переменной в виде, понятном холсту: браузер сам разрешает color-mix и var().
 const probe = document.createElement('span');
@@ -272,7 +273,7 @@ export default {
     const remove = f.removable ? `<button type="button" class="row-remove" data-act="album-remove" data-remove-id="${esc(t.video_id)}" aria-label="Убрать «${esc(t.title)}» из альбома" title="Убрать из альбома"><svg><use href="#i-minus"/></svg></button>` : '';
     return `<li${f.removable ? ' class="removable"' : ''}><button type="button" class="${cls}" data-id="${esc(t.video_id)}"${f.current ? ' aria-current="true"' : ''}>
       <span class="row-num"><span class="num">${i + 1}</span><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span></span>
-      <span class="row-thumb"><img src="${esc(t.thumbnail_api)}" alt="" loading="lazy" decoding="async"></span>
+      <span class="row-thumb"><img src="${esc(smallCover(t))}" alt="" loading="lazy" decoding="async"></span>
       <span class="row-main">
         <span class="row-title">${esc(t.title)}</span>
         <span class="row-sub">${f.missing ? '<span class="tag">нет файла</span>' : ''}${esc(t.artist || '')}</span>
@@ -337,7 +338,6 @@ export default {
     const wave = root.querySelector('[data-wave]');
     const specs = [...root.querySelectorAll('[data-meter="spectrum"]')].map((c) => ({ c, g: c.getContext('2d'), bars: [], alive: false }));
     const wctx = wave.getContext('2d');
-    const peaksCache = new Map();
     let peaks = null;
     let colors = {};
     let waveKey = '';
@@ -368,10 +368,9 @@ export default {
       waveKey = '';
       if (!t) return;
       const id = t.video_id;
-      if (peaksCache.has(id)) { peaks = peaksCache.get(id); return; }
       try {
+        // Кэш форм волны — общий, в core.trackAnalysis (последние несколько треков).
         const data = await core.trackAnalysis(id);
-        peaksCache.set(id, data.peaks);
         if (state.current && state.current.video_id === id) { peaks = data.peaks; waveKey = ''; }
       } catch { /* нет ffmpeg или файла — останется ровная полоса */ }
     };

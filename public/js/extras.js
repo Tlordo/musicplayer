@@ -4,14 +4,14 @@
 import * as core from './core.js';
 import { state } from './core.js';
 import { settings } from './store.js';
-import { esc, formatTime, formatLong, plural } from './format.js';
+import { esc, formatTime, formatLong, plural, smallCover } from './format.js';
 import { registerActions, toast, openInfo, download, confirmDelete, isDesktop, setTab } from './ui.js';
 import { openAlbumPicker } from './albums.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-const cover = (t) => `<img src="${esc(t.thumbnail_api)}" alt="" loading="lazy" decoding="async">`;
+const cover = (t) => `<img src="${esc(smallCover(t))}" alt="" loading="lazy" decoding="async">`;
 const nTracks = (n) => `${n} ${plural(n, 'трек', 'трека', 'треков')}`;
 
 // ============ Меню трека ============

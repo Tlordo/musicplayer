@@ -20,6 +20,8 @@ use crate::config::Config;
 use crate::downloader::is_valid_video_id;
 
 const CACHE_TTL: Duration = Duration::from_secs(30 * 60);
+/// Сколько ответов YouTube (миксов и поисков) держим в памяти.
+const CACHE_MAX: usize = 48;
 const MIX_TIMEOUT: Duration = Duration::from_secs(45);
 const MIX_LEN: usize = 40;
 const SEARCH_TIMEOUT: Duration = Duration::from_secs(30);
@@ -54,6 +56,18 @@ impl Recommender {
             .map(|(_, v)| v.clone())
     }
 
+    /// Положить ответ в кэш. Кэш не растёт без конца: устаревшие записи выбрасываются,
+    /// а свежих хранится не больше CACHE_MAX (самые старые уходят первыми).
+    fn store(&self, key: String, list: &[Rec]) {
+        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
+        cache.retain(|_, (at, _)| at.elapsed() < CACHE_TTL);
+        while cache.len() >= CACHE_MAX {
+            let Some(oldest) = cache.iter().min_by_key(|(_, (at, _))| *at).map(|(k, _)| k.clone()) else { break };
+            cache.remove(&oldest);
+        }
+        cache.insert(key, (Instant::now(), list.to_vec()));
+    }
+
     /// Микс по одному треку (из кэша, если он свежий).
     pub async fn mix(&self, seed: &str, fresh: bool) -> Result<Vec<Rec>> {
         if !fresh {
@@ -69,8 +83,7 @@ impl Recommender {
         }
         let list = list?;
 
-        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
-        cache.insert(seed.to_owned(), (Instant::now(), list.clone()));
+        self.store(seed.to_owned(), &list);
         Ok(list)
     }
 
@@ -94,8 +107,7 @@ impl Recommender {
         }
         let list = list?;
 
-        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
-        cache.insert(key, (Instant::now(), list.clone()));
+        self.store(key, &list);
         Ok(list)
     }
 

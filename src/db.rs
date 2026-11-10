@@ -151,6 +151,8 @@ impl Db {
         conn.execute_batch(
             "PRAGMA journal_mode = WAL;
              PRAGMA synchronous = NORMAL;
+             -- База маленькая (тысячи строк): кэша страниц в 1 МБ хватает с запасом (по умолчанию 2 МБ).
+             PRAGMA cache_size = -1024;
              CREATE TABLE IF NOT EXISTS techData (
                  video_id TEXT PRIMARY KEY,
                  format_id TEXT,
@@ -272,13 +274,27 @@ impl Db {
         Ok(stmt.query_row([video_id], Track::from_row).optional()?)
     }
 
-    pub fn library(&self) -> Result<Vec<Track>> {
+    /// Библиотека сразу в виде JSON-массива — для `/api/library`. Строки сериализуются по одной,
+    /// без промежуточного списка всех треков. `exists` отвечает, лежит ли файл трека на диске.
+    pub fn library_json(&self, exists: impl Fn(&str) -> bool) -> Result<Vec<u8>> {
         let conn = self.conn();
         let mut stmt = conn.prepare_cached(&format!(
             "{TRACK_SELECT} ORDER BY u.artist COLLATE NOCASE, u.title COLLATE NOCASE"
         ))?;
-        let rows = stmt.query_map([], Track::from_row)?;
-        Ok(rows.collect::<rusqlite::Result<_>>()?)
+        let mut rows = stmt.query([])?;
+        let mut out = Vec::with_capacity(64 * 1024);
+        out.push(b'[');
+        while let Some(row) = rows.next()? {
+            let mut t = Track::from_row(row)?;
+            t.file_exists = exists(&t.video_id);
+            if out.len() > 1 {
+                out.push(b',');
+            }
+            serde_json::to_writer(&mut out, &t)?;
+        }
+        out.push(b']');
+        out.shrink_to_fit();
+        Ok(out)
     }
 
     pub fn has_track(&self, video_id: &str) -> Result<bool> {
@@ -540,5 +556,29 @@ impl Db {
         let mut stmt = conn.prepare(&format!("SELECT h.video_id {base} GROUP BY h.video_id ORDER BY MAX(h.at) DESC LIMIT 30"))?;
         let recent = stmt.query_map([since], |r| r.get(0))?.collect::<rusqlite::Result<_>>()?;
         Ok(Stats { plays, seconds, tracks, top_tracks, top_artists, recent, days })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn library_json_is_an_array_of_tracks() {
+        let db = Db::open(Path::new(":memory:")).unwrap();
+        assert_eq!(db.library_json(|_| true).unwrap(), b"[]");
+
+        for (id, title) in [("aaaaaaaaaaa", "Б \"кавычки\""), ("bbbbbbbbbbb", "А")] {
+            let user = UserData { title: title.into(), artist: "Группа".into(), ..Default::default() };
+            db.upsert(id, &TechData::default(), &user, "x.json", "https://example.invalid").unwrap();
+        }
+        let json: serde_json::Value = serde_json::from_slice(&db.library_json(|id| id.starts_with('a')).unwrap()).unwrap();
+        let list = json.as_array().unwrap();
+        assert_eq!(list.len(), 2);
+        // Порядок — по исполнителю и названию; флаг файла и адрес обложки на месте.
+        assert_eq!(list[0]["title"], "А");
+        assert_eq!(list[0]["file_exists"], false);
+        assert_eq!(list[1]["file_exists"], true);
+        assert_eq!(list[1]["thumbnail_api"], "/api/thumbnail/aaaaaaaaaaa");
     }
 }
