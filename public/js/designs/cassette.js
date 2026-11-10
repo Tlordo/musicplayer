@@ -323,6 +323,7 @@ export default {
     <div class="tape-actions">
       <button type="button" class="mini-stamp solid" data-act="album-play" ${info.count ? '' : 'disabled'}><svg aria-hidden="true"><use href="#i-play"/></svg>играть</button>
       <button type="button" class="mini-stamp" data-act="album-download" ${info.count ? '' : 'disabled'} title="Скачать альбом архивом .zip — его же можно импортировать на другом устройстве"><svg aria-hidden="true"><use href="#i-down"/></svg>скачать</button>
+      <button type="button" class="mini-stamp${info.offline ? ' solid' : ''}" data-act="album-offline" ${info.count ? '' : 'disabled'} aria-pressed="${!!info.offline}" title="${info.offline ? 'Записан на телефон — нажмите, чтобы не хранить' : 'Записать на телефон — будет играть без компьютера'}"><svg aria-hidden="true"><use href="#i-phone"/></svg>${info.offline ? 'на телефоне' : 'на телефон'}</button>
       ${own ? `<button type="button" class="mini-stamp" data-act="album-add-tracks"><svg aria-hidden="true"><use href="#i-plus"/></svg>треки</button>`
         : `<button type="button" class="mini-stamp" data-act="album-save" title="Сделать своей кассетой — можно менять состав и имя">в мои</button>`}
     </div>`;

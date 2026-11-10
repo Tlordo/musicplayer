@@ -308,6 +308,7 @@ export default {
     <div class="album-actions">
       <button type="button" class="add-btn album-play" data-act="album-play" ${info.count ? '' : 'disabled'}><svg aria-hidden="true"><use href="#i-play"/></svg>Слушать</button>
       <button type="button" class="icon-btn" data-act="album-download" ${info.count ? '' : 'disabled'} title="Скачать альбом архивом .zip — его же можно импортировать на другом устройстве" aria-label="Скачать альбом"><svg><use href="#i-down"/></svg></button>
+      <button type="button" class="icon-btn${info.offline ? ' toggle on' : ''}" data-act="album-offline" ${info.count ? '' : 'disabled'} title="${info.offline ? 'Сохранён на телефоне — нажмите, чтобы не хранить' : 'Сохранить на телефон — будет играть без компьютера'}" aria-label="${info.offline ? 'Не хранить на телефоне' : 'Сохранить на телефон'}" aria-pressed="${!!info.offline}"><svg><use href="#i-phone"/></svg></button>
       ${own ? `<button type="button" class="icon-btn" data-act="album-add-tracks" title="Добавить треки" aria-label="Добавить треки"><svg><use href="#i-plus"/></svg></button>
       <button type="button" class="icon-btn" data-act="album-rename" title="Переименовать" aria-label="Переименовать"><svg><use href="#i-edit"/></svg></button>
       <button type="button" class="icon-btn danger" data-act="album-delete" title="Удалить альбом" aria-label="Удалить альбом"><svg><use href="#i-erase"/></svg></button>`

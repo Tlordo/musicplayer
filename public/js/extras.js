@@ -7,6 +7,7 @@ import { settings } from './store.js';
 import { esc, formatTime, formatLong, plural } from './format.js';
 import { registerActions, toast, openInfo, download, confirmDelete, isDesktop, setTab } from './ui.js';
 import { openAlbumPicker } from './albums.js';
+import { sheetItem as offlineItem, sheetAction as offlineAction } from './offline-ui.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -25,11 +26,13 @@ function openTrackSheet(t) {
   $('#track-sheet-head').innerHTML = `${cover(t)}
     <span class="pick-text"><span class="pick-name">${esc(t.title)}</span><span class="pick-meta">${esc(t.artist || '—')}${t.plays ? ` · ${t.plays} ${plural(t.plays, 'прослушивание', 'прослушивания', 'прослушиваний')}` : ''}</span></span>`;
   const item = (act, icon, label, cls = '') => `<button type="button" class="${cls}" data-ts="${act}"><svg aria-hidden="true"><use href="#${icon}"/></svg>${label}</button>`;
+  const off = offlineItem(t);
   $('#track-sheet-items').innerHTML = [
     isCur ? '' : item('play-next', 'i-play-next', 'Играть следующим'),
     isCur ? '' : item('enqueue', 'i-queue', 'В конец очереди'),
     item('like', t.liked ? 'i-heart' : 'i-heart-line', t.liked ? 'Убрать из любимого' : 'В любимое', t.liked ? 'liked' : ''),
     item('album', 'i-album', 'В альбом…'),
+    item(off.act, off.icon, off.label),
     item('info', 'i-info', 'О треке'),
     item('download', 'i-down', 'Скачать файл'),
     item('delete', 'i-erase', 'Удалить трек', 'danger'),
@@ -50,6 +53,7 @@ $('#track-sheet-items').addEventListener('click', (e) => {
     case 'info': openInfo(t); break;
     case 'download': download(t); break;
     case 'delete': confirmDelete(t); break;
+    default: offlineAction(b.dataset.ts, t);
   }
 });
 

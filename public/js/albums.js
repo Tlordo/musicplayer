@@ -8,6 +8,7 @@ import { esc, formatTime, formatLong, plural, albumOf } from './format.js';
 import { currentDesign } from './themes.js';
 import { registerActions, toast, isDesktop, setTab } from './ui.js';
 import { saveUrl } from './native.js';
+import * as offline from './offline.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -22,6 +23,7 @@ function infoOf(album) {
     countText: `${n} ${plural(n, 'трек', 'трека', 'треков')}`,
     timeText: formatLong(tracks.reduce((s, t) => s + (t._sec || 0), 0)),
     covers: tracks.slice(0, 4).map((t) => t.thumbnail_api),
+    offline: n > 0 && tracks.every((t) => offline.has(t.video_id) === 'pin'),   // весь альбом сохранён на телефон
   };
 }
 
