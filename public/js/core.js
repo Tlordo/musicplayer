@@ -5,12 +5,17 @@ import { settings, save, local } from './store.js';
 import { parseDuration } from './format.js';
 
 const listeners = new Map();
+// Кадровый цикл (внизу файла) будят события — его состояние объявлено раньше первого emit.
+let running = false;
+let started = false;
+let awakeUntil = 0;
 export function on(type, fn) {
   if (!listeners.has(type)) listeners.set(type, new Set());
   listeners.get(type).add(fn);
   return () => listeners.get(type).delete(fn);
 }
 function emit(type, detail) {
+  if (type !== 'frame') wake();
   (listeners.get(type) || []).forEach((fn) => {
     try { fn(detail); } catch (err) { console.error(err); }
   });
@@ -99,8 +104,15 @@ export function totalSeconds() {
   return state.library.reduce((s, t) => s + (t._sec || 0), 0);
 }
 
+// Индекс по id: библиотеку всегда заменяют целиком, поэтому он пересобирается по смене массива.
+let byId = null;
+let byIdOf = null;
 export function find(id) {
-  return state.library.find((t) => t.video_id === id) || null;
+  if (byIdOf !== state.library) {
+    byId = new Map(state.library.map((t) => [t.video_id, t]));
+    byIdOf = state.library;
+  }
+  return byId.get(id) || null;
 }
 
 // ============ Звук и анализ ============
@@ -157,33 +169,77 @@ function initAudioGraph() {
       graph.set(el, { norm, mix });
     }
 
-    const splitter = ctx.createChannelSplitter(2);
-    const l = ctx.createAnalyser();
-    const r = ctx.createAnalyser();
-    const spec = ctx.createAnalyser();
-    l.fftSize = r.fftSize = 1024;
-    spec.fftSize = 512;
-    spec.smoothingTimeConstant = 0.72;
     fadeGain.connect(ctx.destination);
-    fadeGain.connect(splitter);
-    splitter.connect(l, 0);
-    splitter.connect(r, 1);
-    fadeGain.connect(spec);
-    streamDest = ctx.createMediaStreamDestination();
-    fadeGain.connect(streamDest);
-    analysers = [l, r, spec];
     applyEq();
     applyNormalize();
+    syncAnalysis();
   } catch (err) {
     console.warn('Web Audio недоступен:', err);
     analysers = null;
   }
 }
 
-/** Есть ли обработка звука (эквалайзер, выравнивание, плавный таймер). */
+// Анализаторы (уровни и спектр) подключены, только пока на индикатор смотрят: он включён,
+// музыка играет и страница видна. В остальное время их нет вовсе — звук идёт мимо.
+let splitter = null;
+function syncAnalysis() {
+  const want = !!fadeGain && settings.meter === 'viz' && !audio.paused && !document.hidden;
+  if (want === !!analysers) return;
+  try {
+    if (want) {
+      splitter = ctx.createChannelSplitter(2);
+      const l = ctx.createAnalyser();
+      const r = ctx.createAnalyser();
+      const spec = ctx.createAnalyser();
+      l.fftSize = r.fftSize = 1024;
+      spec.fftSize = 512;
+      spec.smoothingTimeConstant = 0.72;
+      fadeGain.connect(splitter);
+      splitter.connect(l, 0);
+      splitter.connect(r, 1);
+      fadeGain.connect(spec);
+      analysers = [l, r, spec];
+    } else {
+      fadeGain.disconnect(splitter);
+      fadeGain.disconnect(analysers[2]);
+      splitter.disconnect();
+      splitter = null;
+      analysers = null;
+    }
+  } catch (err) {
+    console.warn('анализ звука:', err);
+    splitter = null;
+    analysers = null;
+  }
+}
+
+// На паузе аудиоконтекст через несколько секунд засыпает: его звуковой поток перестаёт
+// крутиться вхолостую. play() будит его перед воспроизведением.
+const CTX_IDLE_MS = 15000;
+let ctxIdleTimer = null;
+function syncContext() {
+  clearTimeout(ctxIdleTimer);
+  if (!ctx) return;
+  const silent = () => decks.every((d) => d.paused);
+  if (!silent()) {
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    return;
+  }
+  ctxIdleTimer = setTimeout(() => {
+    if (silent() && ctx.state === 'running') ctx.suspend().catch(() => {});
+  }, CTX_IDLE_MS);
+}
+
+for (const el of decks) {
+  for (const type of ['play', 'pause', 'ended', 'emptied']) el.addEventListener(type, () => { syncAnalysis(); syncContext(); });
+}
+on('meter', syncAnalysis);
+on('track', syncAnalysis);   // при плавном переходе активной становится другая дека
+document.addEventListener('visibilitychange', syncAnalysis);
+
+/** Есть ли обработка звука (эквалайзер, выравнивание, плавный таймер). Сам граф при этом не создаётся. */
 export function hasAudioFx() {
-  initAudioGraph();
-  return !!fadeGain;
+  return ctx ? !!fadeGain : !!(window.AudioContext || window.webkitAudioContext);
 }
 
 export function eqGains() {
@@ -207,17 +263,22 @@ export function setEq(patch) {
 // Сервер меряет громкость трека по EBU R128 вместе с формой волны; приводим всё к −14 LUFS,
 // как стриминговые сервисы. Тише −14 поднимаем не больше чем на 6 дБ.
 const TARGET_LUFS = -14;
-const analysis = new Map();   // id → Promise<{ peaks, loudness }>
+const analysis = new Map();   // id → Promise<{ peaks, loudness }>, последние ANALYSIS_KEEP треков
+const ANALYSIS_KEEP = 24;
 
 /** Форма волны и громкость трека (одна загрузка на трек, общая для всех). */
 export function trackAnalysis(id) {
-  if (!analysis.has(id)) {
-    const p = fetch(`/api/peaks/${encodeURIComponent(id)}`)
+  let p = analysis.get(id);
+  if (p) {
+    analysis.delete(id);   // в конец — недавно нужный
+  } else {
+    p = fetch(`/api/peaks/${encodeURIComponent(id)}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .catch((err) => { analysis.delete(id); throw err; });
-    analysis.set(id, p);
   }
-  return analysis.get(id);
+  analysis.set(id, p);
+  while (analysis.size > ANALYSIS_KEEP) analysis.delete(analysis.keys().next().value);
+  return p;
 }
 
 let normToken = 0;
@@ -260,7 +321,21 @@ export function spectrum() {
 /** Поток звука плеера — для musetext. */
 export function audioStream() {
   initAudioGraph();
-  return streamDest ? streamDest.stream : null;
+  if (!fadeGain) return null;
+  // Поток нужен только musetext — создаём его при первом открытии текста.
+  if (!streamDest) {
+    streamDest = ctx.createMediaStreamDestination();
+    fadeGain.connect(streamDest);
+  }
+  return streamDest.stream;
+}
+
+/** Текст закрыт — поток больше никому не нужен. */
+export function releaseAudioStream() {
+  if (!streamDest) return;
+  try { fadeGain.disconnect(streamDest); } catch { /* уже отключён */ }
+  streamDest.stream.getTracks().forEach((t) => t.stop());
+  streamDest = null;
 }
 
 // ============ Воспроизведение ============
@@ -283,7 +358,6 @@ export function load(track, autoplay, goingBack = false) {
   stopTail();
   dropPrepared();
   setCurrent(track, goingBack);
-  initAudioGraph();
   restoreFade();
   audio.src = `/api/stream/${encodeURIComponent(track.video_id)}`;
   audio.load();
@@ -988,17 +1062,41 @@ export async function addRec(id) {
 
 // ============ Кадровый цикл ============
 // Один requestAnimationFrame на всё приложение: дизайны рисуют свои индикаторы в 'frame'.
+// Цикл крутится, пока играет звук, и ещё пару секунд после любого события (пауза, наведение,
+// смена темы) — чтобы индикаторы успели плавно погаснуть. Дальше он спит и ничего не тратит.
+const IDLE_MS = 2500;
 let last = 0;
+
 function frame(t) {
   const dt = last ? Math.min(0.1, (t - last) / 1000) : 0;
   last = t;
   emit('frame', { t, dt, p: state.dragging ? state.dragP : progress(), playing: !audio.paused });
-  requestAnimationFrame(frame);
+  if (!audio.paused || state.dragging || performance.now() < awakeUntil) {
+    requestAnimationFrame(frame);
+  } else {
+    running = false;
+    last = 0;
+  }
+}
+
+function wake() {
+  awakeUntil = performance.now() + IDLE_MS;
+  if (started && !running) {
+    running = true;
+    requestAnimationFrame(frame);
+  }
 }
 
 export function start() {
   setVolume(settings.volume, false);
-  requestAnimationFrame(frame);
+  started = true;
+  for (const type of ['pointermove', 'pointerdown', 'keydown', 'wheel']) {
+    document.addEventListener(type, wake, { passive: true, capture: true });
+  }
+  window.addEventListener('resize', wake);
+  window.addEventListener('mk-theme', wake);
+  document.addEventListener('visibilitychange', wake);
+  wake();
 }
 
 export { emit };

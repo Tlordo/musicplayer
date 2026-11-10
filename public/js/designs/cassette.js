@@ -5,6 +5,7 @@ import * as core from '../core.js';
 import { state, audio } from '../core.js';
 import { settings } from '../store.js';
 import { accentFrom, textOn } from '../themes.js';
+import { smallCover } from '../format.js';
 
 const probe = document.createElement('span');
 probe.style.display = 'none';
@@ -286,7 +287,7 @@ export default {
     const remove = f.removable ? `<button type="button" class="row-remove" data-act="album-remove" data-remove-id="${esc(t.video_id)}" aria-label="Стереть «${esc(t.title)}» с кассеты" title="Убрать с кассеты"><svg><use href="#i-minus"/></svg></button>` : '';
     return `<li${f.removable ? ' class="removable"' : ''}><button type="button" class="${cls}" data-id="${esc(t.video_id)}"${f.current ? ' aria-current="true"' : ''}>
       <span class="row-num">${String(i + 1).padStart(2, '0')}${f.played ? '<svg aria-hidden="true"><use href="#i-tick"/></svg>' : ''}</span>
-      <span class="row-thumb"><img src="${esc(t.thumbnail_api)}" alt="" loading="lazy" decoding="async"></span>
+      <span class="row-thumb"><img src="${esc(smallCover(t))}" alt="" loading="lazy" decoding="async"></span>
       <span class="row-main">
         <span class="row-title"><mark>${esc(t.title)}</mark></span>
         <span class="row-sub">${f.missing ? '<span class="tag">нет файла</span>' : ''}${sub}</span>

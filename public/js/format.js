@@ -43,6 +43,11 @@ export function esc(text) {
   return String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+/** Уменьшенная обложка для списков: сервер сжимает её один раз (полный размер — только в плеере). */
+export function smallCover(t, size = 96) {
+  return t && t.thumbnail_api ? `${t.thumbnail_api}?s=${size}` : '';
+}
+
 /** Альбом, если он осмысленный: yt-dlp ставит «Single», когда альбома нет. */
 export function albumOf(t) {
   return t && t.album && t.album !== 'Single' ? t.album : '';

@@ -118,11 +118,10 @@ async fn add_track(State(s): State<AppState>, Json(body): Json<AddRequest>) -> A
 }
 
 async fn library(State(s): State<AppState>) -> ApiResult<impl IntoResponse> {
-    let mut tracks = s.db.library()?;
-    for t in &mut tracks {
-        t.file_exists = s.cfg.audio_path(&t.video_id).is_file();
-    }
-    Ok(Json(tracks))
+    // Ответ пишется строка за строкой прямо из базы: в памяти не лежат одновременно
+    // и все треки, и их JSON — только готовый текст.
+    let body = s.db.library_json(|id| s.cfg.audio_path(id).is_file())?;
+    Ok(([(header::CONTENT_TYPE, "application/json")], body))
 }
 
 async fn stream(State(s): State<AppState>, Path(id): Path<String>, req: Request) -> ApiResult<Response> {
@@ -148,7 +147,13 @@ async fn stream(State(s): State<AppState>, Path(id): Path<String>, req: Request)
     }
 }
 
-async fn thumbnail(State(s): State<AppState>, Path(id): Path<String>, req: Request) -> ApiResult<Response> {
+#[derive(Deserialize)]
+struct ThumbQuery {
+    /// Сторона уменьшенной копии для списков (`?s=96`); без параметра — оригинал.
+    s: Option<u32>,
+}
+
+async fn thumbnail(State(s): State<AppState>, Path(id): Path<String>, Query(q): Query<ThumbQuery>, req: Request) -> ApiResult<Response> {
     check_id(&id)?;
     let path = s.cfg.thumb_path(&id);
     if !path.is_file() {
@@ -167,6 +172,15 @@ async fn thumbnail(State(s): State<AppState>, Path(id): Path<String>, req: Reque
         }
         if !ok {
             return Err(ApiError::new(StatusCode::NOT_FOUND, "Thumbnail not available"));
+        }
+    }
+    if let Some(size) = q.s {
+        if let Some(small) = crate::thumbs::ensure(&s.cfg, &id, crate::thumbs::snap(size)).await {
+            // Виртуальный список создаёт строки заново при прокрутке — маленькую обложку
+            // браузер берёт из своего кэша, не переспрашивая сервер.
+            let mut res = serve_file(small, req).await?;
+            res.headers_mut().insert(header::CACHE_CONTROL, header::HeaderValue::from_static("private, max-age=604800"));
+            return Ok(res);
         }
     }
     serve_file(path, req).await
@@ -521,6 +535,7 @@ async fn delete_track(State(s): State<AppState>, Path(id): Path<String>) -> ApiR
         .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "Track not found in library"))?;
 
     let mut files = vec![s.cfg.audio_path(&id), s.cfg.thumb_path(&id), s.cfg.peaks_path(&id)];
+    files.extend(crate::thumbs::all_small(&s.cfg, &id));
     if let Some(name) = json_file.filter(|n| !n.contains(['/', '\\']) && n != ".." && !n.is_empty()) {
         files.push(s.cfg.info_dir.join(name));
     }

@@ -19,7 +19,8 @@ pub struct Analysis {
 /// для огибающей этого достаточно, а данных получается мало (≈1 МБ на 4 минуты).
 /// Попутно фильтр ebur128 меряет громкость исходного звука (до понижения частоты).
 pub async fn compute(ffmpeg: &Path, audio: &Path) -> Result<Analysis> {
-    let out = Command::new(ffmpeg)
+    let mut cmd = Command::new(ffmpeg);
+    let out = crate::no_console(&mut cmd)
         .args(["-hide_banner", "-nostats", "-v", "info", "-nostdin", "-i"])
         .arg(audio)
         .args(["-af", "ebur128=framelog=quiet", "-ac", "1", "-ar", "2000", "-f", "s16le", "-"])

@@ -3,11 +3,14 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use music_player::{app, bind, lan_urls, prepare, serve, Config};
+use music_player::{app, bind, lan_urls, prepare, runtime, serve, Config};
 use tracing_subscriber::EnvFilter;
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
+    runtime()?.block_on(run())
+}
+
+async fn run() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,tower_http=warn")))
         .init();

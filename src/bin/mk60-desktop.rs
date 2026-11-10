@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use music_player::{app, bind, prepare, serve, Config};
+use music_player::{app, bind, prepare, runtime, serve, Config};
 use tao::dpi::LogicalSize;
 use tao::event::{Event, WindowEvent};
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
@@ -16,6 +16,13 @@ use tao::window::{Icon, WindowBuilder};
 use wry::{WebContext, WebViewBuilder};
 
 const ICON_RGBA: &[u8] = include_bytes!("../../assets/icon-64.rgba");
+
+/// Ключи WebView2. Первые три выключенные функции wry ставит сам (мини-меню выделения, PDF, SmartScreen) —
+/// задавая свои ключи, их надо повторить. Остальное экономит память: интерфейс — один сайт, поэтому
+/// хватает одного процесса страницы, запасной процесс «на будущее» и кэш страниц для «назад» не нужны,
+/// фоновые запросы Edge (переводчик, подсказки, обновления компонентов) — тоже.
+#[cfg(windows)]
+const WEBVIEW2_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,SpareRendererForSitePerProcess,BackForwardCache,Translate,msEdgeTranslate,AutofillServerCommunication,OptimizationHints,MediaRouter --renderer-process-limit=1 --disable-background-networking --disable-component-update";
 
 fn init_logging(dir: &Path) {
     // Если папку данных создать нельзя (нет прав), журнал пишется во временную папку.
@@ -88,7 +95,7 @@ fn main() {
     let (stop_tx, stop_rx) = tokio::sync::oneshot::channel::<()>();
     let server_cfg = cfg.clone();
     let server = std::thread::spawn(move || {
-        let rt = match tokio::runtime::Runtime::new() {
+        let rt = match runtime() {
             Ok(rt) => rt,
             Err(e) => return ready_tx.send(Err(e.to_string())).unwrap_or(()),
         };
@@ -167,12 +174,33 @@ fn main() {
         }
         Err(msg) => builder.with_html(error_page(msg)),
     };
-    let _webview = builder.build(&window).expect("не удалось создать WebView — установлен ли WebView2 / WebKitGTK?");
+    #[cfg(windows)]
+    {
+        use wry::WebViewBuilderExtWindows;
+        builder = builder.with_additional_browser_args(WEBVIEW2_ARGS);
+    }
+    let webview = builder.build(&window).expect("не удалось создать WebView — установлен ли WebView2 / WebKitGTK?");
+    #[cfg(windows)]
+    let mut minimized = false;
 
     let mut stop_tx = Some(stop_tx);
     let mut server = Some(server);
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
+        // Свёрнутое окно отдаёт память: WebView2 сбрасывает кэши и выгружает неиспользуемое.
+        // Музыка при этом продолжает играть — это не заморозка страницы.
+        #[cfg(windows)]
+        if let Event::WindowEvent { event: WindowEvent::Resized(_), .. } = &event {
+            use wry::{MemoryUsageLevel, WebViewExtWindows};
+            let now = window.is_minimized();
+            if now != minimized {
+                minimized = now;
+                let level = if now { MemoryUsageLevel::Low } else { MemoryUsageLevel::Normal };
+                if let Err(e) = webview.set_memory_usage_level(level) {
+                    tracing::debug!("уровень памяти WebView2: {e}");
+                }
+            }
+        }
         if let Event::WindowEvent { event: WindowEvent::CloseRequested, .. } = event {
             if let Some(tx) = stop_tx.take() {
                 let _ = tx.send(());

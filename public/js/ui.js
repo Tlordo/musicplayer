@@ -7,6 +7,7 @@ import { settings, save } from './store.js';
 import { formatTime, formatLong, formatNumber, plural, yearOf, esc, albumOf } from './format.js';
 import { currentDesign, setCover } from './themes.js';
 import { saveUrl } from './native.js';
+import { renderVirtual, scrollToRow } from './vlist.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -168,12 +169,25 @@ export function renderList() {
     return;
   }
   if (empty) empty.hidden = true;
-  const cur = state.current && state.current.video_id;
-  list.innerHTML = state.view.map((t, i) => design.renderRow(t, i, {
-    current: t.video_id === cur,
-    played: settings.markPlayed && state.played.has(t.video_id),
-    missing: t.file_exists === false,
-  }, { esc, formatTime, albumOf })).join('');
+  const view = state.view;
+  const helpers = { esc, formatTime, albumOf };
+  // Рисуются только видимые строки (vlist.js) — флаги считаем в момент отрисовки строки.
+  renderVirtual(list, view.length, (i) => {
+    const t = view[i];
+    const cur = state.current && state.current.video_id;
+    return design.renderRow(t, i, {
+      current: t.video_id === cur,
+      played: settings.markPlayed && state.played.has(t.video_id),
+      missing: t.file_exists === false,
+    }, helpers);
+  }, markFlash);
+}
+
+// Подсветка только что добавленного трека переживает перерисовку виртуального списка.
+let flash = null;   // { id, until }
+function markFlash(list) {
+  if (!flash || Date.now() > flash.until) { flash = null; return; }
+  list.querySelector(`[data-id="${CSS.escape(flash.id)}"]`)?.classList.add('flash');
 }
 
 function markRows() {
@@ -222,11 +236,16 @@ function openRecs() {
 }
 
 function flashRow(id) {
-  const row = id && $(`[data-list] [data-id="${CSS.escape(id)}"]`);
-  if (!row) return;
-  row.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  row.classList.add('flash');
-  setTimeout(() => row.classList.remove('flash'), 1900);
+  const list = $('[data-list]');
+  const i = id ? state.view.findIndex((t) => t.video_id === id) : -1;
+  if (!list || i < 0) return;
+  flash = { id, until: Date.now() + 1900 };
+  scrollToRow(list, i);
+  markFlash(list);
+  setTimeout(() => {
+    if (flash && flash.id === id) flash = null;
+    $(`[data-list] [data-id="${CSS.escape(id)}"]`)?.classList.remove('flash');
+  }, 1900);
 }
 
 // ============ Действия ============
