@@ -13,8 +13,8 @@ android {
         applicationId = "app.mymusic"
         minSdk = 26
         targetSdk = 36
-        versionCode = 230
-        versionName = "2.3.0"
+        versionCode = 231
+        versionName = "2.3.1"
     }
 
     // Отдельный APK на архитектуру: телефонам — arm64-v8a, эмуляторам — x86_64.
