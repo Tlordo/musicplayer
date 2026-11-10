@@ -761,6 +761,19 @@ export async function addTrack(url) {
   return data.track;
 }
 
+/**
+ * Поставить трек с YouTube в загрузку и сразу вернуться: ход виден в углу (jobs),
+ * а когда файл готов — трек появляется в библиотеке сам. `title` — для строки прогресса.
+ */
+export async function queueTrack(url, title = '') {
+  const data = await api('POST', '/api/queue', { url, title });
+  const job = data.job;
+  if (job && !jobs.list.some((j) => j.id === job.id)) jobs.list.push(job);
+  emit('jobs');
+  pollJobs();
+  return job;
+}
+
 /** Поиск трека на YouTube по названию: [{ id, title, artist, duration, url, thumb, in_library }]. */
 export async function searchTracks(q) {
   const data = await api('GET', `/api/search?q=${encodeURIComponent(q)}`);
@@ -919,20 +932,31 @@ export function importAlbum(file, onProgress) {
 export const jobs = { list: [], local: [] };
 let jobsTimer = null;
 let lastDone = -1;
+// Одиночные загрузки, о которых уже сказали «готово» / «не вышло».
+const reported = new Set();
+let firstPoll = true;
 
 export async function pollJobs() {
   clearTimeout(jobsTimer);
   try {
     jobs.list = await api('GET', '/api/jobs');
   } catch { /* сервер перезапускается */ }
+  // Что закончилось ещё до открытия страницы — не новость.
+  if (firstPoll) { jobs.list.forEach((j) => { if (j.state === 'done') reported.add(j.id); }); firstPoll = false; }
   const done = jobs.list.reduce((s, j) => s + j.done, 0);
   if (done !== lastDone) {
     // Появились новые треки — подтягиваем их в библиотеку и альбомы.
     if (lastDone !== -1) { await loadLibrary(); await loadAlbums(); }
     lastDone = done;
   }
+  for (const j of jobs.list) {
+    if (j.kind !== 'track' || j.state !== 'done' || reported.has(j.id)) continue;
+    reported.add(j.id);
+    if (j.done) emit('added', { id: j.video_id, title: j.name });
+    else emit('toast', { text: `Не скачалось «${j.name}»: ${j.error || 'ошибка yt-dlp'}`, type: 'error', ms: 6000 });
+  }
   emit('jobs');
-  if (jobs.list.some((j) => j.state === 'running')) jobsTimer = setTimeout(pollJobs, 2000);
+  if (jobs.list.some((j) => j.state === 'running')) jobsTimer = setTimeout(pollJobs, 1500);
 }
 
 export async function addPlaylist(url) {
@@ -975,9 +999,9 @@ export async function addRec(id) {
   recs.adding.add(id);
   emit('recs');
   try {
-    const t = await addTrack(item.url);
+    // Загрузка идёт фоном — рекомендацию сразу убираем, прогресс виден в углу.
+    await queueTrack(item.url, item.title);
     recs.items = recs.items.filter((r) => r.id !== id);
-    emit('toast', { text: `Добавлен «${(t && t.title) || item.title}»`, type: 'ok' });
   } catch (err) {
     emit('toast', { text: `Не удалось добавить: ${err.message}`, type: 'error', ms: 5000 });
   } finally {

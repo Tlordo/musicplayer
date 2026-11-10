@@ -108,6 +108,57 @@ html[data-libview="album"] .library-view { display: none !important; }
 .search-row .icon-btn[aria-busy="true"] .busy { display: block; animation: spin 0.9s linear infinite; }
 .search-row .in-lib { color: var(--ui-accent); }
 
+/* ▶ на обложке: послушать с YouTube, не скачивая */
+.preview-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--ui-surface-2);
+  color: #fff;
+  cursor: pointer;
+}
+.preview-btn > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
+.preview-btn > svg { position: relative; width: 18px; height: 18px; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7)); opacity: 0; transition: opacity 0.15s; }
+.preview-btn::before { content: ''; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); opacity: 0; transition: opacity 0.15s; }
+/* Тонкая полоска прослушанного снизу */
+.preview-btn::after { content: ''; position: absolute; left: 0; bottom: 0; height: 3px; width: calc(var(--pp, 0) * 100%); background: var(--ui-accent); }
+.preview-btn .pv-pause { display: none; }
+.preview-btn:hover::before, .preview-btn:focus-visible::before, .preview-btn.playing::before, .preview-btn.loading::before { opacity: 1; }
+.preview-btn:hover > .pv-play, .preview-btn:focus-visible > .pv-play { opacity: 1; }
+.preview-btn.playing > .pv-play, .preview-btn.loading > .pv-play { display: none; }
+.preview-btn.playing > .pv-pause { display: block; opacity: 1; }
+.preview-btn.loading > .pv-pause { display: block; opacity: 1; animation: pv-pulse 0.9s ease-in-out infinite alternate; }
+@media (hover: none) { .preview-btn > .pv-play { opacity: 0.9; } .preview-btn::before { opacity: 0.25; } }
+@keyframes pv-pulse { from { opacity: 0.35; } to { opacity: 1; } }
+
+/* «Как пользоваться» в шапке настроек */
+.tour-open { margin-left: auto; min-height: 36px; }
+
+/* Пустая библиотека / ничего не нашлось — кнопка «найти на YouTube» */
+.empty-yt { margin: 14px auto 0; }
+
+/* Ссылку тащат в окно */
+html.drop-link body::after {
+  content: 'Отпустите — трек добавится';
+  position: fixed;
+  inset: 12px;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--ui-accent);
+  border-radius: var(--ui-radius);
+  background: color-mix(in srgb, var(--ui-bg) 82%, transparent);
+  color: var(--ui-text);
+  font: 700 1.3rem var(--ui-font);
+  pointer-events: none;
+}
+
 /* ============ Фоновые загрузки ============ */
 .jobs {
   position: fixed;
@@ -137,6 +188,13 @@ html[data-libview="album"] .library-view { display: none !important; }
 .job-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--ui-surface); }
 .job-bar::after { content: ''; position: absolute; inset: 0 auto 0 0; width: calc(var(--p, 0) * 100%); background: var(--ui-accent); transition: width 0.4s; }
 .job.done .job-bar::after { background: var(--ui-ok); }
+button.job { border: 0; cursor: pointer; }
+/* Одиночный трек: точного процента нет — бегущая полоска, пока качается */
+.job.track.busy .job-bar::after { width: 35%; animation: job-run 1.4s ease-in-out infinite; }
+.job.failed .job-bar::after { background: var(--ui-danger); }
+.job.failed .job-status { color: var(--ui-danger); white-space: normal; }
+@keyframes job-run { from { translate: -100% 0; } to { translate: 290% 0; } }
+@media (prefers-reduced-motion: reduce) { .job.track.busy .job-bar::after { animation: none; width: 100%; opacity: 0.5; } }
 @media (max-width: 959px) {
   .jobs { left: 50%; right: auto; translate: -50% 0; bottom: calc(140px + var(--safe-b)); }
 }
@@ -500,6 +558,18 @@ html.lyrics-open .player { overflow: hidden; isolation: isolate; }
 .lyrics-wait[hidden] { display: block !important; opacity: 0; }
 
 /* ============ Уведомления ============ */
+.toast.has-action { display: flex; align-items: center; gap: 14px; pointer-events: auto; }
+.toast-action {
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ui-accent);
+  color: var(--ui-on-accent);
+  font: 700 0.88rem var(--ui-font);
+  cursor: pointer;
+}
 .toasts {
   position: fixed;
   left: 50%;

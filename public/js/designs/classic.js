@@ -318,7 +318,7 @@ export default {
   renderRec(r, i, f, { esc, formatTime }) {
     const sub = [r.artist, r.duration ? formatTime(r.duration) : ''].filter(Boolean).map(esc).join(' · ');
     return `<li><div class="row rec">
-      <span class="row-thumb"><img src="${esc(r.thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
+      <button type="button" class="row-thumb preview-btn" data-act="preview" data-preview-id="${esc(r.id)}" aria-pressed="false" aria-label="Послушать «${esc(r.title)}»" title="Послушать, не скачивая"><img src="${esc(r.thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"><svg class="pv-play" aria-hidden="true"><use href="#i-play"/></svg><svg class="pv-pause" aria-hidden="true"><use href="#i-pause"/></svg></button>
       <span class="row-main">
         <span class="row-title">${esc(r.title)}</span>
         <span class="row-sub">${sub}</span>
