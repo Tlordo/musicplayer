@@ -51,7 +51,19 @@ let ready = null;
 
 const listeners = new Set();
 export function onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
-function changed() { listeners.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } }); }
+function changed() {
+  listeners.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } });
+  tellSw();
+}
+
+// Сервис-воркер перехватывает только сохранённые треки — сообщаем ему, что список изменился.
+let swTimer = null;
+function tellSw() {
+  clearTimeout(swTimer);
+  swTimer = setTimeout(() => {
+    try { navigator.serviceWorker?.controller?.postMessage('offline-changed'); } catch { /* нет воркера */ }
+  }, 200);
+}
 
 export function init() {
   if (!ready) {

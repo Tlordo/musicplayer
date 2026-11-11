@@ -27,6 +27,7 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil((async () => {
     for (const key of await caches.keys()) if (key !== CACHE) await caches.delete(key);
+    await loadSaved();
     await self.clients.claim();
   })());
 });
@@ -60,6 +61,26 @@ async function getRecord(store, id) {
     });
   } catch { return null; }
 }
+
+// Какие треки сохранены на телефоне. Пока список известен, запросы остальных треков
+// (а это почти все обложки и потоки) идут в сеть мимо воркера — без лишнего чтения базы
+// и без прокачки каждого ответа через воркер. Страница сообщает об изменениях (offline.js).
+let saved = null;   // Set<id> или null — ещё не прочитан
+let savedLoading = null;
+function loadSaved() {
+  if (!savedLoading) {
+    savedLoading = db()
+      .then((d) => new Promise((resolve, reject) => {
+        const r = d.transaction('audio').objectStore('audio').getAllKeys();
+        r.onsuccess = () => resolve(new Set(r.result));
+        r.onerror = () => reject(r.error);
+      }))
+      .then((s) => { saved = s; }, () => { saved = null; })
+      .finally(() => { savedLoading = null; });
+  }
+  return savedLoading;
+}
+self.addEventListener('message', (e) => { if (e.data === 'offline-changed') e.waitUntil(loadSaved()); });
 
 /** Ответ из Blob с поддержкой Range (206 Partial Content). */
 function blobResponse(blob, type, rangeHeader) {
@@ -130,7 +151,10 @@ self.addEventListener('fetch', (e) => {
   if (m) {
     // Сохранение на телефон само скачивает с сервера: не подменяем его ответ копией.
     if (e.request.cache === 'no-store') return;
-    e.respondWith(offlineApi(e.request, m[1], decodeURIComponent(m[2])));
+    const id = decodeURIComponent(m[2]);
+    if (saved && !saved.has(id)) return;   // на телефоне его нет — прямо в сеть
+    if (!saved) loadSaved();
+    e.respondWith(offlineApi(e.request, m[1], id));
     return;
   }
   // Остальные данные и musetext — всегда с сервера.
