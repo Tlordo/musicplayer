@@ -186,7 +186,7 @@ export default {
     <button type="button" class="add-btn" data-act="add"><svg aria-hidden="true"><use href="#i-plus"/></svg>Добавить трек</button>
     <button type="button" class="icon-btn fold-btn" data-act="fold" aria-label="Скрыть библиотеку" title="Скрыть библиотеку (B)"><svg><use href="#i-fold"/></svg></button>
   </footer>
-  <div class="mini" data-act="tab-player" role="button" tabindex="0" aria-label="Открыть плеер">
+  <div class="mini" data-mini data-act="tab-player" role="button" tabindex="0" aria-label="Открыть плеер">
     <span class="mini-cover"><img data-cover alt=""></span>
     <span class="mini-text"><span class="mini-title" data-bind="title"></span><span class="mini-artist" data-bind="artist"></span></span>
     <button type="button" class="icon-btn mini-play" data-act="play" aria-label="Играть"><svg><use data-play-icon href="#i-play"/></svg></button>
@@ -207,7 +207,7 @@ export default {
 
   <div class="stage">
     <section class="hero">
-      <div class="art">
+      <div class="art" data-swipe-stage>
         <button type="button" class="cover" data-act="cover" data-needs-track aria-label="Обложка во весь экран">
           <img data-cover alt="">
           <span class="cover-empty" aria-hidden="true"><svg><use href="#i-note"/></svg></span>

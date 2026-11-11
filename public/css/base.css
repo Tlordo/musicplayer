@@ -720,3 +720,52 @@ html.lyrics-open .player { overflow: hidden; isolation: isolate; }
 }
 .eq-preset:disabled { opacity: 0.5; }
 .xfade input { accent-color: var(--ui-accent); }
+
+/* ============ Жесты (gestures.js) ============ */
+.player { overflow-x: hidden; }
+[data-swipe-stage] { touch-action: pan-y; }
+[data-list] [data-id], [data-album-list] [data-id] { touch-action: pan-y; }
+html.gesturing, html.gesturing * { user-select: none; -webkit-user-select: none; }
+html.gesturing { cursor: grabbing; }
+.swipe-ghost { pointer-events: none; }
+html.swipe-commit .cassette.insert { animation: none; }
+
+/* подложка строки: слева «В любимое», справа «В очередь» */
+li.swiping { overflow: hidden; isolation: isolate; }
+li.swiping > [data-id] { position: relative; z-index: 1; }
+.swipe-under {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  font: 600 0.92rem/1.2 var(--ui-font);
+  color: #fff;
+  background: var(--ui-surface-2);
+  transition: background-color 0.18s;
+}
+.swipe-under[data-dir="like"] { background: color-mix(in srgb, var(--ui-like, #ff4d6d) 55%, var(--ui-surface-2)); }
+.swipe-under[data-dir="queue"] { background: color-mix(in srgb, var(--ui-accent) 55%, var(--ui-surface-2)); }
+.swipe-under.armed[data-dir="like"] { background: var(--ui-like, #e8385b); }
+.swipe-under.armed[data-dir="queue"] { background: var(--ui-accent); color: var(--ui-on-accent); }
+.su { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.su svg { width: 22px; height: 22px; transition: transform 0.18s var(--ease-out); }
+.swipe-under.armed .su svg { transform: scale(1.22); }
+.swipe-under[data-dir="like"] .su-queue,
+.swipe-under[data-dir="queue"] .su-like,
+.swipe-under:not([data-dir]) .su { visibility: hidden; }
+
+/* уведомление с «Отменить» */
+.toast.has-undo { display: flex; align-items: center; gap: 14px; pointer-events: auto; padding-right: 8px; }
+.toast.has-undo > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toast-undo {
+  flex: none;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--ui-radius-sm);
+  font: 700 0.9rem var(--ui-font);
+  color: var(--ui-accent);
+}
+.toast-undo:hover { background: color-mix(in srgb, var(--ui-accent) 14%, transparent); }

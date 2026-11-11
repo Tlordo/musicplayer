@@ -439,14 +439,32 @@ export function next() {
   if (t) load(t, true);
 }
 
-export function prev() {
-  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+/** skipRestart — сразу к предыдущему треку (свайп), не перематывая текущий в начало. */
+export function prev(skipRestart = false) {
+  if (!skipRestart && audio.currentTime > 3) { audio.currentTime = 0; return; }
   while (state.back.length) {
     const t = find(state.back.pop());
     if (t) { load(t, true, true); return; }
   }
   const t = neighbour(-1);
   if (t) load(t, true, true);
+}
+
+/** Какой трек будет следующим (step = 1) или предыдущим (−1) — без побочных эффектов.
+ *  null — неизвестно заранее («вперемешку») или списка дальше нет. Для свайпа по обложке. */
+export function peek(step) {
+  if (step > 0) {
+    const q = state.upNext.map(find).find(Boolean);
+    if (q) return q;
+    return settings.shuffle ? null : neighbour(1);
+  }
+  for (let i = state.back.length - 1; i >= 0; i--) {
+    const t = find(state.back[i]);
+    if (t) return t;
+  }
+  if (settings.shuffle) return null;
+  const t = neighbour(-1);
+  return t && state.current && t.video_id === state.current.video_id ? null : t;
 }
 
 // ============ Очередь ============
@@ -707,7 +725,8 @@ function flushListen(beacon = false) {
 addEventListener('pagehide', () => flushListen(true));
 
 // ============ Избранное ============
-export async function toggleLike(track) {
+/** quiet — без уведомления: вызывающий покажет своё (например, с «Отменить»). */
+export async function toggleLike(track, { quiet = false } = {}) {
   if (!track) return;
   const liked = !track.liked;
   track.liked = liked;
@@ -715,7 +734,7 @@ export async function toggleLike(track) {
   emit('like', track);
   try {
     await api('POST', `/api/track/${encodeURIComponent(track.video_id)}/like`, { liked });
-    emit('toast', { text: liked ? 'Добавлено в «Любимое»' : 'Убрано из «Любимого»', type: liked ? 'ok' : 'info', ms: 2200 });
+    if (!quiet) emit('toast', { text: liked ? 'Добавлено в «Любимое»' : 'Убрано из «Любимого»', type: liked ? 'ok' : 'info', ms: 2200 });
   } catch (err) {
     track.liked = !liked;
     emit('like', track);
