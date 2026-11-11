@@ -95,6 +95,7 @@ function render() {
   body.innerHTML = `
     <header class="sheet-head">
       <h2 id="settings-title">Настройки</h2>
+      <button type="button" class="btn tour-open" data-act="tour" title="Пройти обучение (F1)">Как пользоваться</button>
       <button type="button" class="icon-btn" data-close aria-label="Закрыть"><svg><use href="#i-x"/></svg></button>
     </header>
 

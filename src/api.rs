@@ -24,12 +24,15 @@ pub struct AppState {
     pub dl: Arc<Downloader>,
     pub recs: Arc<Recommender>,
     pub jobs: Arc<jobs::Jobs>,
+    pub preview: Arc<crate::preview::Preview>,
     pub port: u16,
 }
 
 pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/api/add", post(add_track))
+        .route("/api/queue", post(queue_track))
+        .route("/api/preview/:video_id", get(preview))
         .route("/api/library", get(library))
         .route("/api/stream/:video_id", get(stream))
         .route("/api/thumbnail/:video_id", get(thumbnail))
@@ -115,6 +118,71 @@ async fn add_track(State(s): State<AppState>, Json(body): Json<AddRequest>) -> A
         t.file_exists = true;
     }
     Ok(Json(json!({ "success": true, "track": track })))
+}
+
+fn check_url(url: &str) -> ApiResult<()> {
+    if url.is_empty() {
+        return Err(bad("Нужна ссылка"));
+    }
+    if !(url.starts_with("http://") || url.starts_with("https://")) || url.len() > 2048 {
+        return Err(bad("Ссылка должна начинаться с http:// или https://"));
+    }
+    Ok(())
+}
+
+#[derive(Deserialize)]
+struct QueueRequest {
+    url: Option<String>,
+    /// Название, известное заранее (из поиска или рекомендаций) — для строки прогресса.
+    title: Option<String>,
+}
+
+/// Поставить трек в загрузку и сразу ответить задачей; ход — в `/api/jobs`.
+async fn queue_track(State(s): State<AppState>, Json(b): Json<QueueRequest>) -> ApiResult<impl IntoResponse> {
+    let url = b.url.as_deref().map(str::trim).unwrap_or_default();
+    check_url(url)?;
+    let job = jobs::start_track(s.jobs.clone(), s.db.clone(), s.dl.clone(), url, b.title.as_deref());
+    Ok(Json(json!({ "job": job })))
+}
+
+/// Послушать трек с YouTube, не скачивая: поток проксируется с поддержкой Range.
+/// Если трек уже в библиотеке — отдаётся локальный файл.
+async fn preview(State(s): State<AppState>, Path(id): Path<String>, req: Request) -> ApiResult<Response> {
+    check_id(&id)?;
+    let local = s.cfg.audio_path(&id);
+    if local.is_file() {
+        return serve_file(local, req).await;
+    }
+    let range = req.headers().get(header::RANGE).and_then(|v| v.to_str().ok()).map(str::to_owned);
+    let gateway = |e: anyhow::Error| ApiError::new(StatusCode::BAD_GATEWAY, format!("{e:#}"));
+
+    // Ссылка из кэша могла протухнуть — тогда узнаём новую и пробуем ещё раз.
+    let mut upstream = None;
+    for attempt in 0..2 {
+        let url = s.preview.resolve(&id).await.map_err(gateway)?;
+        match s.preview.fetch(&url, range.as_deref()).await {
+            Ok(r) => {
+                upstream = Some(r);
+                break;
+            }
+            Err(e) if attempt == 0 => {
+                tracing::debug!("прослушивание {id}: {e:#}, обновляю ссылку");
+                s.preview.forget(&id);
+            }
+            Err(e) => return Err(gateway(e)),
+        }
+    }
+    let upstream = upstream.ok_or_else(|| ApiError::new(StatusCode::BAD_GATEWAY, "YouTube не отдал поток"))?;
+
+    let status = StatusCode::from_u16(upstream.status().as_u16()).unwrap_or(StatusCode::OK);
+    let mut res = Response::builder().status(status);
+    for h in [header::CONTENT_TYPE, header::CONTENT_LENGTH, header::CONTENT_RANGE, header::ACCEPT_RANGES] {
+        if let Some(v) = upstream.headers().get(h.as_str()).and_then(|v| header::HeaderValue::from_bytes(v.as_bytes()).ok()) {
+            res = res.header(h, v);
+        }
+    }
+    res = res.header(header::CACHE_CONTROL, "no-store");
+    Ok(res.body(Body::from_stream(upstream.bytes_stream()))?)
 }
 
 async fn library(State(s): State<AppState>) -> ApiResult<impl IntoResponse> {

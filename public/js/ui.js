@@ -4,7 +4,7 @@
 import * as core from './core.js';
 import { state, audio, recs } from './core.js';
 import { settings, save } from './store.js';
-import { formatTime, formatLong, formatNumber, plural, yearOf, esc, albumOf } from './format.js';
+import { formatTime, formatLong, formatNumber, plural, yearOf, esc, albumOf, findYouTubeLink } from './format.js';
 import { currentDesign, setCover } from './themes.js';
 import { saveUrl } from './native.js';
 import { renderVirtual, scrollToRow } from './vlist.js';
@@ -158,13 +158,28 @@ export function renderList() {
     list.innerHTML = '';
     if (empty) {
       empty.hidden = false;
+      const notFound = !state.loadError && state.library.length && q;
       const [title, text] = state.loadError
         ? ['Нет связи с сервером', 'Сервер не отвечает. Проверьте, что он запущен, и обновите страницу.']
-        : state.library.length
-          ? ['Ничего не нашлось', `В библиотеке нет «${q}». Попробуйте другое слово.`]
+        : notFound
+          ? ['Ничего не нашлось', `В библиотеке нет «${q}» — но, может быть, он есть на YouTube.`]
           : design.emptyLibrary;
       $('[data-empty-title]', empty).textContent = title;
       $('[data-empty-text]', empty).textContent = text;
+      // Не нашлось у себя — одной кнопкой ищем то же самое на YouTube.
+      let yt = $('[data-empty-yt]', empty);
+      if (!yt) {
+        yt = document.createElement('button');
+        yt.type = 'button';
+        yt.className = 'btn btn-primary empty-yt';
+        yt.dataset.emptyYt = '';
+        yt.dataset.act = 'yt-search';
+        empty.append(yt);
+      }
+      yt.hidden = !(notFound || (!state.loadError && !state.library.length));
+      yt.innerHTML = notFound
+        ? `<svg aria-hidden="true"><use href="#i-search"/></svg>Найти «${esc(q.length > 28 ? `${q.slice(0, 27)}…` : q)}» на YouTube`
+        : '<svg aria-hidden="true"><use href="#i-plus"/></svg>Добавить первый трек';
     }
     return;
   }
@@ -283,6 +298,13 @@ const builtin = {
   mute: () => core.toggleMute(),
   meter: () => { settings.meter = settings.meter === 'viz' ? 'off' : 'viz'; save(); core.emit('meter'); },
   add: () => openAdd(),
+  'yt-search': () => openAdd(state.query.trim()),
+  'job-play': (el) => {
+    const t = core.find(el.dataset.idPlay);
+    if (!t) return;
+    core.playFrom(t, null);
+    if (!isDesktop() && currentDesign().rowOpensPlayer) setTab('player');
+  },
   info: () => openInfo(),
   download: () => download(),
   delete: () => confirmDelete(),
@@ -410,14 +432,21 @@ const addDialog = $('#add-dialog');
 const addStatus = $('#add-status');
 let adding = false;
 
-function openAdd() {
+/** Открыть окно добавления; `text` — сразу подставить (название ищется, ссылка ждёт «Загрузить»). */
+function openAdd(text = '') {
   if (!adding && !searching) { addStatus.textContent = ''; addStatus.className = 'status'; }
-  addDialog.showModal();
-  $('#url-input').focus();
+  const input = $('#url-input');
+  if (text) {
+    input.value = text;
+    input.dispatchEvent(new Event('input'));
+  }
+  if (!addDialog.open) addDialog.showModal();
+  input.focus();
+  if (text && !isLink(text) && !searching) runSearch(text);
 }
 
 // В поле — ссылка или название? Название ищется на YouTube.
-const isLink = (v) => /^https?:\/\//i.test(v) || /^(www\.|m\.|music\.)?(youtube\.com|youtu\.be)\//i.test(v);
+const isLink = (v) => /^https?:\/\//i.test(v) || /^(www\.|m\.|music\.)?(youtube\.com|youtu\.be)\//i.test(v) || !!findYouTubeLink(v);
 function submitLabel() {
   const v = $('#url-input').value.trim();
   return v && !isLink(v) ? 'Найти' : 'Загрузить';
@@ -440,7 +469,10 @@ function renderSearch() {
           <svg class="idle" aria-hidden="true"><use href="#i-plus"/></svg><svg class="busy" aria-hidden="true"><use href="#i-refresh"/></svg>
         </button>`;
     return `<li class="search-row">
-      <img src="${esc(r.thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+      <button type="button" class="preview-btn" data-act="preview" data-preview-id="${esc(r.id)}" data-preview-title="${esc(r.title)}" data-preview-artist="${esc(r.artist || '')}" aria-label="Послушать «${esc(r.title)}»" title="Послушать, не скачивая">
+        <img src="${esc(r.thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+        <svg class="pv-play" aria-hidden="true"><use href="#i-play"/></svg><svg class="pv-pause" aria-hidden="true"><use href="#i-pause"/></svg>
+      </button>
       <span class="pick-text"><span class="pick-name">${esc(r.title)}</span><span class="pick-meta">${sub}</span></span>
       ${btn}
     </li>`;
@@ -481,10 +513,9 @@ $('#add-results').addEventListener('click', async (e) => {
   search.busy.add(r.id);
   renderSearch();
   try {
-    const track = await core.addTrack(r.url);
+    // Фоном: можно сразу нажать «+» у следующего результата.
+    await core.queueTrack(r.url, r.title);
     r.in_library = true;
-    toast(`Добавлен «${track?.title || r.title}»`, 'ok');
-    flashRow(track?.video_id);
   } catch (err) {
     toast(`Не удалось добавить «${r.title}»: ${err.message}`, 'error', 5000);
   } finally {
@@ -492,6 +523,33 @@ $('#add-results').addEventListener('click', async (e) => {
     renderSearch();
   }
 });
+
+// Загрузка закончилась — трек мигает в списке, а тост предлагает включить его.
+core.on('added', ({ id, title }) => {
+  const t = id && core.find(id);
+  if (!t) return;
+  flashRow(id);
+  toastAction(`Добавлен «${t.title || title}»`, 'Включить', () => {
+    core.playFrom(t, null);
+    if (!isDesktop() && currentDesign().rowOpensPlayer) setTab('player');
+  });
+});
+
+/** Тост с кнопкой действия (живёт дольше обычного). */
+export function toastAction(text, label, fn, ms = 6000) {
+  const el = document.createElement('div');
+  el.className = 'toast ok has-action';
+  const span = document.createElement('span');
+  span.textContent = text;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'toast-action';
+  btn.textContent = label;
+  btn.addEventListener('click', () => { fn(); el.classList.add('out'); setTimeout(() => el.remove(), 320); });
+  el.append(span, btn);
+  $('#toasts').append(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 320); }, ms);
+}
 
 // Ссылка на альбом/плейлист: предлагаем скачать его целиком.
 function playlistKind(url) {
@@ -518,7 +576,7 @@ $('#add-form').addEventListener('submit', async (e) => {
     if (!searching) runSearch(url);
     return;
   }
-  if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+  url = findYouTubeLink(url) || (/^https?:\/\//i.test(url) ? url : `https://${url}`);
   if (!$('#add-mode').hidden && $('input[name="add-mode"]:checked').value === 'playlist') {
     adding = true;
     $('#submit-add').disabled = true;
@@ -541,32 +599,89 @@ $('#add-form').addEventListener('submit', async (e) => {
     }
     return;
   }
+  // Одиночный трек: ставим в загрузку и сразу закрываем окно — ждать не нужно.
   adding = true;
   const btn = $('#submit-add');
   btn.disabled = true;
-  html.classList.add('is-adding');
-  $('#submit-label').textContent = 'Загружаю…';
-  addStatus.className = 'status';
-  addStatus.textContent = 'Скачиваю и конвертирую. Окно можно закрыть — загрузка продолжится.';
   try {
-    const track = await core.addTrack(url);
+    await core.queueTrack(url);
     input.value = '';
-    addStatus.className = 'status ok';
-    addStatus.textContent = `Готово: ${track?.title || 'трек'}`;
-    toast(`Добавлен «${track?.title || 'трек'}»`, 'ok');
-    flashRow(track?.video_id);
-    setTimeout(() => { if (addDialog.open) addDialog.close(); }, 900);
+    $('#add-mode').hidden = true;
+    $('#submit-label').textContent = 'Загрузить';
+    addDialog.close();
+    toast('Скачиваю — прогресс в углу экрана', 'info', 2400);
   } catch (err) {
     addStatus.className = 'status error';
     addStatus.textContent = `Не получилось: ${err.message}. Проверьте ссылку и интернет и попробуйте ещё раз.`;
-    if (!addDialog.open) toast('Не удалось добавить трек', 'error', 5000);
   } finally {
     adding = false;
     btn.disabled = false;
-    html.classList.remove('is-adding');
-    $('#submit-label').textContent = 'Загрузить';
   }
 });
+
+// ============ Ссылка YouTube откуда угодно ============
+/**
+ * Добавить по ссылке без окна: вставка Ctrl+V в любом месте, перетаскивание ссылки,
+ * «Поделиться» с телефона. Ссылка на плейлист открывает окно — там выбор «трек / весь альбом».
+ */
+export async function quickAdd(text) {
+  const url = findYouTubeLink(text);
+  if (!url) return false;
+  if (/\/(playlist|browse)\b/.test(url)) { openAdd(url); return true; }
+  try {
+    await core.queueTrack(url);
+    toast('Ссылка поймана — скачиваю', 'info', 2400);
+  } catch (err) {
+    toast(`Не удалось добавить: ${err.message}`, 'error', 5000);
+  }
+  return true;
+}
+
+document.addEventListener('paste', (e) => {
+  // В полях ввода вставка работает как обычно.
+  if (e.target.closest('input, textarea, [contenteditable]')) return;
+  const text = e.clipboardData?.getData('text') || '';
+  if (findYouTubeLink(text)) { e.preventDefault(); quickAdd(text); }
+});
+
+let dragDepth = 0;
+const dragHasLink = (e) => [...(e.dataTransfer?.types || [])].some((t) => t === 'text/uri-list' || t === 'text/plain');
+document.addEventListener('dragenter', (e) => {
+  if (!dragHasLink(e)) return;
+  dragDepth++;
+  html.classList.add('drop-link');
+});
+document.addEventListener('dragleave', () => {
+  if (--dragDepth <= 0) { dragDepth = 0; html.classList.remove('drop-link'); }
+});
+document.addEventListener('dragover', (e) => { if (dragHasLink(e)) e.preventDefault(); });
+document.addEventListener('drop', (e) => {
+  dragDepth = 0;
+  html.classList.remove('drop-link');
+  const text = e.dataTransfer?.getData('text/uri-list') || e.dataTransfer?.getData('text/plain') || '';
+  if (!findYouTubeLink(text)) return;
+  e.preventDefault();
+  quickAdd(text);
+});
+
+/** Плеер открыт через «Поделиться» (share_target в манифесте) или по ссылке ?add=… */
+export function handleSharedLink() {
+  const p = new URLSearchParams(location.search);
+  const text = [p.get('url'), p.get('text'), p.get('title'), p.get('add')].filter(Boolean).join(' ');
+  if (!text) return;
+  history.replaceState(null, '', location.pathname);
+  shareText(text);
+}
+
+/** Ссылка — сразу в загрузку; просто текст (например, название песни) — поиск на YouTube. */
+export function shareText(text) {
+  text = String(text || '').trim();
+  if (!text) return;
+  if (findYouTubeLink(text)) quickAdd(text);
+  else openAdd(text.slice(0, 200));
+}
+// Оболочка Android передаёт сюда «Поделиться», пришедшее, пока плеер уже открыт.
+window.__mkShare = shareText;
 
 function openInfo(t = state.current) {
   if (!t) return;

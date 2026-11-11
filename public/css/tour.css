@@ -1,0 +1,246 @@
+/* Обучение: затемнение с «окном» вокруг настоящей кнопки и карточка рядом.
+   Цвета — токены текущего дизайна (--ui-*), поэтому выглядит своим и в «Классике», и в «Кассете». */
+
+.tour {
+  --tour-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tour-dim: rgba(4, 4, 6, 0.74);
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  font-family: var(--ui-font);
+  color: var(--ui-text);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.tour.in { opacity: 1; }
+.tour.out { opacity: 0; pointer-events: none; }
+
+/* Прозрачный слой ловит клики мимо — интерфейс под обучением не нажимается случайно. */
+.tour-shade {
+  position: absolute;
+  inset: 0;
+  transition: background 0.4s ease, backdrop-filter 0.4s ease;
+}
+.tour.centered .tour-shade {
+  background: radial-gradient(120% 90% at 50% 40%, color-mix(in srgb, var(--ui-accent) 16%, transparent), transparent 60%);
+  backdrop-filter: blur(6px) saturate(1.1);
+  -webkit-backdrop-filter: blur(6px) saturate(1.1);
+}
+
+/* Окно прожектора: огромная тень вокруг затемняет всё остальное */
+.tour-hole {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--w, 0);
+  height: var(--h, 0);
+  translate: var(--x, 50vw) var(--y, 50vh);
+  border-radius: var(--r, 12px);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--ui-accent) 85%, white 15%),
+    0 0 28px 4px color-mix(in srgb, var(--ui-accent) 45%, transparent),
+    0 0 0 200vmax var(--tour-dim);
+  cursor: pointer;
+  transition: translate 0.55s var(--tour-ease), width 0.55s var(--tour-ease), height 0.55s var(--tour-ease), border-radius 0.55s var(--tour-ease), box-shadow 0.4s ease;
+}
+/* Мягкая пульсация — «нажми сюда» */
+.tour-hole::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 2px solid var(--ui-accent);
+  opacity: 0;
+  animation: tour-ping 2s var(--tour-ease) 0.6s infinite;
+}
+.tour.centered .tour-hole::after { display: none; }
+.tour.centered .tour-hole { box-shadow: 0 0 0 200vmax var(--tour-dim); }
+@keyframes tour-ping {
+  0% { opacity: 0.8; scale: 1; }
+  70%, 100% { opacity: 0; scale: 1.18; }
+}
+
+/* Карточка */
+.tour-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: min(372px, calc(100vw - 24px));
+  translate: var(--cx, calc(50vw - 50%)) var(--cy, calc(50vh - 50%));
+  padding: 20px 20px 16px;
+  border-radius: 20px;
+  background:
+    linear-gradient(var(--ui-bg), var(--ui-bg)) padding-box,
+    linear-gradient(140deg, color-mix(in srgb, var(--ui-accent) 70%, transparent), var(--ui-line) 45%, var(--ui-line)) border-box;
+  border: 1px solid transparent;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 2px 0 rgba(255, 255, 255, 0.04) inset;
+  outline: none;
+  transition: translate 0.55s var(--tour-ease);
+}
+.tour.centered .tour-card {
+  width: min(420px, calc(100vw - 24px));
+  padding: 28px 24px 18px;
+  text-align: center;
+}
+.tour-card.swap > :not(.tour-art) { animation: tour-swap 0.42s var(--tour-ease) both; }
+.tour-card.swap > .tour-text { animation-delay: 0.04s; }
+.tour-card.swap > .tour-extra { animation-delay: 0.08s; }
+@keyframes tour-swap {
+  from { opacity: 0; translate: 0 6px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+.tour-count {
+  margin: 0 0 4px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-accent);
+}
+.tour-count:empty { display: none; }
+.tour-title {
+  margin: 0 0 8px;
+  font-family: var(--ui-font-head);
+  font-size: 1.22rem;
+  line-height: 1.2;
+  letter-spacing: var(--ui-head-tracking);
+}
+.tour.centered .tour-title { font-size: 1.55rem; }
+.tour-text { margin: 0; font-size: 0.96rem; line-height: 1.5; color: var(--ui-text-2); text-wrap: pretty; }
+
+/* Иллюстрация приветствия: пластинка и эквалайзер в цвете темы */
+.tour-art { display: none; position: relative; height: 112px; margin: -4px auto 14px; width: 180px; }
+.tour.centered .tour-art { display: block; }
+.tour-disc {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 112px;
+  height: 112px;
+  margin-left: -56px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 0 5px, var(--ui-accent) 6px 26px, transparent 27px),
+    repeating-radial-gradient(circle, #111 0 2px, #1c1c1c 2px 4px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  animation: tour-spin 3.2s linear infinite;
+}
+.tour-disc span {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 20deg, transparent 0 40deg, rgba(255, 255, 255, 0.12) 60deg, transparent 80deg 220deg, rgba(255, 255, 255, 0.08) 240deg, transparent 260deg);
+}
+.tour[data-kind="outro"] .tour-disc { animation-duration: 1.6s; }
+@keyframes tour-spin { to { rotate: 360deg; } }
+.tour-eq {
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+  height: 34px;
+  translate: -50% 0;
+  padding: 0 10px;
+}
+.tour-eq i {
+  width: 6px;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ui-text);
+  transform-origin: bottom;
+  animation: tour-eq 0.9s ease-in-out infinite alternate;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ui-accent) 60%, transparent);
+}
+.tour-eq i:nth-child(2) { animation-delay: -0.3s; animation-duration: 0.7s; }
+.tour-eq i:nth-child(3) { animation-delay: -0.6s; background: var(--ui-accent); }
+.tour-eq i:nth-child(4) { animation-delay: -0.2s; animation-duration: 1.1s; }
+.tour-eq i:nth-child(5) { animation-delay: -0.5s; animation-duration: 0.8s; }
+@keyframes tour-eq { from { scale: 1 0.2; } to { scale: 1 1; } }
+
+.tour-extra:empty { display: none; }
+.tour-points {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 18px 0 2px;
+  padding: 0;
+  list-style: none;
+}
+.tour-points li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 6px;
+  border-radius: 12px;
+  background: var(--ui-surface);
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: var(--ui-text-2);
+}
+.tour-points b { font-size: 0.92rem; color: var(--ui-text); }
+.tour-keys {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 14px;
+  margin: 16px 0 0;
+  font-size: 0.84rem;
+  color: var(--ui-text-2);
+}
+.tour-keys kbd {
+  display: inline-block;
+  min-width: 1.8em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--ui-surface-2);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+  color: var(--ui-text);
+  font: 600 0.8rem var(--ui-font);
+  text-align: center;
+}
+
+.tour-dots { display: flex; gap: 5px; justify-content: center; margin: 16px 0 0; }
+.tour-dots:empty { display: none; }
+.tour.centered .tour-dots { display: none; }
+.tour-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--ui-surface-2);
+  transition: width 0.35s var(--tour-ease), background 0.35s;
+}
+.tour-dots i.past { background: color-mix(in srgb, var(--ui-accent) 45%, var(--ui-surface-2)); }
+.tour-dots i.on { width: 20px; background: var(--ui-accent); }
+
+.tour-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+.tour-gap { flex: 1; }
+.tour-actions button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  font: 700 0.92rem var(--ui-font);
+  cursor: pointer;
+  transition: background 0.2s, scale 0.15s;
+}
+.tour-actions button:active { scale: 0.96; }
+.tour-skip { padding: 0 6px !important; background: none; color: var(--ui-text-2); }
+.tour-skip:hover { color: var(--ui-text); }
+.tour-back { background: var(--ui-surface); color: var(--ui-text); }
+.tour-back:hover { background: var(--ui-surface-2); }
+.tour-next { background: var(--ui-accent); color: var(--ui-on-accent); box-shadow: 0 6px 18px color-mix(in srgb, var(--ui-accent) 35%, transparent); }
+.tour-next:hover { filter: brightness(1.08); }
+.tour.centered .tour-next { flex: none; padding: 0 24px; }
+
+@media (max-width: 639px) {
+  .tour-card { width: calc(100vw - 24px); }
+  .tour-points { grid-template-columns: 1fr; text-align: left; }
+  .tour-points li { grid-template-columns: 84px 1fr; align-items: baseline; padding: 8px 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour, .tour-hole, .tour-card, .tour-dots i { transition: none; }
+  .tour-hole::after, .tour-disc, .tour-eq i, .tour-card.swap > * { animation: none; }
+}

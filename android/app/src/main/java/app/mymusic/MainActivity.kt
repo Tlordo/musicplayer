@@ -37,8 +37,23 @@ class MainActivity : ComponentActivity() {
         fileCallback = null
     }
 
+    /** Текст из «Поделиться», пришедший до загрузки страницы. */
+    private var pendingShare: String? = null
+
+    private fun sharedText(intent: Intent?): String? =
+        if (intent?.action == Intent.ACTION_SEND) intent.getStringExtra(Intent.EXTRA_TEXT)?.takeIf { it.isNotBlank() } else null
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val text = sharedText(intent) ?: return
+        val view = web
+        if (view == null) { pendingShare = text; return }
+        view.evaluateJavascript("window.__mkShare && window.__mkShare(${JSONObject.quote(text)})", null)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingShare = sharedText(intent)
         enableEdgeToEdge()
         frame = FrameLayout(this).apply { setBackgroundColor(getColor(R.color.bg)) }
         setContentView(frame)
@@ -131,7 +146,9 @@ class MainActivity : ComponentActivity() {
     private fun load(port: Int) {
         val view = web ?: return
         if (port > 0) {
-            view.loadUrl("http://127.0.0.1:$port/")
+            val share = pendingShare?.let { "?add=" + Uri.encode(it) } ?: ""
+            pendingShare = null
+            view.loadUrl("http://127.0.0.1:$port/$share")
         } else {
             val msg = (Server.error ?: "неизвестная ошибка").replace("<", "&lt;")
             view.loadDataWithBaseURL(null, ERROR_PAGE.replace("{msg}", msg), "text/html", "utf-8", null)

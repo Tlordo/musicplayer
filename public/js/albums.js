@@ -199,7 +199,20 @@ export function renderJobs() {
   for (const j of jobs.list) {
     if (j.state === 'done') {
       if (!finishedAt.has(j.id)) finishedAt.set(j.id, now);
-      if (now - finishedAt.get(j.id) > 6000) continue;
+      // Ошибку показываем подольше — её надо успеть прочитать.
+      const keep = j.kind === 'track' && !j.done ? 12000 : 6000;
+      if (now - finishedAt.get(j.id) > keep) continue;
+    }
+    if (j.kind === 'track') {
+      const ok = j.state === 'done' && j.done;
+      const failed = j.state === 'done' && !j.done;
+      const status = ok ? 'в библиотеке — нажмите, чтобы включить' : failed ? (j.error || 'не скачалось') : (j.current || 'скачиваю');
+      const cls = `job track${j.state === 'done' ? ' done' : ' busy'}${failed ? ' failed' : ''}`;
+      const inner = `<span class="job-name">${esc(j.name)}</span><span class="job-status">${esc(status)}</span><span class="job-bar"></span>`;
+      items.push(ok && j.video_id
+        ? `<button type="button" class="${cls}" data-act="job-play" data-id-play="${esc(j.video_id)}" style="--p:1">${inner}</button>`
+        : `<div class="${cls}" style="--p:${failed ? 1 : 0}">${inner}</div>`);
+      continue;
     }
     const p = j.total ? (j.done + j.failed) / j.total : 0;
     const status = j.state === 'done'
@@ -213,7 +226,7 @@ export function renderJobs() {
   }
   jobsEl.innerHTML = items.join('');
   jobsEl.hidden = !items.length;
-  if (jobs.list.some((j) => j.state === 'done' && now - (finishedAt.get(j.id) || now) <= 6000)) setTimeout(renderJobs, 1500);
+  if (jobs.list.some((j) => j.state === 'done' && now - (finishedAt.get(j.id) || now) <= 12000)) setTimeout(renderJobs, 1500);
 }
 
 const importInput = document.createElement('input');
