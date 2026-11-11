@@ -70,6 +70,13 @@ export function renderAlbum() {
   $$('[data-album-empty]').forEach((el) => { el.hidden = tracks.length > 0; });
 }
 
+/** Только шапка открытого альбома (кнопки, счётчики) — строки списка не трогаются. */
+export function renderAlbumHead() {
+  const head = $('[data-album-head]');
+  const album = albums.open ? core.findAlbum(albums.open) : null;
+  if (head && album) head.innerHTML = currentDesign().renderAlbumHead(album, infoOf(album), helpers);
+}
+
 // ============ Окна ============
 const nameDialog = $('#name-dialog');
 let nameDone = null;
@@ -188,6 +195,7 @@ $('#pick-add').addEventListener('click', async () => {
 // ============ Фоновые задачи и импорт ============
 const jobsEl = $('#jobs');
 const finishedAt = new Map();
+let jobsTimer = null;
 let jobsSeen = false;
 
 export function renderJobs() {
@@ -228,7 +236,14 @@ export function renderJobs() {
   }
   jobsEl.innerHTML = items.join('');
   jobsEl.hidden = !items.length;
-  if (jobs.list.some((j) => j.state === 'done' && now - (finishedAt.get(j.id) || now) <= 12000)) setTimeout(renderJobs, 1500);
+  // Готовые задачи сами исчезают через несколько секунд — один таймер на всех.
+  clearTimeout(jobsTimer);
+  if (jobs.list.some((j) => j.state === 'done' && now - (finishedAt.get(j.id) || now) <= 12000)) jobsTimer = setTimeout(renderJobs, 1500);
+  // Сервер держит лишь последние задачи — забываем те, которых в списке уже нет.
+  if (finishedAt.size > 64) {
+    const live = new Set(jobs.list.map((j) => j.id));
+    for (const id of finishedAt.keys()) if (!live.has(id)) finishedAt.delete(id);
+  }
 }
 
 const importInput = document.createElement('input');

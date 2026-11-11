@@ -287,6 +287,13 @@ document.addEventListener('error', async (e) => {
     if (!blob) return;
     u = URL.createObjectURL(blob);
     coverUrls.set(id, u);
+    // Ссылка держит картинку в памяти вкладки: храним лишь последние. Уже показанным
+    // картинкам отзыв не мешает, а строка, нарисованная заново, получит ссылку снова.
+    while (coverUrls.size > 120) {
+      const [old, ou] = coverUrls.entries().next().value;
+      URL.revokeObjectURL(ou);
+      coverUrls.delete(old);
+    }
   }
   img.src = u;
 }, true);
@@ -310,6 +317,13 @@ export function requestPersist() {
 /** { usage, quota } от браузера, если он сообщает (только в защищённом контексте). */
 export async function estimate() {
   try { return navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null; } catch { return null; }
+}
+
+/** Плеер открыт на том же устройстве, где лежат файлы (окно на компьютере, приложение Android):
+ *  копировать музыку в браузер незачем. */
+export function sameMachine() {
+  const h = location.hostname;
+  return h === 'localhost' || h === '[::1]' || h === '::1' || /^127\./.test(h);
 }
 
 /** Телефон в Wi‑Fi (или браузер не говорит) и не просит экономить трафик. */

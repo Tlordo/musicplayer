@@ -1389,7 +1389,7 @@ function smartCacheSoon() {
 
 async function smartCache() {
   // Только пока музыка играет: просто открыть плеер — не повод качать.
-  if (!settings.offlineAuto || state.serverDown || audio.paused || !offline.onWifi()) return;
+  if (!settings.offlineAuto || state.serverDown || audio.paused || !offline.onWifi() || offline.sameMachine()) return;
   const want = [state.current?.video_id, ...lookahead(LOOKAHEAD)].filter(Boolean);
   for (const id of want) {
     const t = find(id);

@@ -8,7 +8,7 @@ import * as offline from './offline.js';
 import { settings, save } from './store.js';
 import { plural, esc } from './format.js';
 import { registerActions, toast } from './ui.js';
-import { renderAlbum } from './albums.js';
+import { renderAlbumHead } from './albums.js';
 
 const html = document.documentElement;
 const nTracks = (n) => `${n} ${plural(n, 'трек', 'трека', 'треков')}`;
@@ -74,7 +74,8 @@ function markSoon() {
     markAll();
     renderConn();
     refreshSettings();
-    if (html.dataset.libview === 'album') renderAlbum();
+    // Строки уже помечены выше; перерисовать нужно только кнопку «на телефон» в шапке альбома.
+    if (html.dataset.libview === 'album') renderAlbumHead();
   });
 }
 core.on('offline', markSoon);

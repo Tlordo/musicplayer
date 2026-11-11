@@ -339,11 +339,13 @@ function solidBg(row) {
   return alpha(own) > 0 ? `linear-gradient(${own}, ${own}), ${base}` : base;
 }
 
-function rowSwipe(row) {
-  const t = core.find(row.dataset.id);
-  const li = row.parentElement;
-  if (!t || !li) return null;
-  const w = row.offsetWidth;
+function rowSwipe(first) {
+  const t = core.find(first.dataset.id);
+  // Список виртуальный (vlist.js): строку могут перерисовать посреди жеста — новые треки
+  // в библиотеке, значки «на телефоне». Тогда подхватываем новую строку с тем же id в том же списке.
+  const box = first.closest('[data-list], [data-album-list]');
+  if (!t || !first.parentElement || !box) return null;
+  const w = first.offsetWidth;
   const TH = Math.min(110, w * 0.3);
   const under = document.createElement('div');
   under.className = 'swipe-under';
@@ -351,25 +353,46 @@ function rowSwipe(row) {
   under.innerHTML = `<span class="su su-like"><svg><use href="#${t.liked ? 'i-heart-line' : 'i-heart'}"/></svg><span></span></span>`
     + '<span class="su su-queue"><span>В очередь</span><svg><use href="#i-queue"/></svg></span>';
   under.querySelector('.su-like span').textContent = t.liked ? 'Убрать из любимого' : 'В любимое';
-  li.classList.add('swiping');
-  if (getComputedStyle(li).position === 'static') li.style.position = 'relative';
-  li.prepend(under);
-  row.style.background = solidBg(row);
-  row.getAnimations().forEach((a) => a.cancel());
-  let armed = 0;
-  const cleanup = () => {
-    under.remove();
+  let row = null;
+  let li = null;
+  const release = () => {
+    if (!row) return;
     li.classList.remove('swiping');
     li.style.position = '';
     row.style.background = '';
     row.style.transform = '';
   };
+  const attach = (r) => {
+    release();
+    row = r;
+    li = r.parentElement;
+    li.classList.add('swiping');
+    if (getComputedStyle(li).position === 'static') li.style.position = 'relative';
+    li.prepend(under);
+    row.style.background = solidBg(row);
+    row.getAnimations().forEach((a) => a.cancel());
+  };
+  /** Живая строка трека или null, если её уже нет на экране. */
+  const live = () => {
+    if (row && row.isConnected) return row;
+    const r = box.isConnected && box.querySelector(`[data-id="${CSS.escape(t.video_id)}"]`);
+    if (r && r.parentElement) { attach(r); return r; }
+    return null;
+  };
+  attach(first);
+  let armed = 0;
+  let x = 0;
+  const cleanup = () => {
+    under.remove();
+    release();
+  };
   return {
     move(dx) {
       const lim = TH * 1.5;
       const a = Math.abs(dx);
-      const x = Math.sign(dx) * (a > lim ? lim + (a - lim) * 0.25 : a);
-      row.style.transform = tx(x);
+      x = Math.sign(dx) * (a > lim ? lim + (a - lim) * 0.25 : a);
+      const r = live();
+      if (r) r.style.transform = tx(x);
       under.dataset.dir = dx > 0 ? 'like' : 'queue';
       const on = a >= TH ? Math.sign(dx) : 0;
       if (on !== armed) {
@@ -383,9 +406,12 @@ function rowSwipe(row) {
       const fling = Math.abs(vx) > 0.6 && Math.sign(vx) === dir && Math.abs(dx) > 40;
       const commit = dir && (armed === dir || fling);
       if (commit && !armed) haptic(10);
-      if (commit) (dir > 0 ? swipeLike : swipeQueue)(t);
-      await go(row, tx(0), commit ? 300 : 420, commit ? EASE_OUT : SPRING);
+      const r = live();
+      if (r) await go(r, tx(0), commit ? 300 : 420, commit ? EASE_OUT : SPRING);
       cleanup();
+      // Действие — после того как строка встала на место: лайк перерисовывает список,
+      // и анимация иначе доигрывала бы на уже убранном узле.
+      if (commit) (dir > 0 ? swipeLike : swipeQueue)(t);
     },
   };
 }

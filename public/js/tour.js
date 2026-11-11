@@ -289,7 +289,7 @@ const relayout = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(
 
 export async function startTour() {
   if (root) return;
-  await cssReady;
+  await cssReady();
   if (root) return;
   for (const d of document.querySelectorAll('dialog[open]')) d.close();
   lastFocus = document.activeElement;
@@ -331,12 +331,18 @@ export function maybeStartTour() {
 }
 
 // Стили — только когда обучение понадобилось; показываем после загрузки, чтобы не было кадра без оформления.
-const cssReady = new Promise((resolve) => {
-  if (document.getElementById('tour-css')) { resolve(); return; }
-  const link = document.createElement('link');
-  link.id = 'tour-css';
-  link.rel = 'stylesheet';
-  link.href = 'css/tour.css';
-  link.onload = link.onerror = () => resolve();
-  document.head.append(link);
-});
+let cssP = null;
+function cssReady() {
+  if (!cssP) {
+    cssP = new Promise((resolve) => {
+      if (document.getElementById('tour-css')) { resolve(); return; }
+      const link = document.createElement('link');
+      link.id = 'tour-css';
+      link.rel = 'stylesheet';
+      link.href = 'css/tour.css';
+      link.onload = link.onerror = () => resolve();
+      document.head.append(link);
+    });
+  }
+  return cssP;
+}
