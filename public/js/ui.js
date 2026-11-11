@@ -200,6 +200,7 @@ export function renderList() {
 
 // Подсветка только что добавленного трека переживает перерисовку виртуального списка.
 let flash = null;   // { id, until }
+let pendingFlash = null;   // { id, until } — ждёт, пока откроют библиотеку
 function markFlash(list) {
   if (!flash || Date.now() > flash.until) { flash = null; return; }
   list.querySelector(`[data-id="${CSS.escape(flash.id)}"]`)?.classList.add('flash');
@@ -254,6 +255,11 @@ function flashRow(id) {
   const list = $('[data-list]');
   const i = id ? state.view.findIndex((t) => t.video_id === id) : -1;
   if (!list || i < 0) return;
+  // Список сейчас не виден (на телефоне открыт плеер) — покажем, когда человек вернётся в библиотеку.
+  if (!isDesktop() && html.dataset.tab !== 'library') {
+    pendingFlash = { id, until: Date.now() + 20000 };
+    return;
+  }
   flash = { id, until: Date.now() + 1900 };
   scrollToRow(list, i);
   markFlash(list);
@@ -268,6 +274,11 @@ function setTab(tab) {
   html.dataset.tab = tab;
   currentDesign().onTab?.(tab);
   core.emit('tab', tab);
+  if (tab === 'library' && pendingFlash) {
+    const p = pendingFlash;
+    pendingFlash = null;
+    if (Date.now() < p.until) requestAnimationFrame(() => flashRow(p.id));
+  }
 }
 
 // Меню «ещё» (о треке, скачать, удалить): кнопка data-act="menu" + соседний .menu.
