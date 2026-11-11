@@ -9,6 +9,7 @@ mod downloader;
 mod jobs;
 mod names;
 mod peaks;
+mod preview;
 mod recs;
 mod thumbs;
 pub mod ytdlp;
@@ -89,6 +90,7 @@ pub fn app(cfg: Arc<Config>, port: u16) -> Result<Router> {
         dl: Arc::new(Downloader::new(cfg.clone(), db.clone())),
         recs: Arc::new(Recommender::new(cfg.clone())),
         jobs: Arc::new(jobs::Jobs::default()),
+        preview: Arc::new(preview::Preview::new(cfg.clone())),
         cfg: cfg.clone(),
         port,
         db,

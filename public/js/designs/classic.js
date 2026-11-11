@@ -186,7 +186,7 @@ export default {
     <button type="button" class="add-btn" data-act="add"><svg aria-hidden="true"><use href="#i-plus"/></svg>Добавить трек</button>
     <button type="button" class="icon-btn fold-btn" data-act="fold" aria-label="Скрыть библиотеку" title="Скрыть библиотеку (B)"><svg><use href="#i-fold"/></svg></button>
   </footer>
-  <div class="mini" data-act="tab-player" role="button" tabindex="0" aria-label="Открыть плеер">
+  <div class="mini" data-mini data-act="tab-player" role="button" tabindex="0" aria-label="Открыть плеер">
     <span class="mini-cover"><img data-cover alt=""></span>
     <span class="mini-text"><span class="mini-title" data-bind="title"></span><span class="mini-artist" data-bind="artist"></span></span>
     <button type="button" class="icon-btn mini-play" data-act="play" aria-label="Играть"><svg><use data-play-icon href="#i-play"/></svg></button>
@@ -207,7 +207,7 @@ export default {
 
   <div class="stage">
     <section class="hero">
-      <div class="art">
+      <div class="art" data-swipe-stage>
         <button type="button" class="cover" data-act="cover" data-needs-track aria-label="Обложка во весь экран">
           <img data-cover alt="">
           <span class="cover-empty" aria-hidden="true"><svg><use href="#i-note"/></svg></span>
@@ -309,6 +309,7 @@ export default {
     <div class="album-actions">
       <button type="button" class="add-btn album-play" data-act="album-play" ${info.count ? '' : 'disabled'}><svg aria-hidden="true"><use href="#i-play"/></svg>Слушать</button>
       <button type="button" class="icon-btn" data-act="album-download" ${info.count ? '' : 'disabled'} title="Скачать альбом архивом .zip — его же можно импортировать на другом устройстве" aria-label="Скачать альбом"><svg><use href="#i-down"/></svg></button>
+      <button type="button" class="icon-btn${info.offline ? ' toggle on' : ''}" data-act="album-offline" ${info.count ? '' : 'disabled'} title="${info.offline ? 'Сохранён на телефоне — нажмите, чтобы не хранить' : 'Сохранить на телефон — будет играть без компьютера'}" aria-label="${info.offline ? 'Не хранить на телефоне' : 'Сохранить на телефон'}" aria-pressed="${!!info.offline}"><svg><use href="#i-phone"/></svg></button>
       ${own ? `<button type="button" class="icon-btn" data-act="album-add-tracks" title="Добавить треки" aria-label="Добавить треки"><svg><use href="#i-plus"/></svg></button>
       <button type="button" class="icon-btn" data-act="album-rename" title="Переименовать" aria-label="Переименовать"><svg><use href="#i-edit"/></svg></button>
       <button type="button" class="icon-btn danger" data-act="album-delete" title="Удалить альбом" aria-label="Удалить альбом"><svg><use href="#i-erase"/></svg></button>`
@@ -319,7 +320,7 @@ export default {
   renderRec(r, i, f, { esc, formatTime }) {
     const sub = [r.artist, r.duration ? formatTime(r.duration) : ''].filter(Boolean).map(esc).join(' · ');
     return `<li><div class="row rec">
-      <span class="row-thumb"><img src="${esc(r.thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
+      <button type="button" class="row-thumb preview-btn" data-act="preview" data-preview-id="${esc(r.id)}" aria-pressed="false" aria-label="Послушать «${esc(r.title)}»" title="Послушать, не скачивая"><img src="${esc(r.thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"><svg class="pv-play" aria-hidden="true"><use href="#i-play"/></svg><svg class="pv-pause" aria-hidden="true"><use href="#i-pause"/></svg></button>
       <span class="row-main">
         <span class="row-title">${esc(r.title)}</span>
         <span class="row-sub">${sub}</span>

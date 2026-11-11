@@ -177,6 +177,13 @@ export default {
     </div>
   </div>
 
+  <div class="mini" data-mini data-act="tab-player" role="button" tabindex="0" aria-label="Открыть кассету">
+    <span class="mini-cover"><img data-cover alt=""></span>
+    <span class="mini-text"><span class="mini-title hand" data-bind="title"></span><span class="mini-artist" data-bind="artist"></span></span>
+    <svg class="mini-tape" aria-hidden="true"><use href="#i-tape"/></svg>
+    <span class="mini-progress" data-seek-view aria-hidden="true"></span>
+  </div>
+
   <footer class="jcard-foot">
     <button type="button" class="stamp" data-act="add"><span class="rec-dot" aria-hidden="true"></span>записать трек</button>
     <span class="jcard-foot-tools">
@@ -207,7 +214,7 @@ export default {
     </span>
   </div>
 
-  <div class="case">
+  <div class="case" data-swipe-stage>
     <button type="button" class="jfront" data-act="cover" data-needs-track aria-label="Обложка во весь экран">
       <span class="jfront-art"><img data-cover alt=""><span class="jfront-empty hand">без обложки</span></span>
     </button>
@@ -324,6 +331,7 @@ export default {
     <div class="tape-actions">
       <button type="button" class="mini-stamp solid" data-act="album-play" ${info.count ? '' : 'disabled'}><svg aria-hidden="true"><use href="#i-play"/></svg>играть</button>
       <button type="button" class="mini-stamp" data-act="album-download" ${info.count ? '' : 'disabled'} title="Скачать альбом архивом .zip — его же можно импортировать на другом устройстве"><svg aria-hidden="true"><use href="#i-down"/></svg>скачать</button>
+      <button type="button" class="mini-stamp${info.offline ? ' solid' : ''}" data-act="album-offline" ${info.count ? '' : 'disabled'} aria-pressed="${!!info.offline}" title="${info.offline ? 'Записан на телефон — нажмите, чтобы не хранить' : 'Записать на телефон — будет играть без компьютера'}"><svg aria-hidden="true"><use href="#i-phone"/></svg>${info.offline ? 'на телефоне' : 'на телефон'}</button>
       ${own ? `<button type="button" class="mini-stamp" data-act="album-add-tracks"><svg aria-hidden="true"><use href="#i-plus"/></svg>треки</button>`
         : `<button type="button" class="mini-stamp" data-act="album-save" title="Сделать своей кассетой — можно менять состав и имя">в мои</button>`}
     </div>`;
@@ -333,7 +341,7 @@ export default {
     const sub = esc(r.artist || '');
     return `<li><div class="row rec">
       <span class="row-num"><button type="button" class="rec-add" data-act="rec-add" data-rec-id="${esc(r.id)}" aria-busy="${f.adding}" ${f.adding ? 'disabled' : ''} aria-label="Записать «${esc(r.title)}» на кассету" title="Записать на кассету"><svg class="idle" aria-hidden="true"><use href="#i-plus"/></svg><span class="busy rec-dot" aria-hidden="true"></span></button></span>
-      <span class="row-thumb"><img src="${esc(r.thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
+      <button type="button" class="row-thumb preview-btn" data-act="preview" data-preview-id="${esc(r.id)}" aria-pressed="false" aria-label="Послушать «${esc(r.title)}»" title="Послушать, не скачивая"><img src="${esc(r.thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"><svg class="pv-play" aria-hidden="true"><use href="#i-play"/></svg><svg class="pv-pause" aria-hidden="true"><use href="#i-pause"/></svg></button>
       <span class="row-main">
         <span class="row-title">${esc(r.title)}</span>
         <span class="row-sub">${sub}</span>

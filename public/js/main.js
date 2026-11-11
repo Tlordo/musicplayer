@@ -3,12 +3,14 @@
 import * as core from './core.js';
 import { settings, save, local } from './store.js';
 import { registerDesigns, applyTheme, currentDesign } from './themes.js';
-import { mountDesign, registerActions, renderState } from './ui.js';
+import { mountDesign, registerActions, renderState, handleSharedLink } from './ui.js';
 import { closeFull, toggleLyrics } from './lyrics.js';
 import { initSettings, openSettings } from './settings.js';
 import { renderAlbums, renderJobs } from './albums.js';
 import './extras.js';
 import './android.js';
+import './preview.js';
+import './offline-ui.js';
 import classic from './designs/classic.js';
 import cassette from './designs/cassette.js';
 
@@ -41,9 +43,23 @@ function switchDesign(id, force) {
   link.after(next);
 }
 
+// Обучение грузится только по требованию — в обычной работе оно не занимает память.
+const tour = () => import('./tour.js');
+function tourSeen() {
+  try { return localStorage.getItem('mk.tour.v1') === '1'; } catch { return true; }
+}
+
 registerActions({
   settings: () => openSettings(),
   lyrics: () => toggleLyrics(),
+  tour: () => tour().then((m) => m.startTour()),
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'F1' && !document.documentElement.classList.contains('touring')) {
+    e.preventDefault();
+    tour().then((m) => m.startTour());
+  }
 });
 
 initSettings(DESIGNS, switchDesign);
@@ -62,6 +78,10 @@ async function boot() {
   renderState();
   core.loadAlbums();
   core.pollJobs();
+  // Пришли через «Поделиться» — человеку сейчас не до обучения.
+  const shared = location.search.length > 1;
+  handleSharedLink();
+  if (!tourSeen() && !shared) tour().then((m) => m.maybeStartTour());
 }
 
 boot();

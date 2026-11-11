@@ -108,6 +108,57 @@ html[data-libview="album"] .library-view { display: none !important; }
 .search-row .icon-btn[aria-busy="true"] .busy { display: block; animation: spin 0.9s linear infinite; }
 .search-row .in-lib { color: var(--ui-accent); }
 
+/* ▶ на обложке: послушать с YouTube, не скачивая */
+.preview-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--ui-surface-2);
+  color: #fff;
+  cursor: pointer;
+}
+.preview-btn > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
+.preview-btn > svg { position: relative; width: 18px; height: 18px; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7)); opacity: 0; transition: opacity 0.15s; }
+.preview-btn::before { content: ''; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); opacity: 0; transition: opacity 0.15s; }
+/* Тонкая полоска прослушанного снизу */
+.preview-btn::after { content: ''; position: absolute; left: 0; bottom: 0; height: 3px; width: calc(var(--pp, 0) * 100%); background: var(--ui-accent); }
+.preview-btn .pv-pause { display: none; }
+.preview-btn:hover::before, .preview-btn:focus-visible::before, .preview-btn.playing::before, .preview-btn.loading::before { opacity: 1; }
+.preview-btn:hover > .pv-play, .preview-btn:focus-visible > .pv-play { opacity: 1; }
+.preview-btn.playing > .pv-play, .preview-btn.loading > .pv-play { display: none; }
+.preview-btn.playing > .pv-pause { display: block; opacity: 1; }
+.preview-btn.loading > .pv-pause { display: block; opacity: 1; animation: pv-pulse 0.9s ease-in-out infinite alternate; }
+@media (hover: none) { .preview-btn > .pv-play { opacity: 0.9; } .preview-btn::before { opacity: 0.25; } }
+@keyframes pv-pulse { from { opacity: 0.35; } to { opacity: 1; } }
+
+/* «Как пользоваться» в шапке настроек */
+.tour-open { margin-left: auto; min-height: 36px; }
+
+/* Пустая библиотека / ничего не нашлось — кнопка «найти на YouTube» */
+.empty-yt { margin: 14px auto 0; }
+
+/* Ссылку тащат в окно */
+html.drop-link body::after {
+  content: 'Отпустите — трек добавится';
+  position: fixed;
+  inset: 12px;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--ui-accent);
+  border-radius: var(--ui-radius);
+  background: color-mix(in srgb, var(--ui-bg) 82%, transparent);
+  color: var(--ui-text);
+  font: 700 1.3rem var(--ui-font);
+  pointer-events: none;
+}
+
 /* ============ Фоновые загрузки ============ */
 .jobs {
   position: fixed;
@@ -137,6 +188,13 @@ html[data-libview="album"] .library-view { display: none !important; }
 .job-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--ui-surface); }
 .job-bar::after { content: ''; position: absolute; inset: 0 auto 0 0; width: calc(var(--p, 0) * 100%); background: var(--ui-accent); transition: width 0.4s; }
 .job.done .job-bar::after { background: var(--ui-ok); }
+button.job { border: 0; cursor: pointer; }
+/* Одиночный трек: точного процента нет — бегущая полоска, пока качается */
+.job.track.busy .job-bar::after { width: 35%; animation: job-run 1.4s ease-in-out infinite; }
+.job.failed .job-bar::after { background: var(--ui-danger); }
+.job.failed .job-status { color: var(--ui-danger); white-space: normal; }
+@keyframes job-run { from { translate: -100% 0; } to { translate: 290% 0; } }
+@media (prefers-reduced-motion: reduce) { .job.track.busy .job-bar::after { animation: none; width: 100%; opacity: 0.5; } }
 @media (max-width: 959px) {
   .jobs { left: 50%; right: auto; translate: -50% 0; bottom: calc(140px + var(--safe-b)); }
 }
@@ -500,6 +558,18 @@ html.lyrics-open .player { overflow: hidden; isolation: isolate; }
 .lyrics-wait[hidden] { display: block !important; opacity: 0; }
 
 /* ============ Уведомления ============ */
+.toast.has-action { display: flex; align-items: center; gap: 14px; pointer-events: auto; }
+.toast-action {
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ui-accent);
+  color: var(--ui-on-accent);
+  font: 700 0.88rem var(--ui-font);
+  cursor: pointer;
+}
 .toasts {
   position: fixed;
   left: 50%;
@@ -650,3 +720,122 @@ html.lyrics-open .player { overflow: hidden; isolation: isolate; }
 }
 .eq-preset:disabled { opacity: 0.5; }
 .xfade input { accent-color: var(--ui-accent); }
+
+/* ============ Жесты (gestures.js) ============ */
+.player { overflow-x: hidden; }
+[data-swipe-stage] { touch-action: pan-y; }
+[data-list] [data-id], [data-album-list] [data-id] { touch-action: pan-y; }
+html.gesturing, html.gesturing * { user-select: none; -webkit-user-select: none; }
+html.gesturing { cursor: grabbing; }
+.swipe-ghost { pointer-events: none; }
+html.swipe-commit .cassette.insert { animation: none; }
+
+/* подложка строки: слева «В любимое», справа «В очередь» */
+li.swiping { overflow: hidden; isolation: isolate; }
+li.swiping > [data-id] { position: relative; z-index: 1; }
+.swipe-under {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  font: 600 0.92rem/1.2 var(--ui-font);
+  color: #fff;
+  background: var(--ui-surface-2);
+  transition: background-color 0.18s;
+}
+.swipe-under[data-dir="like"] { background: color-mix(in srgb, var(--ui-like, #ff4d6d) 55%, var(--ui-surface-2)); }
+.swipe-under[data-dir="queue"] { background: color-mix(in srgb, var(--ui-accent) 55%, var(--ui-surface-2)); }
+.swipe-under.armed[data-dir="like"] { background: var(--ui-like, #e8385b); }
+.swipe-under.armed[data-dir="queue"] { background: var(--ui-accent); color: var(--ui-on-accent); }
+.su { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.su svg { width: 22px; height: 22px; transition: transform 0.18s var(--ease-out); }
+.swipe-under.armed .su svg { transform: scale(1.22); }
+.swipe-under[data-dir="like"] .su-queue,
+.swipe-under[data-dir="queue"] .su-like,
+.swipe-under:not([data-dir]) .su { visibility: hidden; }
+
+/* уведомление с «Отменить» */
+.toast.has-undo { display: flex; align-items: center; gap: 14px; pointer-events: auto; padding-right: 8px; }
+.toast.has-undo > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toast-undo {
+  flex: none;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--ui-radius-sm);
+  font: 700 0.9rem var(--ui-font);
+  color: var(--ui-accent);
+}
+.toast-undo:hover { background: color-mix(in srgb, var(--ui-accent) 14%, transparent); }
+
+/* ============ Музыка на телефоне ============ */
+/* Плашка «компьютер недоступен»: спокойная, не мигает, не мешает играть. */
+.conn-banner {
+  position: fixed;
+  top: calc(8px + var(--safe-t));
+  left: 50%;
+  translate: -50% 0;
+  z-index: 31;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(94vw, 480px);
+  padding: 6px 6px 6px 14px;
+  border-radius: 999px;
+  background: var(--ui-surface-2);
+  color: var(--ui-text);
+  font: 500 0.88rem/1.3 var(--ui-font);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--ui-line);
+  animation: conn-in 0.4s var(--ease-out);
+}
+.conn-banner[hidden] { display: none; }
+.conn-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: color-mix(in srgb, var(--ui-text-2) 70%, #e0a030); }
+.conn-text { min-width: 0; }
+.conn-retry {
+  flex: none;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--ui-surface);
+  color: var(--ui-text-2);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.conn-retry:hover { color: var(--ui-text); }
+@keyframes conn-in { from { opacity: 0; translate: -50% -10px; } }
+
+/* Значок «на телефоне» у трека: свой — цветом акцента, умный кэш — приглушённо, загрузка — пульсирует. */
+:root { --off-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='6' y='2.5' width='12' height='19' rx='2.5' fill='none' stroke='%23000' stroke-width='2.2'/%3E%3Cpath d='M12 7v7M9.2 11.4 12 14.2l2.8-2.8' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+[data-off] .row-time::before,
+[data-queue-row][data-off] .pick-name::after {
+  content: '';
+  display: inline-block;
+  flex: none;
+  width: 13px;
+  height: 13px;
+  margin-right: 5px;
+  vertical-align: -1px;
+  background: currentColor;
+  -webkit-mask: var(--off-icon) center / contain no-repeat;
+  mask: var(--off-icon) center / contain no-repeat;
+}
+[data-queue-row][data-off] .pick-name::after { margin: 0 0 0 6px; }
+[data-off="pin"] .row-time::before, [data-queue-row][data-off="pin"] .pick-name::after { color: var(--ui-accent); }
+[data-off="auto"] .row-time::before, [data-queue-row][data-off="auto"] .pick-name::after { opacity: 0.55; }
+[data-off="busy"] .row-time::before, [data-queue-row][data-off="busy"] .pick-name::after { opacity: 0.4; animation: off-busy 1.2s ease-in-out infinite alternate; }
+@keyframes off-busy { to { opacity: 0.9; } }
+
+/* Без компьютера несохранённые треки приглушены: их сейчас не сыграть. */
+html[data-conn="down"] [data-list] .row[data-id]:not([data-off="pin"], [data-off="auto"]),
+html[data-conn="down"] [data-album-list] .row[data-id]:not([data-off="pin"], [data-off="auto"]) { opacity: 0.42; }
+
+.off-dl { display: grid; gap: 4px; margin: 0; }
+.off-dl div { display: flex; justify-content: space-between; gap: 12px; font-size: 0.92rem; }
+.off-dl dt { color: var(--ui-text-2); }
+.off-dl dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.off-busy { margin: 6px 0 0; font-size: 0.86rem; color: var(--ui-accent); }
+.off-meter { height: 6px; margin-top: 10px; border-radius: 3px; background: var(--ui-surface-2); overflow: hidden; }
+.off-meter i { display: block; width: calc(var(--p, 0) * 100%); min-width: 2px; height: 100%; background: var(--ui-accent); }
+.off-stats .hint { margin-top: 6px; }

@@ -35,7 +35,13 @@ impl Downloader {
 
     /// Скачивает трек, сохраняет обложку, метаданные и запись в БД. Возвращает video_id.
     pub async fn download(&self, url: &str) -> Result<String> {
+        self.download_with(url, || {}).await
+    }
+
+    /// То же, что `download`, но сообщает, когда очередь дошла и началась сама загрузка.
+    pub async fn download_with(&self, url: &str, on_start: impl FnOnce()) -> Result<String> {
         let _slot = self.slots.acquire().await?;
+        on_start();
         let info = self.run_ytdlp(url).await?;
 
         let video_id = info["id"]
@@ -80,6 +86,10 @@ impl Downloader {
         self.db.upsert(&video_id, &tech, &user, &json_file, url)?;
         tracing::info!("[БД] запись для {video_id} обновлена");
         Ok(video_id)
+    }
+
+    pub fn has_file(&self, video_id: &str) -> bool {
+        self.cfg.audio_path(video_id).is_file()
     }
 
     /// Запускает фоновое восстановление удалённого аудиофайла (не чаще одного на трек).

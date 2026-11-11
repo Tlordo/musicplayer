@@ -10,6 +10,7 @@ import {
 } from './themes.js';
 import { toast, runAction } from './ui.js';
 import { saveText } from './native.js';
+import { settingsHtml as offlineSettingsHtml } from './offline-ui.js';
 
 const dialog = document.getElementById('settings-dialog');
 const body = document.getElementById('settings-body');
@@ -95,6 +96,7 @@ function render() {
   body.innerHTML = `
     <header class="sheet-head">
       <h2 id="settings-title">Настройки</h2>
+      <button type="button" class="btn tour-open" data-act="tour" title="Пройти обучение (F1)">Как пользоваться</button>
       <button type="button" class="icon-btn" data-close aria-label="Закрыть"><svg><use href="#i-x"/></svg></button>
     </header>
 
@@ -168,6 +170,8 @@ function render() {
         <button type="button" class="btn" data-s="stats"><svg><use href="#i-chart"/></svg>Открыть статистику</button>
       </div>
     </section>
+
+    ${offlineSettingsHtml()}
 
     <section class="set-sec" aria-labelledby="s-phone">
       <h3 id="s-phone">Подключить телефон</h3>

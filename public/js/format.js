@@ -52,3 +52,15 @@ export function smallCover(t, size = 96) {
 export function albumOf(t) {
   return t && t.album && t.album !== 'Single' ? t.album : '';
 }
+
+/**
+ * Первая ссылка YouTube в тексте. «Поделиться» на телефоне присылает и голую ссылку,
+ * и «Название — https://youtu.be/…», и ссылку без https://.
+ */
+export function findYouTubeLink(text) {
+  if (!text) return null;
+  const m = String(text).match(/(?:https?:\/\/)?(?:[a-z0-9-]+\.)*(?:youtube\.com|youtu\.be|youtube-nocookie\.com)\/[^\s<>"']*/i);
+  if (!m) return null;
+  const url = m[0].replace(/[).,!?»]+$/, '');
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+}

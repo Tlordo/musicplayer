@@ -9,6 +9,7 @@ import { currentDesign } from './themes.js';
 import { registerActions, toast, isDesktop, setTab } from './ui.js';
 import { saveUrl } from './native.js';
 import { renderVirtual } from './vlist.js';
+import * as offline from './offline.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -23,6 +24,7 @@ function infoOf(album) {
     countText: `${n} ${plural(n, 'трек', 'трека', 'треков')}`,
     timeText: formatLong(tracks.reduce((s, t) => s + (t._sec || 0), 0)),
     covers: tracks.slice(0, 4).map((t) => smallCover(t, 320)),
+    offline: n > 0 && tracks.every((t) => offline.has(t.video_id) === 'pin'),   // весь альбом сохранён на телефон
   };
 }
 
@@ -66,6 +68,13 @@ export function renderAlbum() {
     }, helpers);
   });
   $$('[data-album-empty]').forEach((el) => { el.hidden = tracks.length > 0; });
+}
+
+/** Только шапка открытого альбома (кнопки, счётчики) — строки списка не трогаются. */
+export function renderAlbumHead() {
+  const head = $('[data-album-head]');
+  const album = albums.open ? core.findAlbum(albums.open) : null;
+  if (head && album) head.innerHTML = currentDesign().renderAlbumHead(album, infoOf(album), helpers);
 }
 
 // ============ Окна ============
@@ -186,6 +195,7 @@ $('#pick-add').addEventListener('click', async () => {
 // ============ Фоновые задачи и импорт ============
 const jobsEl = $('#jobs');
 const finishedAt = new Map();
+let jobsTimer = null;
 let jobsSeen = false;
 
 export function renderJobs() {
@@ -199,7 +209,20 @@ export function renderJobs() {
   for (const j of jobs.list) {
     if (j.state === 'done') {
       if (!finishedAt.has(j.id)) finishedAt.set(j.id, now);
-      if (now - finishedAt.get(j.id) > 6000) continue;
+      // Ошибку показываем подольше — её надо успеть прочитать.
+      const keep = j.kind === 'track' && !j.done ? 12000 : 6000;
+      if (now - finishedAt.get(j.id) > keep) continue;
+    }
+    if (j.kind === 'track') {
+      const ok = j.state === 'done' && j.done;
+      const failed = j.state === 'done' && !j.done;
+      const status = ok ? 'в библиотеке — нажмите, чтобы включить' : failed ? (j.error || 'не скачалось') : (j.current || 'скачиваю');
+      const cls = `job track${j.state === 'done' ? ' done' : ' busy'}${failed ? ' failed' : ''}`;
+      const inner = `<span class="job-name">${esc(j.name)}</span><span class="job-status">${esc(status)}</span><span class="job-bar"></span>`;
+      items.push(ok && j.video_id
+        ? `<button type="button" class="${cls}" data-act="job-play" data-id-play="${esc(j.video_id)}" style="--p:1">${inner}</button>`
+        : `<div class="${cls}" style="--p:${failed ? 1 : 0}">${inner}</div>`);
+      continue;
     }
     const p = j.total ? (j.done + j.failed) / j.total : 0;
     const status = j.state === 'done'
@@ -213,7 +236,14 @@ export function renderJobs() {
   }
   jobsEl.innerHTML = items.join('');
   jobsEl.hidden = !items.length;
-  if (jobs.list.some((j) => j.state === 'done' && now - (finishedAt.get(j.id) || now) <= 6000)) setTimeout(renderJobs, 1500);
+  // Готовые задачи сами исчезают через несколько секунд — один таймер на всех.
+  clearTimeout(jobsTimer);
+  if (jobs.list.some((j) => j.state === 'done' && now - (finishedAt.get(j.id) || now) <= 12000)) jobsTimer = setTimeout(renderJobs, 1500);
+  // Сервер держит лишь последние задачи — забываем те, которых в списке уже нет.
+  if (finishedAt.size > 64) {
+    const live = new Set(jobs.list.map((j) => j.id));
+    for (const id of finishedAt.keys()) if (!live.has(id)) finishedAt.delete(id);
+  }
 }
 
 const importInput = document.createElement('input');
