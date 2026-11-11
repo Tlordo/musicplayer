@@ -10,6 +10,7 @@ import {
 } from './themes.js';
 import { toast, runAction } from './ui.js';
 import { saveText } from './native.js';
+import { settingsHtml as offlineSettingsHtml } from './offline-ui.js';
 
 const dialog = document.getElementById('settings-dialog');
 const body = document.getElementById('settings-body');
@@ -169,6 +170,8 @@ function render() {
         <button type="button" class="btn" data-s="stats"><svg><use href="#i-chart"/></svg>Открыть статистику</button>
       </div>
     </section>
+
+    ${offlineSettingsHtml()}
 
     <section class="set-sec" aria-labelledby="s-phone">
       <h3 id="s-phone">Подключить телефон</h3>

@@ -10,6 +10,7 @@ import { renderAlbums, renderJobs } from './albums.js';
 import './extras.js';
 import './android.js';
 import './preview.js';
+import './offline-ui.js';
 import classic from './designs/classic.js';
 import cassette from './designs/cassette.js';
 

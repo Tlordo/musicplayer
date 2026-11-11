@@ -3,6 +3,7 @@
 
 import { settings, save, local } from './store.js';
 import { parseDuration } from './format.js';
+import * as offline from './offline.js';
 
 const listeners = new Map();
 // Кадровый цикл (внизу файла) будят события — его состояние объявлено раньше первого emit.
@@ -51,6 +52,8 @@ export const state = {
   back: [],          // что играло раньше — для «предыдущего» (в том числе в режиме «вперемешку»)
   shuffleSeen: new Set(),  // уже сыгранные в этом круге «вперемешку» — без повторов, пока не кончится список
   sleep: null,       // таймер сна: { at: мс } или { endOfTrack: true }
+  serverDown: false, // компьютер не отвечает — играем только сохранённое на телефоне
+  interrupted: null, // { id, at } — музыка встала без связи, продолжим, когда компьютер вернётся
 };
 
 // ============ Библиотека ============
@@ -64,19 +67,28 @@ const SORTS = {
 };
 
 export async function loadLibrary() {
+  let list = null;
   try {
-    const res = await fetch('/api/library');
+    const res = await fetch('/api/library', { cache: 'no-store', signal: timeout(8000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const list = await res.json();
+    list = await res.json();
+    state.loadError = null;
+    offline.putMeta('library', list);
+    if (state.serverDown) markUp();
+  } catch (err) {
+    // Компьютер недоступен — открываем библиотеку такой, какой видели её в прошлый раз.
+    const net = isNetworkError(err);
+    if (net) markDown();
+    const snap = net && !state.library.length ? await offline.getMeta('library') : null;
+    if (Array.isArray(snap) && snap.length) list = snap;
+    else if (!state.library.length) state.loadError = err;
+  }
+  if (list) {
     list.forEach((t) => { t._sec = parseDuration(t.duration); });
     state.library = list;
-    state.loadError = null;
     if (state.current) {
       state.current = list.find((t) => t.video_id === state.current.video_id) || state.current;
     }
-  } catch (err) {
-    state.library = [];
-    state.loadError = err;
   }
   applyFilters();
 }
@@ -274,7 +286,12 @@ export function trackAnalysis(id) {
   } else {
     p = fetch(`/api/peaks/${encodeURIComponent(id)}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .catch((err) => { analysis.delete(id); throw err; });
+      .catch(async (err) => {
+        const saved = await offline.peaksOf(id);   // без компьютера — то, что сохранено на телефоне
+        if (saved) return saved;
+        analysis.delete(id);
+        throw err;
+      });
   }
   analysis.set(id, p);
   while (analysis.size > ANALYSIS_KEEP) analysis.delete(analysis.keys().next().value);
@@ -352,18 +369,44 @@ export function playFrom(track, queue = null) {
 }
 
 /** goingBack — шаг «назад» по истории: тогда текущий трек в историю не кладём. */
-export function load(track, autoplay, goingBack = false) {
+export function load(track, autoplay, goingBack = false, at = 0) {
+  if (!canPlay(track)) {
+    emit('toast', { text: `«${track.title}» не сохранён на телефоне — заиграет, когда компьютер вернётся`, type: 'info', ms: 4000 });
+    return;
+  }
   clearTimeout(restoreTimer);
   flushListen();
   stopTail();
   dropPrepared();
   setCurrent(track, goingBack);
   restoreFade();
-  audio.src = `/api/stream/${encodeURIComponent(track.video_id)}`;
-  audio.load();
+  state.interrupted = null;
+  setSrc(audio, track, at, autoplay);
   applyNormalize();
   emit('track', track);
-  if (autoplay) play();
+  smartCacheSoon();
+}
+
+/** Адрес файла трека: с компьютера или, если трек сохранён и сервис-воркера нет, — blob из хранилища. */
+const srcToken = new WeakMap();
+function setSrc(el, track, at = 0, autoplay = false) {
+  const id = track.video_id;
+  const token = {};
+  srcToken.set(el, token);
+  const apply = (url) => {
+    if (srcToken.get(el) !== token) return;
+    el.src = url;
+    el.load();
+    if (at > 0) el.addEventListener('loadedmetadata', () => { if (srcToken.get(el) === token) el.currentTime = Math.min(at, el.duration || at); }, { once: true });
+    if (autoplay && el === audio) play();
+  };
+  const net = `/api/stream/${encodeURIComponent(id)}`;
+  if (offline.has(id) && !offline.swActive()) {
+    offline.audioUrl(id).then((u) => apply(u || net), () => apply(net));
+    offline.touch(id);
+  } else {
+    apply(net);
+  }
 }
 
 function setCurrent(track, goingBack) {
@@ -374,6 +417,7 @@ function setCurrent(track, goingBack) {
   }
   state.current = track;
   state.shuffleSeen.add(track.video_id);
+  shufflePlan = shufflePlan.filter((id) => id !== track.video_id);
   listen.id = track.video_id;
   local.saveLast(track.video_id);
 }
@@ -392,7 +436,8 @@ export async function play() {
     if (state.view.length) load(state.view[0], true);
     return;
   }
-  if (!audio.getAttribute('src')) { load(state.current, true); return; }
+  if (state.interrupted) { resumeInterrupted(); return; }
+  if (!audio.getAttribute('src')) { load(state.current, true, true); return; }
   initAudioGraph();
   try {
     if (ctx && ctx.state === 'suspended') await ctx.resume();
@@ -413,25 +458,59 @@ function queueList() {
   return state.view.length ? state.view : state.library;
 }
 
+// «Вперемешку» следующие треки выбираются заранее: их можно успеть сохранить на телефон.
+let shufflePlan = [];
+const PLAN = 3;
+
+function topUpPlan(list) {
+  const cur = state.current && state.current.video_id;
+  const ids = new Set(list.map((t) => t.video_id));
+  shufflePlan = shufflePlan.filter((id) => ids.has(id) && id !== cur && !state.shuffleSeen.has(id));
+  while (shufflePlan.length < PLAN) {
+    const pool = list.filter((t) => t.video_id !== cur && !state.shuffleSeen.has(t.video_id) && !shufflePlan.includes(t.video_id));
+    if (!pool.length) break;
+    shufflePlan.push(pool[Math.floor(Math.random() * pool.length)].video_id);
+  }
+}
+
 function neighbour(step) {
-  const list = queueList();
+  const all = queueList();
+  // Без компьютера — только то, что есть на телефоне.
+  const list = state.serverDown ? all.filter(canPlay) : all;
   if (!list.length) return null;
   if (settings.shuffle && list.length > 1) {
+    if (step > 0) {
+      topUpPlan(list);
+      const planned = shufflePlan.map(find).find((t) => t && canPlay(t));
+      if (planned) return planned;
+    }
     // «Вперемешку» без повторов: каждый трек по разу, потом новый круг.
     const cur = state.current && state.current.video_id;
     let pool = list.filter((t) => t.video_id !== cur && !state.shuffleSeen.has(t.video_id));
     if (!pool.length) {
       state.shuffleSeen.clear();
       if (cur) state.shuffleSeen.add(cur);
+      shufflePlan = [];
       pool = list.filter((t) => t.video_id !== cur);
     }
-    return pool[Math.floor(Math.random() * pool.length)];
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
   }
-  const idx = state.current ? list.findIndex((t) => t.video_id === state.current.video_id) : -1;
-  let i = idx + step;
-  if (i >= list.length) { if (settings.repeat === 'all' || idx === -1) i = 0; else return null; }
-  if (i < 0) i = settings.repeat === 'all' ? list.length - 1 : 0;
-  return list[i];
+  // Позицию ищем в полном списке: текущий трек может быть и не сохранён.
+  const idx = state.current ? all.findIndex((t) => t.video_id === state.current.video_id) : -1;
+  if (!state.serverDown) {
+    let i = idx + step;
+    if (i >= all.length) { if (settings.repeat === 'all' || idx === -1) i = 0; else return null; }
+    if (i < 0) i = settings.repeat === 'all' ? all.length - 1 : 0;
+    return all[i];
+  }
+  // Без связи — ближайший сохранённый в нужную сторону.
+  for (let k = 1; k <= all.length; k++) {
+    let i = idx + step * k;
+    if (settings.repeat === 'all' || idx === -1) i = ((i % all.length) + all.length) % all.length;
+    if (i < 0 || i >= all.length) return null;
+    if (canPlay(all[i]) && all[i] !== state.current) return all[i];
+  }
+  return null;
 }
 
 export function next() {
@@ -444,7 +523,7 @@ export function prev(skipRestart = false) {
   if (!skipRestart && audio.currentTime > 3) { audio.currentTime = 0; return; }
   while (state.back.length) {
     const t = find(state.back.pop());
-    if (t) { load(t, true, true); return; }
+    if (t && canPlay(t)) { load(t, true, true); return; }
   }
   const t = neighbour(-1);
   if (t) load(t, true, true);
@@ -471,14 +550,26 @@ export function peek(step) {
 function saveUpNext() {
   local.saveUpNext(state.upNext);
   emit('queue');
+  smartCacheSoon();
+}
+
+/** Первый трек очереди, который можно сыграть сейчас (без компьютера — только сохранённые). */
+function peekUpNext() {
+  for (const id of state.upNext) {
+    const t = find(id);
+    if (t && canPlay(t)) return t;
+  }
+  return null;
 }
 
 function takeUpNext() {
-  while (state.upNext.length) {
-    const t = find(state.upNext.shift());
-    if (t) { saveUpNext(); return t; }
-  }
-  return null;
+  // Пропавшие из библиотеки выбрасываем, несохранённые без связи — ждут своей очереди.
+  const before = state.upNext.length;
+  state.upNext = state.upNext.filter((id) => find(id));
+  const t = peekUpNext();
+  if (t) state.upNext.splice(state.upNext.indexOf(t.video_id), 1);
+  if (t || state.upNext.length !== before) saveUpNext();
+  return t;
 }
 
 /** Поставить трек сразу после текущего. */
@@ -568,7 +659,7 @@ function stopTail() {
 /** Что заиграет после текущего, если переход сейчас уместен. */
 function fadeTarget() {
   if (!fadeGain || !settings.autoNext || settings.repeat === 'one' || (state.sleep && state.sleep.endOfTrack)) return null;
-  const t = state.upNext.length ? find(state.upNext[0]) : neighbour(1);
+  const t = peekUpNext() || neighbour(1);
   return t && t.file_exists !== false && t.video_id !== state.current?.video_id ? t : null;
 }
 
@@ -576,9 +667,8 @@ function prepareNext() {
   const track = fadeTarget();
   if (!track) return;
   const el = decks.find((d) => d !== audio);
-  el.src = `/api/stream/${encodeURIComponent(track.video_id)}`;
-  el.load();
-  prepared = { track, el };
+  setSrc(el, track);
+  prepared = { track, el, fromQueue: state.upNext.includes(track.video_id) };
 }
 
 /** Кривые равной мощности: на середине перехода общая громкость не проседает. */
@@ -592,9 +682,10 @@ function fadeCurve(rising) {
 function startFade(sec) {
   const p = prepared;
   // Очередь могла измениться, пока трек готовился: тогда обычная смена трека.
-  const head = state.upNext[0];
+  const headT = peekUpNext();
+  const head = headT && headT.video_id;
   if (p.starting) return;
-  if ((head && head !== p.track.video_id) || !fadeGainReady()) { dropPrepared(); return; }
+  if ((head && head !== p.track.video_id) || (!head && p.fromQueue) || !fadeGainReady()) { dropPrepared(); return; }
   p.starting = true;
   const { el, track } = p;
   el.volume = audio.volume;
@@ -606,7 +697,7 @@ function startFade(sec) {
   el.play().then(() => {
     if (prepared !== p) return;
     prepared = null;
-    if (head) { state.upNext.shift(); saveUpNext(); }
+    if (head) { state.upNext.splice(state.upNext.indexOf(head), 1); saveUpNext(); }
     const old = audio;
     flushListen();
     setCurrent(track, false);
@@ -623,6 +714,7 @@ function startFade(sec) {
     emit('track', track);
     emit('state');
     emit('time');
+    smartCacheSoon();
   }).catch((err) => {
     console.warn('плавный переход:', err);
     if (prepared === p) dropPrepared();
@@ -718,8 +810,9 @@ function flushListen(beacon = false) {
     navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
     return;
   }
+  if (state.serverDown) { holdPlay(url, body); emit('stats', t); return; }
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true })
-    .catch(() => { /* сервер недоступен — не страшно */ });
+    .catch(() => holdPlay(url, body));   // сервер недоступен — отправим, когда вернётся
   emit('stats', t);
 }
 addEventListener('pagehide', () => flushListen(true));
@@ -808,10 +901,15 @@ async function onAudioError() {
   if (!track || !audio.getAttribute('src')) return;
   let data = null;
   try {
-    const res = await fetch(`/api/stream/${encodeURIComponent(track.video_id)}`, { headers: { Range: 'bytes=0-0' } });
-    if (res.ok) { load(track, true); return; }
+    const res = await fetch(`/api/stream/${encodeURIComponent(track.video_id)}`, { headers: { Range: 'bytes=0-0' }, signal: timeout(5000) });
+    if (res.ok) { load(track, true, true, audio.currentTime || 0); return; }
     data = await res.json().catch(() => null);
-  } catch { /* сеть */ }
+  } catch {
+    // Нет связи с компьютером — это не ошибка трека.
+    markDown();
+    streamLost();
+    return;
+  }
 
   if (data && data.restoring) {
     track.file_exists = false;
@@ -828,7 +926,7 @@ function pollRestore(track, attempt) {
   if (attempt > 40 || state.current !== track) return;
   restoreTimer = setTimeout(async () => {
     try {
-      const res = await fetch(`/api/stream/${encodeURIComponent(track.video_id)}`, { headers: { Range: 'bytes=0-0' } });
+      const res = await fetch(`/api/stream/${encodeURIComponent(track.video_id)}`, { headers: { Range: 'bytes=0-0' }, cache: 'no-store' });
       if (res.ok) {
         track.file_exists = true;
         emit('library', state);
@@ -909,6 +1007,7 @@ export function clearPlayed() {
 export const albums = { user: [], loaded: false, open: null };
 
 async function api(method, url, body) {
+  if (state.serverDown && method !== 'GET') throw new Error('компьютер недоступен');
   const res = await fetch(url, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : {},
@@ -923,8 +1022,10 @@ export async function loadAlbums() {
   try {
     albums.user = await api('GET', '/api/albums');
     albums.loaded = true;
+    offline.putMeta('albums', albums.user);
   } catch (err) {
-    console.warn('альбомы:', err);
+    const snap = isNetworkError(err) && !albums.loaded ? await offline.getMeta('albums') : null;
+    if (Array.isArray(snap)) { albums.user = snap; albums.loaded = true; } else console.warn('альбомы:', err);
   }
   emit('albums');
 }
@@ -1103,6 +1204,202 @@ export async function addRec(id) {
   }
 }
 
+// ============ Связь с компьютером ============
+// Компьютер может уснуть, а телефон — уйти из дома. Тогда играем то, что сохранено
+// на телефоне, пропускаем остальное и тихо ждём, пока сервер вернётся.
+const PROBE_URL = '/api/jobs';            // дешёвый ответ из памяти сервера
+const BEAT_MS = 25000;                    // проверка связи, пока всё хорошо
+const BACKOFF = [2000, 4000, 8000, 15000, 30000];
+let probeTimer = null;
+let backoffStep = 0;
+let stallTimer = null;
+let probing = null;
+
+function timeout(ms) {
+  if (AbortSignal.timeout) return AbortSignal.timeout(ms);
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+}
+
+function isNetworkError(err) {
+  return err && (err.name === 'TypeError' || err.name === 'AbortError' || err.name === 'TimeoutError');
+}
+
+/** Трек можно сыграть сейчас: есть связь с компьютером или он сохранён на телефоне. */
+export function canPlay(t) {
+  return !!t && (!state.serverDown || !!offline.has(t.video_id));
+}
+
+/** Сервер отвечает? Один запрос за раз. */
+function probe() {
+  if (!probing) {
+    probing = fetch(PROBE_URL, { cache: 'no-store', signal: timeout(5000) })
+      .then((r) => r.ok || r.status < 500)
+      .catch(() => false)
+      .finally(() => { probing = null; });
+  }
+  return probing;
+}
+
+function markDown() {
+  if (state.serverDown) return;
+  state.serverDown = true;
+  backoffStep = 0;
+  dropPrepared();
+  emit('conn', state);
+  emit('library', state);
+  schedule();
+}
+
+function markUp() {
+  if (!state.serverDown) return;
+  state.serverDown = false;
+  backoffStep = 0;
+  emit('conn', state);
+  emit('toast', { text: 'Компьютер снова на связи', type: 'ok', ms: 2600 });
+  sendHeldPlays();
+  // Пока нас не было, библиотека могла измениться.
+  loadLibrary();
+  loadAlbums();
+  pollJobs();
+  if (state.interrupted) resumeInterrupted();
+  smartCacheSoon();
+  schedule();
+}
+
+function schedule() {
+  clearTimeout(probeTimer);
+  const ms = state.serverDown ? BACKOFF[Math.min(backoffStep++, BACKOFF.length - 1)] : BEAT_MS;
+  probeTimer = setTimeout(heartbeat, ms);
+}
+
+async function heartbeat() {
+  clearTimeout(probeTimer);
+  // Спрятанную вкладку без музыки не дёргаем: проверим, когда вернутся.
+  if (!state.serverDown && document.hidden && audio.paused) { schedule(); return; }
+  const ok = await probe();
+  if (ok) markUp(); else markDown();
+  schedule();
+}
+
+/** Проверить связь сейчас (кнопка на плашке). */
+export function checkServer() { backoffStep = 0; heartbeat(); }
+
+addEventListener('online', () => { backoffStep = 0; heartbeat(); });
+addEventListener('offline', () => markDown());
+document.addEventListener('visibilitychange', () => { if (!document.hidden && state.serverDown) { backoffStep = 0; heartbeat(); } });
+
+/** Звук с компьютера оборвался: сохранённый трек доигрываем с телефона, остальное пропускаем. */
+let lastLost = { id: null, ts: 0 };
+function streamLost() {
+  const t = state.current;
+  if (!t) return;
+  const at = audio.currentTime || 0;
+  // Сохранённая копия сама не играет (повторная ошибка подряд) — не крутимся, идём дальше.
+  const again = lastLost.id === t.video_id && Date.now() - lastLost.ts < 4000;
+  lastLost = { id: t.video_id, ts: Date.now() };
+  if (offline.has(t.video_id) && !again) {
+    // Под сервис-воркером адрес тот же, но ответ теперь из хранилища.
+    setSrc(audio, t, at, true);
+    return;
+  }
+  const nxt = peekUpNext() || neighbour(1);
+  if (nxt) {
+    state.interrupted = null;
+    next();
+    return;
+  }
+  // Играть нечего — встаём на паузу и продолжим с этого места, когда компьютер вернётся.
+  state.interrupted = { id: t.video_id, at };
+  audio.pause();
+  emit('state');
+}
+
+function resumeInterrupted() {
+  const i = state.interrupted;
+  state.interrupted = null;
+  const t = i && find(i.id);
+  if (!t || !state.current || state.current.video_id !== i.id) return;
+  setSrc(audio, t, i.at, true);
+}
+
+// Буфер кончился, а сервер молчит: не ждём минуту до ошибки браузера.
+onAudio('waiting', () => {
+  clearTimeout(stallTimer);
+  const t = state.current;
+  if (!t || audio.paused) return;
+  stallTimer = setTimeout(async () => {
+    if (audio.paused || audio.readyState >= 3 || state.current !== t) return;
+    if (state.serverDown || !(await probe())) { markDown(); streamLost(); }
+  }, state.serverDown ? 800 : 4000);
+});
+onAudio('playing', () => { clearTimeout(stallTimer); smartCacheSoon(); });
+
+// ---- Прослушивания без связи — отправим потом ----
+let heldPlays = [];
+async function getHeldPlays() {
+  const v = await offline.getMeta('plays');
+  if (Array.isArray(v)) heldPlays = v.concat(heldPlays);
+}
+function holdPlay(url, body) {
+  heldPlays.push({ url, body });
+  offline.putMeta('plays', heldPlays);
+}
+async function sendHeldPlays() {
+  const list = heldPlays;
+  heldPlays = [];
+  const failed = [];
+  for (const p of list) {
+    try {
+      const r = await fetch(p.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: p.body });
+      if (r.status >= 500) failed.push(p);
+    } catch { failed.push(p); }
+  }
+  heldPlays = failed.concat(heldPlays);
+  offline.putMeta('plays', heldPlays);
+}
+
+// ============ Умный кэш ============
+// В Wi‑Fi держим на телефоне текущий и несколько следующих треков очереди:
+// короткий обрыв связи музыку не остановит. Старое вытесняется по лимиту места.
+const LOOKAHEAD = 3;
+let cacheTimer = null;
+
+/** id треков, которые прозвучат дальше (очередь, альбом, «вперемешку» — заранее выбранные). */
+function lookahead(n) {
+  const out = [];
+  const add = (t) => { if (t && !out.includes(t.video_id) && t.video_id !== state.current?.video_id && out.length < n) out.push(t.video_id); };
+  state.upNext.map(find).forEach(add);
+  if (out.length < n) {
+    if (settings.shuffle) {
+      const list = queueList();
+      if (list.length > 1) { topUpPlan(list); shufflePlan.map(find).forEach(add); }
+    } else {
+      upcoming(n).then.forEach(add);
+    }
+  }
+  return out;
+}
+
+function smartCacheSoon() {
+  clearTimeout(cacheTimer);
+  cacheTimer = setTimeout(smartCache, 1500);
+}
+
+async function smartCache() {
+  // Только пока музыка играет: просто открыть плеер — не повод качать.
+  if (!settings.offlineAuto || state.serverDown || audio.paused || !offline.onWifi()) return;
+  const want = [state.current?.video_id, ...lookahead(LOOKAHEAD)].filter(Boolean);
+  for (const id of want) {
+    const t = find(id);
+    if (t && t.file_exists !== false) offline.save(t, 'auto');
+  }
+  try { await offline.trimAuto((settings.offlineAutoMB || 300) * 1048576, new Set(want)); } catch { /* не страшно */ }
+}
+
+export { smartCache };
+
 // ============ Кадровый цикл ============
 // Один requestAnimationFrame на всё приложение: дизайны рисуют свои индикаторы в 'frame'.
 // Цикл крутится, пока играет звук, и ещё пару секунд после любого события (пауза, наведение,
@@ -1140,6 +1437,10 @@ export function start() {
   window.addEventListener('mk-theme', wake);
   document.addEventListener('visibilitychange', wake);
   wake();
+  offline.init().then(() => { emit('offline'); smartCacheSoon(); });
+  offline.onChange(() => emit('offline'));
+  getHeldPlays();
+  schedule();
 }
 
 export { emit };

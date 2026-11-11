@@ -9,6 +9,7 @@ import { currentDesign } from './themes.js';
 import { registerActions, toast, isDesktop, setTab } from './ui.js';
 import { saveUrl } from './native.js';
 import { renderVirtual } from './vlist.js';
+import * as offline from './offline.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -23,6 +24,7 @@ function infoOf(album) {
     countText: `${n} ${plural(n, 'трек', 'трека', 'треков')}`,
     timeText: formatLong(tracks.reduce((s, t) => s + (t._sec || 0), 0)),
     covers: tracks.slice(0, 4).map((t) => smallCover(t, 320)),
+    offline: n > 0 && tracks.every((t) => offline.has(t.video_id) === 'pin'),   // весь альбом сохранён на телефон
   };
 }
 

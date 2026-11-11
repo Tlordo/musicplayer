@@ -21,6 +21,8 @@ export const DEFAULTS = {
   crossfade: 5,            // плавный переход между треками, секунды (0 — выключен)
   normalize: true,         // выравнивать громкость треков (−14 LUFS)
   eq: { on: false, preset: 'flat', gains: [0, 0, 0, 0, 0] },   // эквалайзер, дБ по полосам core.EQ_BANDS
+  offlineAuto: true,       // держать на телефоне текущий и следующие треки очереди (в Wi‑Fi)
+  offlineAutoMB: 300,      // предел умного кэша, МБ (сохранённое вручную не считается)
 };
 
 function read(key, fallback) {
