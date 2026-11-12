@@ -11,12 +11,16 @@ Android ставит обновление поверх старой версии
 
 ## 1. Создать ключ
 
-Нужен `keytool` из JDK (есть в Android Studio: `<Android Studio>\jbr\bin\keytool.exe`).
-Команда в PowerShell, из любой папки **вне репозитория**:
+Нужен `keytool` из JDK. Обычно его нет в PATH, поэтому команда ниже вызывает его по
+полному пути (JDK 21 из `C:\Program Files\Java`; в Android Studio он лежит в
+`<Android Studio>\jbr\bin\keytool.exe`). Команда в PowerShell, из любой папки **вне
+репозитория**:
 
 ```powershell
-keytool -genkeypair -v -keystore mymusic-release.jks -alias mymusic -keyalg RSA -keysize 4096 -validity 36500
+& "C:\Program Files\Java\jdk-21.0.10\bin\keytool.exe" -genkeypair -v -keystore mymusic-release.jks -alias mymusic -keyalg RSA -keysize 4096 -validity 36500
 ```
+
+Если такого пути нет, найдите keytool: `Get-ChildItem "C:\Program Files" -Recurse -Filter keytool.exe -ErrorAction SilentlyContinue`.
 
 keytool спросит пароль (придумайте надёжный и сохраните его) и данные владельца
 (имя достаточно, остальное можно пропустить). Пароль ключа — тот же, что у хранилища.
