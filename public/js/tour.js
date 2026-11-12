@@ -218,7 +218,7 @@ function show(step) {
   void card.offsetWidth;
   card.classList.add('swap');
 
-  if (target) target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reduced() ? 'auto' : 'smooth' });
+  if (target) target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: reduced() ? 'auto' : 'smooth' });
   place();
   follow();
   card.focus({ preventScroll: true });

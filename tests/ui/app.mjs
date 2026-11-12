@@ -63,7 +63,7 @@ export async function openApp(page, o = {}) {
     if (p.startsWith('/api/stream/')) return route.fulfill({ status: 404, body: '' });
     return json({});
   });
-  await page.goto('/');
+  await page.goto(o.url || '/');
   await page.waitForFunction(() => document.documentElement.classList.contains('in-android') && document.querySelector('[data-act="play"]'));
 }
 
