@@ -26,3 +26,8 @@ target/
 
 # Готовые сборки приложений
 dist/
+
+# Тесты интерфейса (Playwright)
+node_modules/
+test-results/
+playwright-report/

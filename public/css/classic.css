@@ -280,8 +280,11 @@ li.removable { display: grid; grid-template-columns: minmax(0, 1fr) 36px; align-
   gap: 8px;
   padding: 10px 12px 8px 20px;
 }
-.lib-stats { display: flex; gap: 6px; font-size: 0.82rem; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.sort { display: flex; gap: 2px; }
+.lib-stats { display: flex; gap: 6px; min-width: 0; overflow: hidden; font-size: 0.82rem; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lib-stats > span { overflow: hidden; text-overflow: ellipsis; }
+.sort { display: flex; gap: 2px; flex-shrink: 0; }
+/* 320px: счётчик и пять кнопок сортировки не помещаются рядом */
+@media (max-width: 359px) { .lib-bar { padding-left: 14px; padding-right: 8px; } .sort { gap: 0; } .sort button { width: 32px; } }
 .sort button {
   display: grid;
   place-items: center;

@@ -205,7 +205,7 @@ export function renderJobs() {
     jobs.list.forEach((j) => { if (j.state === 'done') finishedAt.set(j.id, 0); });
     jobsSeen = true;
   }
-  const items = [];
+  const items = { list: [], push(key, markup) { this.list.push([key, markup]); } };
   for (const j of jobs.list) {
     if (j.state === 'done') {
       if (!finishedAt.has(j.id)) finishedAt.set(j.id, now);
@@ -219,7 +219,7 @@ export function renderJobs() {
       const status = ok ? 'в библиотеке — нажмите, чтобы включить' : failed ? (j.error || 'не скачалось') : (j.current || 'скачиваю');
       const cls = `job track${j.state === 'done' ? ' done' : ' busy'}${failed ? ' failed' : ''}`;
       const inner = `<span class="job-name">${esc(j.name)}</span><span class="job-status">${esc(status)}</span><span class="job-bar"></span>`;
-      items.push(ok && j.video_id
+      items.push(`t:${j.id}`, ok && j.video_id
         ? `<button type="button" class="${cls}" data-act="job-play" data-id-play="${esc(j.video_id)}" style="--p:1">${inner}</button>`
         : `<div class="${cls}" style="--p:${failed ? 1 : 0}">${inner}</div>`);
       continue;
@@ -228,14 +228,14 @@ export function renderJobs() {
     const status = j.state === 'done'
       ? `готово: ${j.done} из ${j.total}${j.failed ? `, не скачалось ${j.failed}` : ''}`
       : `${j.done + j.failed + 1 > j.total ? j.total : j.done + j.failed + 1} из ${j.total}${j.current ? ` · ${j.current}` : ''}`;
-    items.push(`<button type="button" class="job${j.state === 'done' ? ' done' : ''}" data-act="album-open" data-key="u:${j.album_id}" style="--p:${p.toFixed(3)}">
+    items.push(`a:${j.id}`, `<button type="button" class="job${j.state === 'done' ? ' done' : ''}" data-act="album-open" data-key="u:${j.album_id}" style="--p:${p.toFixed(3)}">
       <span class="job-name">${esc(j.name)}</span><span class="job-status">${esc(status)}</span><span class="job-bar"></span></button>`);
   }
-  for (const j of jobs.local) {
-    items.push(`<div class="job" style="--p:${j.p.toFixed(3)}"><span class="job-name">${esc(j.name)}</span><span class="job-status">${esc(j.status)}</span><span class="job-bar"></span></div>`);
+  for (const [i, j] of jobs.local.entries()) {
+    items.push(`l:${i}:${j.name}`, `<div class="job" style="--p:${j.p.toFixed(3)}"><span class="job-name">${esc(j.name)}</span><span class="job-status">${esc(j.status)}</span><span class="job-bar"></span></div>`);
   }
-  jobsEl.innerHTML = items.join('');
-  jobsEl.hidden = !items.length;
+  syncJobs(items.list);
+  jobsEl.hidden = !items.list.length;
   // Готовые задачи сами исчезают через несколько секунд — один таймер на всех.
   clearTimeout(jobsTimer);
   if (jobs.list.some((j) => j.state === 'done' && now - (finishedAt.get(j.id) || now) <= 12000)) jobsTimer = setTimeout(renderJobs, 1500);
@@ -244,6 +244,38 @@ export function renderJobs() {
     const live = new Set(jobs.list.map((j) => j.id));
     for (const id of finishedAt.keys()) if (!live.has(id)) finishedAt.delete(id);
   }
+}
+
+// Карточки обновляются на месте: опрос идёт каждые полторы секунды, и пересборка
+// списка заново проигрывала бы появление карточки и сбивала бегущую полоску.
+const tpl = document.createElement('template');
+function syncJobs(list) {
+  const old = new Map([...jobsEl.children].map((el) => [el.dataset.jobKey, el]));
+  let prev = null;
+  for (const [key, markup] of list) {
+    tpl.innerHTML = markup.trim();
+    const next = tpl.content.firstElementChild;
+    next.dataset.jobKey = key;
+    let el = old.get(key);
+    old.delete(key);
+    if (el && el.tagName === next.tagName) {
+      for (const a of [...el.attributes]) if (!next.hasAttribute(a.name) && a.name !== 'data-settled') el.removeAttribute(a.name);
+      for (const a of next.attributes) if (el.getAttribute(a.name) !== a.value) el.setAttribute(a.name, a.value);
+      for (const part of ['.job-name', '.job-status']) {
+        const from = next.querySelector(part);
+        const to = el.querySelector(part);
+        if (to && from && to.textContent !== from.textContent) to.textContent = from.textContent;
+      }
+    } else {
+      // Карточка, которая уже была на экране (например, стала кнопкой «включить»), не «влетает» снова.
+      if (el) { next.dataset.settled = ''; el.replaceWith(next); }
+      el = next;
+    }
+    const want = prev ? prev.nextElementSibling : jobsEl.firstElementChild;
+    if (want !== el) (prev ? prev.after(el) : jobsEl.prepend(el));
+    prev = el;
+  }
+  for (const el of old.values()) el.remove();
 }
 
 const importInput = document.createElement('input');

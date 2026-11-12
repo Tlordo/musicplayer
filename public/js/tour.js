@@ -96,7 +96,11 @@ function visible(el) {
 
 function findTarget(step) {
   if (!step.sel) return null;
-  return [...document.querySelectorAll(step.sel)].find((el) => !el.closest('dialog, .tour') && visible(el)) || null;
+  // Мини-плеер библиотеки тоже содержит «Играть» и виден, пока выезжает лист плеера, —
+  // обводим только кнопки самой вкладки.
+  const other = step.tab === 'player' ? '.library, .jcard, [data-mini]' : step.tab === 'library' ? '.player' : null;
+  return [...document.querySelectorAll(step.sel)]
+    .find((el) => !el.closest('dialog, .tour') && !(other && el.closest(other)) && visible(el)) || null;
 }
 
 /** Шаги, у которых есть что показать именно в этом дизайне и на этом экране. */
@@ -214,9 +218,42 @@ function show(step) {
   void card.offsetWidth;
   card.classList.add('swap');
 
-  if (target) target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reduced() ? 'auto' : 'smooth' });
+  if (target) target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: reduced() ? 'auto' : 'smooth' });
   place();
+  follow();
   card.focus({ preventScroll: true });
+}
+
+// Цель может ещё ехать: плавная прокрутка, догрузилась обложка, перестроилась вкладка.
+// Событий об этом нет, поэтому первые кадры меряем каждый кадр, пока цель не замрёт.
+let lastRect = '';
+let followRaf = 0;
+function rectKey() {
+  if (!target) return '';
+  const r = target.getBoundingClientRect();
+  return `${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.height)}`;
+}
+function track() {
+  if (!root) return false;
+  // Цель пропала (перестроилась вкладка) — ищем её заново.
+  if (target && !visible(target)) target = findTarget(steps[index]) || target;
+  const k = rectKey();
+  if (k === lastRect) return false;
+  lastRect = k;
+  place();
+  return true;
+}
+function follow() {
+  cancelAnimationFrame(followRaf);
+  lastRect = rectKey();
+  const until = performance.now() + 1600;
+  let still = 0;
+  const tick = () => {
+    if (!root) return;
+    still = track() ? 0 : still + 1;
+    if (still < 12 || performance.now() < until - 1200) followRaf = requestAnimationFrame(tick);
+  };
+  followRaf = requestAnimationFrame(tick);
 }
 
 /** Окно прожектора — вокруг цели, карточка — рядом, не вылезая за экран. */
@@ -236,7 +273,10 @@ function place() {
   const pad = 8;
   const w = r.width + pad * 2;
   const h = r.height + pad * 2;
-  const radius = Math.min(18, Math.min(w, h) / 2);
+  // Круглая кнопка — круглое окно; иначе скругление цели плюс отступ.
+  const br = getComputedStyle(target).borderTopLeftRadius;
+  const own = br.endsWith('%') ? (parseFloat(br) / 100) * Math.min(r.width, r.height) : parseFloat(br) || 0;
+  const radius = own >= Math.min(r.width, r.height) / 2 - 0.5 ? Math.min(w, h) / 2 : Math.min(Math.min(w, h) / 2, Math.max(10, own + pad));
   hole.style.cssText = `--x:${r.left - pad}px;--y:${r.top - pad}px;--w:${w}px;--h:${h}px;--r:${radius}px`;
 
   // На узком экране — нижний «лист» или верхний, если цель внизу.
@@ -285,6 +325,7 @@ function onKey(e) {
 }
 
 let raf = 0;
+let watch = 0;
 const relayout = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(place); };
 
 export async function startTour() {
@@ -299,6 +340,7 @@ export async function startTour() {
   document.addEventListener('keydown', onKey, true);
   addEventListener('resize', relayout);
   addEventListener('scroll', relayout, true);
+  watch = setInterval(track, 400);
   requestAnimationFrame(() => root && root.classList.add('in'));
   go(0);
 }
@@ -309,6 +351,8 @@ function finish() {
   document.removeEventListener('keydown', onKey, true);
   removeEventListener('resize', relayout);
   removeEventListener('scroll', relayout, true);
+  clearInterval(watch);
+  cancelAnimationFrame(followRaf);
   const el = root;
   root = null;
   target = null;

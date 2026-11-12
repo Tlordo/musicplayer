@@ -475,6 +475,7 @@ let searchToken = 0;
 function renderSearch() {
   const box = $('#add-results');
   box.hidden = !search.items.length;
+  addDialog.classList.toggle('has-results', !box.hidden);
   box.innerHTML = search.items.map((r, i) => {
     const sub = [r.artist, r.duration ? formatTime(r.duration) : ''].filter(Boolean).map(esc).join(' · ');
     const busy = search.busy.has(r.id);
