@@ -129,6 +129,7 @@ export function renderState() {
   });
   $$('[data-act="meter"]').forEach((b) => { b.classList.toggle('on', settings.meter === 'viz'); b.setAttribute('aria-pressed', settings.meter === 'viz'); });
   html.dataset.meter = settings.meter;
+  html.classList.toggle('vol-slider', !!settings.volumeSlider);
   const vol = Math.round(audio.volume * 100);
   $$('input[data-volume]').forEach((r) => { r.value = audio.muted ? 0 : vol; r.style.setProperty('--fill', `${audio.muted ? 0 : vol}%`); });
   $$('[data-vol-icon]').forEach((u) => u.setAttribute('href', audio.muted || audio.volume === 0 ? '#i-mute' : '#i-vol'));
@@ -380,8 +381,11 @@ document.addEventListener('input', (e) => {
     $$('input[data-search]').forEach((i) => { if (i !== e.target) i.value = e.target.value; });
     core.setQuery(e.target.value);
   } else if (e.target.matches('input[data-volume]')) {
-    core.setMuted(false);
-    core.setVolume(e.target.value / 100);
+    // Значение читаем до всего остального: setMuted перерисовывает ползунок
+    // старой громкостью, и движение пальца терялось — ползунок «не двигался».
+    const v = e.target.value / 100;
+    core.setVolume(v);
+    if (audio.muted) core.setMuted(false);
   }
 });
 

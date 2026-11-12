@@ -14,6 +14,7 @@ export const DEFAULTS = {
   autoNext: true,          // по окончании играть следующий
   markPlayed: true,        // отмечать прослушанные
   volume: 0.8,
+  volumeSlider: false,     // ползунок громкости в плеере (по умолчанию — только кнопка «без звука»)
   shuffle: false,
   repeat: 'off',           // off | all | one
   sort: 'added',           // added | artist | title | album | plays

@@ -96,7 +96,7 @@ function render() {
   body.innerHTML = `
     <header class="sheet-head">
       <h2 id="settings-title">Настройки</h2>
-      <button type="button" class="btn tour-open" data-act="tour" title="Пройти обучение (F1)">Как пользоваться</button>
+      <button type="button" class="btn tour-open" data-act="tour" title="Как пользоваться плеером (F1)">Обучение</button>
       <button type="button" class="icon-btn" data-close aria-label="Закрыть"><svg><use href="#i-x"/></svg></button>
     </header>
 
@@ -154,6 +154,7 @@ function render() {
 
     <section class="set-sec" aria-labelledby="s-sound">
       <h3 id="s-sound">Звук</h3>
+      ${switchRow('volumeSlider', 'Ползунок громкости', 'В плеере; без него громкость — кнопками телефона или компьютера')}
       <label class="ed-field ed-range xfade">
         <span class="switch-text"><span>Плавный переход</span><small>Конец трека затихает, следующий нарастает поверх него</small></span>
         <input type="range" min="0" max="12" step="1" value="${settings.crossfade}" data-crossfade aria-label="Длина перехода, секунды">
@@ -401,6 +402,7 @@ body.addEventListener('change', async (e) => {
     save();
     if (t.dataset.set === 'coverColors') applyTheme();
     if (t.dataset.set === 'markPlayed') core.emit('library', core.state);
+    if (t.dataset.set === 'volumeSlider') core.emit('state');
   } else if (t.matches('[data-s-file]') && t.files[0]) {
     try {
       const n = importThemes(await t.files[0].text());
