@@ -33,14 +33,18 @@ keytool спросит пароль (придумайте надёжный и с
 
 ```powershell
 [Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\mymusic-release.jks")) | gh secret set ANDROID_KEYSTORE_B64 -R Tlordo/musicplayer
-gh secret set ANDROID_KEYSTORE_PASSWORD -R Tlordo/musicplayer
+$pw = [Net.NetworkCredential]::new('', (Read-Host 'Пароль хранилища' -AsSecureString)).Password; gh secret set ANDROID_KEYSTORE_PASSWORD -R Tlordo/musicplayer -b $pw; Remove-Variable pw
 gh secret set ANDROID_KEY_ALIAS -R Tlordo/musicplayer -b mymusic
 ```
 
-Вторая команда спросит пароль — введите тот, что задали в keytool. Если пароль ключа
-отличается от пароля хранилища, добавьте ещё `gh secret set ANDROID_KEY_PASSWORD`.
+Вторая команда спросит пароль (ввод не виден) — введите тот, что задали в keytool. Пароль
+не попадает ни на экран, ни в историю команд. Обычный `gh secret set` без `-b` в PowerShell
+может сохранить **пустой** секрет — поэтому так. Если пароль ключа отличается от пароля
+хранилища, так же добавьте `ANDROID_KEY_PASSWORD`.
 
-Проверить: `gh secret list -R Tlordo/musicplayer` — должны быть три имени.
+Проверить: `gh secret list -R Tlordo/musicplayer` — должны быть три имени. Пустой секрет
+в списке тоже виден, поэтому надёжная проверка — сборка: если секрет пуст, шаг «Ключ
+подписи» упадёт и назовёт его.
 
 Релиз (запуск `build` с версией или тег `v*`) без этих секретов теперь **не собирается**:
 лучше упавшая сборка, чем APK, который снова не встанет поверх. Простая сборка без версии

@@ -69,6 +69,7 @@ jobs:
       # Постоянный ключ подписи из секретов репозитория (как завести — android/SIGNING.md).
       # Без него каждый APK подписан новым случайным ключом и не ставится поверх старого,
       # поэтому релиз без секретов не собирается, а простая сборка только предупреждает.
+      # Часть секретов задана, а часть пуста — это ошибка настройки: падаем всегда.
       - name: Ключ подписи
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
@@ -77,9 +78,13 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') || inputs.version != '' }}
         run: |
-          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ]; then
-            if [ "$IS_RELEASE" = "true" ]; then
-              echo "::error::Нет секретов ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS — такой релиз не встанет поверх прошлой версии. См. android/SIGNING.md"
+          missing=""
+          [ -n "$KEYSTORE_B64" ] || missing="$missing ANDROID_KEYSTORE_B64"
+          [ -n "$KEYSTORE_PASSWORD" ] || missing="$missing ANDROID_KEYSTORE_PASSWORD"
+          [ -n "$KEY_ALIAS" ] || missing="$missing ANDROID_KEY_ALIAS"
+          if [ -n "$missing" ]; then
+            if [ "$IS_RELEASE" = "true" ] || [ -n "$KEYSTORE_B64$KEYSTORE_PASSWORD$KEY_ALIAS" ]; then
+              echo "::error::Пустые или не заданы секреты:$missing — APK не встанет поверх прошлой версии. См. android/SIGNING.md"
               exit 1
             fi
             echo "::warning::Секретов ключа подписи нет — APK подписан временным отладочным ключом"
