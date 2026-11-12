@@ -533,9 +533,12 @@ html:not([data-meter="viz"]) .spectrum { display: none; }
   max-width: 940px;
   margin-inline: auto;
   padding: 8px clamp(20px, 4vw, 48px) 24px;
+  /* Колонка не шире экрана: без minmax(0, …) сетка растягивается под самый широкий ряд
+     и на узком телефоне плеер уезжает вправо, а страница начинает листаться вбок. */
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.hero { display: grid; justify-items: center; gap: clamp(16px, 2.6vh, 28px); text-align: center; }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: clamp(16px, 2.6vh, 28px); text-align: center; }
 .art {
   position: relative;
   width: min(100%, 38dvh, 420px);
@@ -607,7 +610,7 @@ html:not(.has-track) .meta { visibility: hidden; }
 }
 
 /* ============ Управление ============ */
-.deck { display: grid; gap: 6px; width: 100%; }
+.deck { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; width: 100%; }
 
 .seek {
   position: relative;
@@ -674,7 +677,8 @@ html:not(.has-track) .meta { visibility: hidden; }
 .extras .danger:hover:not(:disabled) { color: var(--ui-danger); }
 .extras-btns { display: flex; gap: 2px; }
 .volume { display: flex; align-items: center; gap: 2px; flex: 1 1 0; min-width: 0; max-width: 200px; }
-.volume input { flex: 1; min-width: 60px; }
+/* width: 0 — иначе ползунок требует свои ~130px по умолчанию и раздвигает нижний ряд за край экрана */
+.volume input { flex: 1; width: 0; min-width: 60px; }
 
 input[type="range"] {
   -webkit-appearance: none;
@@ -714,6 +718,10 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border: 0; bo
 }
 @media (max-width: 340px) {
   .volume input { display: none; }
+}
+@media (max-width: 359px) {
+  .controls { gap: 4px; }
+  .extras-btns { gap: 0; }
 }
 
 /* ============ Нижняя навигация (телефон) ============ */

@@ -137,8 +137,13 @@ html[data-libview="album"] .library-view { display: none !important; }
 @media (hover: none) { .preview-btn > .pv-play { opacity: 0.9; } .preview-btn::before { opacity: 0.25; } }
 @keyframes pv-pulse { from { opacity: 0.35; } to { opacity: 1; } }
 
-/* «Как пользоваться» в шапке настроек */
-.tour-open { margin-left: auto; min-height: 36px; }
+/* Ползунок громкости — только если включён в настройках; кнопка «без звука» остаётся всегда */
+html:not(.vol-slider) input[data-volume] { display: none !important; }
+html:not(.vol-slider) .volume { flex: 0 0 auto; }
+
+/* «Обучение» в шапке настроек */
+.tour-open { margin-left: auto; min-height: 36px; padding-inline: 14px; white-space: nowrap; }
+.sheet-head > h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Пустая библиотека / ничего не нашлось — кнопка «найти на YouTube» */
 .empty-yt { margin: 14px auto 0; }
@@ -291,7 +296,8 @@ dialog::backdrop { background: rgba(4, 4, 6, 0.64); }
   .sheet { margin: auto; border-radius: var(--ui-radius); box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5); }
 }
 
-.sheet-body { padding: 18px 20px 22px; display: grid; gap: 16px; }
+/* minmax(0, …): окно не становится шире экрана из-за одного длинного ряда */
+.sheet-body { padding: 18px 20px 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sheet h2 {
   font-family: var(--ui-font-head);
