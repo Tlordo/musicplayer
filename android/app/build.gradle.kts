@@ -28,6 +28,12 @@ android {
     }
 
     buildTypes {
+        // Тестовая сборка ставится рядом с обычной (своя библиотека, свой значок «dev»)
+        // и даёт подключиться к WebView из Chrome/Playwright по adb.
+        debug {
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+        }
         release {
             isMinifyEnabled = false
             // Подпись отладочным ключом: APK ставится «из файла», без магазина.
