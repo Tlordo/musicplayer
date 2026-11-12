@@ -1,0 +1,11 @@
+{
+  "name": "music-player-ui-tests",
+  "private": true,
+  "description": "Тесты интерфейса (public/) — Playwright, без сервера на Rust: API подменяется в тестах",
+  "scripts": {
+    "test:ui": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
