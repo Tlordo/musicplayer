@@ -51,11 +51,29 @@ async function fillServerInfo() {
       box.innerHTML = '<p class="hint">Не удалось узнать адрес сервера.</p>';
     }
   }
+  fetch('/api/settings')
+    .then((r) => r.json())
+    .then((srv) => {
+      for (const input of body.querySelectorAll('[data-srv]')) {
+        input.checked = !!srv[input.dataset.srv];
+        input.disabled = false;
+      }
+    })
+    .catch(() => {});
   const ver = body.querySelector('[data-ytdlp-version]');
   if (ver) {
     try {
       const v = await (await fetch('/api/ytdlp')).json();
       ver.textContent = v.ok && v.version ? `yt-dlp ${v.version}` : 'yt-dlp не найден';
+      const auto = body.querySelector('[data-ytdlp-auto]');
+      const u = v.last_update;
+      if (auto && u) {
+        const when = new Date(u.at * 1000).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+        auto.textContent = !u.ok ? `Последняя проверка ${when}: обновиться не удалось`
+          : u.before && u.before !== u.after ? `${when}: обновлён с ${u.before} до ${u.after}`
+          : `Проверено ${when}: версия свежая`;
+        auto.hidden = false;
+      }
     } catch {
       ver.textContent = 'yt-dlp: нет связи с сервером';
     }
@@ -85,6 +103,14 @@ function switchRow(key, title, hint, checked = settings[key]) {
   return `<label class="switch-row">
     <span class="switch-text"><span>${title}</span>${hint ? `<small>${hint}</small>` : ''}</span>
     <input type="checkbox" class="switch" data-set="${key}"${checked ? ' checked' : ''}>
+  </label>`;
+}
+
+/** Переключатель настройки сервера: общая для всех устройств, поэтому не в localStorage. */
+function srvSwitchRow(key, title, hint) {
+  return `<label class="switch-row">
+    <span class="switch-text"><span>${title}</span><small>${hint}</small></span>
+    <input type="checkbox" class="switch" data-srv="${key}" disabled>
   </label>`;
 }
 
@@ -181,11 +207,13 @@ function render() {
 
     <section class="set-sec" aria-labelledby="s-ytdlp">
       <h3 id="s-ytdlp">Загрузчик YouTube</h3>
-      <p class="hint">YouTube часто меняется, и старый yt-dlp перестаёт скачивать. Если треки не добавляются — обновите его.</p>
+      ${srvSwitchRow('auto_update_ytdlp', 'Обновлять yt-dlp сам', 'YouTube часто меняется, и старый yt-dlp перестаёт скачивать. Сервер проверяет обновления раз в сутки, а если трек не скачался — обновляется и пробует ещё раз')}
+      ${srvSwitchRow('sponsorblock', 'Только музыка', 'Вырезать из клипов разговоры, сценки и тишину по данным SponsorBlock. Действует на новые загрузки')}
       <div class="row-btns ytdlp-row">
         <span class="ytdlp-version" data-ytdlp-version>yt-dlp: …</span>
         <button type="button" class="btn" data-s="ytdlp-update"><svg><use href="#i-refresh"/></svg>Обновить yt-dlp</button>
       </div>
+      <p class="hint" data-ytdlp-auto hidden></p>
       <pre class="ytdlp-out" data-ytdlp-out hidden></pre>
     </section>
 
@@ -396,6 +424,23 @@ body.addEventListener('change', async (e) => {
     if (t.value === 'custom') core.setEq({ preset: 'custom' });
     else core.setEq({ preset: t.value, gains: [...core.EQ_PRESETS[t.value].gains] });
     render();
+  } else if (t.matches('[data-srv]')) {
+    t.disabled = true;
+    try {
+      const r = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [t.dataset.srv]: t.checked }),
+      });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`);
+      const srv = await r.json();
+      t.checked = !!srv[t.dataset.srv];
+    } catch (err) {
+      t.checked = !t.checked;
+      toast(`Не удалось сохранить: ${err.message}`, 'error');
+    } finally {
+      t.disabled = false;
+    }
   } else if (t.matches('[data-set]')) {
     settings[t.dataset.set] = t.checked;
     if (t.dataset.set === 'normalize') core.applyNormalize();

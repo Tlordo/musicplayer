@@ -25,6 +25,8 @@ pub struct AppState {
     pub recs: Arc<Recommender>,
     pub jobs: Arc<jobs::Jobs>,
     pub preview: Arc<crate::preview::Preview>,
+    pub settings: Arc<crate::server_settings::Settings>,
+    pub updater: Arc<crate::updater::Updater>,
     pub port: u16,
 }
 
@@ -52,6 +54,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/qr", get(qr))
         .route("/api/ytdlp", get(ytdlp_version))
         .route("/api/ytdlp/update", post(ytdlp_update))
+        .route("/api/settings", get(get_settings).patch(patch_settings))
         .route("/api/track/:video_id", delete(delete_track))
         .route("/api/track/:video_id/play", post(record_play))
         .route("/api/track/:video_id/like", post(set_like))
@@ -584,15 +587,36 @@ async fn run_ytdlp(s: &AppState, args: &[&str], secs: u64) -> ApiResult<(bool, S
 
 async fn ytdlp_version(State(s): State<AppState>) -> ApiResult<impl IntoResponse> {
     let (ok, text) = run_ytdlp(&s, &["--version"], 20).await?;
-    Ok(Json(json!({ "ok": ok, "version": text.lines().next().unwrap_or(""), "path": s.cfg.ytdlp.display().to_string() })))
+    Ok(Json(json!({
+        "ok": ok,
+        "version": text.lines().next().unwrap_or(""),
+        "path": s.cfg.ytdlp.display().to_string(),
+        "last_update": s.updater.last(),
+    })))
 }
 
-/// YouTube часто меняется — старый yt-dlp перестаёт скачивать. Это его самообновление.
+/// YouTube часто меняется — старый yt-dlp перестаёт скачивать. Это его самообновление
+/// (то же, что делается автоматически, но по кнопке и без ожидания).
 async fn ytdlp_update(State(s): State<AppState>) -> ApiResult<impl IntoResponse> {
-    let (ok, text) = run_ytdlp(&s, &["-U"], 180).await?;
-    let (_, version) = run_ytdlp(&s, &["--version"], 20).await.unwrap_or((false, String::new()));
-    tracing::info!("обновление yt-dlp: {text}");
-    Ok(Json(json!({ "ok": ok, "output": text, "version": version.lines().next().unwrap_or("") })))
+    let r = s
+        .updater
+        .update(std::time::Duration::ZERO)
+        .await
+        .map_err(|e| bad(format!("не удалось запустить yt-dlp: {e:#}")))?
+        .ok_or_else(|| ApiError::new(StatusCode::CONFLICT, "обновление уже идёт"))?;
+    let changed = r.changed();
+    Ok(Json(json!({ "ok": r.ok, "output": r.output, "version": r.after, "changed": changed })))
+}
+
+async fn get_settings(State(s): State<AppState>) -> impl IntoResponse {
+    Json(s.settings.get())
+}
+
+async fn patch_settings(
+    State(s): State<AppState>,
+    Json(patch): Json<crate::server_settings::Patch>,
+) -> ApiResult<impl IntoResponse> {
+    Ok(Json(s.settings.apply(patch)?))
 }
 
 async fn delete_track(State(s): State<AppState>, Path(id): Path<String>) -> ApiResult<impl IntoResponse> {
