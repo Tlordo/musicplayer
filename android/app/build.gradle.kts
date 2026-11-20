@@ -1,4 +1,5 @@
 import java.net.URI
+import java.util.Base64
 import javax.inject.Inject
 
 plugins {
@@ -15,6 +16,22 @@ android {
         targetSdk = 36
         versionCode = 241
         versionName = "2.4.1"
+    }
+
+    // Постоянный ключ подписи релиза — иначе обновление не ставится поверх старой версии
+    // (INSTALL_FAILED_UPDATE_INCOMPATIBLE). Берётся из переменных окружения или из
+    // gradle-свойств (~/.gradle/gradle.properties): MK_KEYSTORE_B64 (keystore в base64)
+    // или MK_KEYSTORE_FILE (путь к файлу), MK_KEYSTORE_PASSWORD, MK_KEY_ALIAS, MK_KEY_PASSWORD.
+    // Без них релиз подписывается отладочным ключом — локальная сборка работает как раньше.
+    // Как завести ключ — android/SIGNING.md.
+    val releaseKey = releaseKeystore()
+    signingConfigs {
+        if (releaseKey != null) create("release") {
+            storeFile = releaseKey
+            storePassword = signingProp("MK_KEYSTORE_PASSWORD")
+            keyAlias = signingProp("MK_KEY_ALIAS")
+            keyPassword = signingProp("MK_KEY_PASSWORD") ?: signingProp("MK_KEYSTORE_PASSWORD")
+        }
     }
 
     // Отдельный APK на архитектуру: телефонам — arm64-v8a, эмуляторам — x86_64.
@@ -36,8 +53,8 @@ android {
         }
         release {
             isMinifyEnabled = false
-            // Подпись отладочным ключом: APK ставится «из файла», без магазина.
-            signingConfig = signingConfigs.getByName("debug")
+            // APK ставится «из файла», без магазина. Постоянный ключ, если он задан (см. выше).
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 
@@ -54,6 +71,30 @@ android {
         // докачает само при первом скачивании музыки (см. FfmpegPack.kt).
         if (providers.gradleProperty("mk.lite").orNull == "true") jniLibs.excludes += "**/libffmpeg.zip.so"
     }
+}
+
+/** Значение для подписи: переменная окружения, иначе gradle-свойство. Пустое — как нет. */
+fun signingProp(name: String): String? =
+    (providers.environmentVariable(name).orNull ?: providers.gradleProperty(name).orNull)?.takeIf { it.isNotBlank() }
+
+/**
+ * Файл keystore для релиза или null (тогда подпись отладочным ключом). MK_KEYSTORE_B64
+ * раскодируется в build/ — так ключ из секрета CI не нужно класть в репозиторий.
+ * Без пароля и псевдонима ключ не используется, и сборка об этом предупреждает.
+ */
+fun releaseKeystore(): File? {
+    val b64 = signingProp("MK_KEYSTORE_B64")
+    val path = signingProp("MK_KEYSTORE_FILE")
+    if (b64 == null && path == null) return null
+    if (signingProp("MK_KEYSTORE_PASSWORD") == null || signingProp("MK_KEY_ALIAS") == null) {
+        logger.warn("MK_KEYSTORE_*: нет пароля или псевдонима ключа — релиз подписан отладочным ключом")
+        return null
+    }
+    if (path != null) return file(path).also { if (!it.isFile) throw GradleException("MK_KEYSTORE_FILE: нет файла $it") }
+    val out = layout.buildDirectory.file("signing/release.jks").get().asFile
+    out.parentFile.mkdirs()
+    out.writeBytes(Base64.getMimeDecoder().decode(b64))
+    return out
 }
 
 /** Интерфейс (../../public) кладётся в APK как assets/public. Секреты (*.env) — нет. */
