@@ -55,6 +55,7 @@ export async function openApp(page, o = {}) {
     if (p === '/api/recommendations') return json({ items: [], seeds: [] });
     if (p === '/api/info') return json({ urls: [] });
     if (p === '/api/ytdlp') return json({ ok: true, version: 'test' });
+    if (p === '/api/settings') return json({ sponsorblock: false, auto_update_ytdlp: true });
     if (p.startsWith('/api/thumbnail/')) {
       if (o.thumbDelay) await new Promise((r) => setTimeout(r, o.thumbDelay));
       return route.fulfill({ status: 200, contentType: 'image/png', body: PNG });

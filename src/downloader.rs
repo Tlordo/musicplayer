@@ -8,19 +8,25 @@ use tokio::sync::Semaphore;
 
 use crate::config::Config;
 use crate::db::{Db, TechData, UserData};
+use crate::server_settings::Settings;
+use crate::updater::{self, Updater};
 
 pub struct Downloader {
     cfg: Arc<Config>,
     db: Arc<Db>,
     http: reqwest::Client,
     slots: Semaphore,
+    settings: Arc<Settings>,
+    updater: Arc<Updater>,
     /// video_id треков, которые прямо сейчас восстанавливаются.
     restoring: Mutex<HashSet<String>>,
 }
 
 impl Downloader {
-    pub fn new(cfg: Arc<Config>, db: Arc<Db>) -> Self {
+    pub fn new(cfg: Arc<Config>, db: Arc<Db>, settings: Arc<Settings>, updater: Arc<Updater>) -> Self {
         Self {
+            settings,
+            updater,
             slots: Semaphore::new(cfg.max_parallel_downloads),
             http: reqwest::Client::builder()
                 .user_agent("Mozilla/5.0 music-player")
@@ -42,7 +48,7 @@ impl Downloader {
     pub async fn download_with(&self, url: &str, on_start: impl FnOnce()) -> Result<String> {
         let _slot = self.slots.acquire().await?;
         on_start();
-        let info = self.run_ytdlp(url).await?;
+        let info = self.fetch(url).await?;
 
         let video_id = info["id"]
             .as_str()
@@ -58,9 +64,7 @@ impl Downloader {
         let _ = tokio::fs::remove_file(self.cfg.peaks_path(&video_id)).await;
 
         let tech = tech_data(&info);
-        let user = user_data(&info);
-
-        let mut user = user;
+        let mut user = user_data(&info);
         let mut saved = false;
         for url in thumbnail_candidates(&info) {
             match self.fetch_to_file(&url, &self.cfg.thumb_path(&video_id)).await {
@@ -112,8 +116,36 @@ impl Downloader {
         self.restoring.lock().unwrap_or_else(|e| e.into_inner())
     }
 
+    /// Скачивание с запасными путями: если сломалось — обновить yt-dlp и попробовать снова;
+    /// если не ответил SponsorBlock — скачать целиком, без вырезания.
+    async fn fetch(&self, url: &str) -> Result<Value> {
+        let settings = self.settings.get();
+        let first = self.run_ytdlp(url, settings.sponsorblock).await;
+        let err = match first {
+            Ok(info) => return Ok(info),
+            Err(e) => e,
+        };
+        let msg = format!("{err:#}");
+
+        if settings.sponsorblock && msg.to_lowercase().contains("sponsorblock") {
+            tracing::warn!("SponsorBlock недоступен — скачиваю {url} целиком");
+            return self.run_ytdlp(url, false).await;
+        }
+        if settings.auto_update_ytdlp && !updater::is_content_error(&msg) {
+            match self.updater.update(updater::ON_FAILURE_GAP).await {
+                Ok(Some(r)) if r.changed() => {
+                    tracing::info!("yt-dlp обновлён после ошибки — повторяю {url}");
+                    return self.run_ytdlp(url, settings.sponsorblock).await;
+                }
+                Ok(_) => {}
+                Err(e) => tracing::warn!("обновление yt-dlp после ошибки: {e:#}"),
+            }
+        }
+        Err(err)
+    }
+
     /// Один вызов yt-dlp: и метаданные (JSON в stdout), и скачивание с конвертацией в opus.
-    async fn run_ytdlp(&self, url: &str) -> Result<Value> {
+    async fn run_ytdlp(&self, url: &str, sponsorblock: bool) -> Result<Value> {
         let mut args = crate::ytdlp::base_args(&self.cfg);
         args.extend(
             ["--dump-json", "--no-simulate", "--no-playlist", "--no-progress", "-f", "bestaudio/best", "-x", "--audio-format", "opus", "--audio-quality", "0", "--embed-metadata", "--embed-thumbnail", "-o", "%(id)s.%(ext)s"]
@@ -121,6 +153,11 @@ impl Downloader {
         );
         args.push("-P".into());
         args.push(self.cfg.music_dir.display().to_string());
+        if sponsorblock {
+            // music_offtopic — всё, что в клипе не музыка: разговоры, сценки, тишина в конце.
+            // Длительность после вырезания печатаем отдельной строкой: в JSON она ещё исходная.
+            args.extend(["--sponsorblock-remove", "music_offtopic", "--print", "after_move:duration"].map(String::from));
+        }
         if let Some(ffmpeg) = &self.cfg.ffmpeg {
             args.push("--ffmpeg-location".into());
             args.push(ffmpeg.display().to_string());
@@ -135,7 +172,14 @@ impl Downloader {
             .lines()
             .find(|l| l.trim_start().starts_with('{'))
             .context("yt-dlp не вернул метаданные")?;
-        Ok(serde_json::from_str(line).context("не удалось разобрать JSON от yt-dlp")?)
+        let mut info: Value = serde_json::from_str(line).context("не удалось разобрать JSON от yt-dlp")?;
+        if sponsorblock {
+            if let Some(secs) = cut_duration(&stdout) {
+                info["duration"] = secs.into();
+                info["duration_string"] = format_duration(secs).into();
+            }
+        }
+        Ok(info)
     }
 
     /// Скачивает файл по URL атомарно: сначала во временный файл, затем rename.
@@ -246,6 +290,22 @@ fn thumbnail_candidates(info: &Value) -> Vec<String> {
     out
 }
 
+/// Длительность после вырезания SponsorBlock — последняя строка stdout, похожая на число секунд.
+fn cut_duration(stdout: &str) -> Option<f64> {
+    stdout
+        .lines()
+        .rev()
+        .filter_map(|l| l.trim().parse::<f64>().ok())
+        .find(|s| s.is_finite() && *s > 0.0)
+}
+
+/// 201.4 -> "3:21", 3723 -> "1:02:03" — как `duration_string` у yt-dlp.
+fn format_duration(secs: f64) -> String {
+    let t = secs.round() as u64;
+    let (h, m, s) = (t / 3600, t / 60 % 60, t % 60);
+    if h > 0 { format!("{h}:{m:02}:{s:02}") } else { format!("{m}:{s:02}") }
+}
+
 /// Обложка, которая есть у любого видео YouTube.
 pub fn fallback_thumbnail(id: &str) -> String {
     format!("https://i.ytimg.com/vi/{id}/hqdefault.jpg")
@@ -305,6 +365,16 @@ mod tests {
         assert_eq!(t.format_id.as_deref(), Some("251"));
         let info = json!({"formats": [{"format_id": "140", "vcodec": "none", "abr": 1.0, "filesize": 2097152}]});
         assert_eq!(tech_data(&info).filesize_mb, Some(2.0));
+    }
+
+    #[test]
+    fn sponsorblock_duration() {
+        let out = "{\"id\":\"x\",\"duration\":250}\n201.4\n";
+        assert_eq!(cut_duration(out), Some(201.4));
+        assert_eq!(cut_duration("{\"id\":\"x\"}\nNA\n"), None);
+        assert_eq!(format_duration(201.4), "3:21");
+        assert_eq!(format_duration(3723.0), "1:02:03");
+        assert_eq!(format_duration(59.0), "0:59");
     }
 
     #[test]

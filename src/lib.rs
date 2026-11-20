@@ -11,7 +11,9 @@ mod names;
 mod peaks;
 mod preview;
 mod recs;
+mod server_settings;
 mod thumbs;
+mod updater;
 pub mod ytdlp;
 
 use std::future::Future;
@@ -86,8 +88,14 @@ pub fn app(cfg: Arc<Config>, port: u16) -> Result<Router> {
         tracing::info!("cookies.txt не найден — закрытый контент скачать не получится");
     }
 
+    let settings = Arc::new(server_settings::Settings::load(cfg.data_dir.join("settings.json")));
+    let updater = Arc::new(updater::Updater::new(cfg.clone()));
+    updater.spawn_background(settings.clone());
+
     let state = AppState {
-        dl: Arc::new(Downloader::new(cfg.clone(), db.clone())),
+        dl: Arc::new(Downloader::new(cfg.clone(), db.clone(), settings.clone(), updater.clone())),
+        settings,
+        updater,
         recs: Arc::new(Recommender::new(cfg.clone())),
         jobs: Arc::new(jobs::Jobs::default()),
         preview: Arc::new(preview::Preview::new(cfg.clone())),
